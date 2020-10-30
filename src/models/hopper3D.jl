@@ -71,8 +71,6 @@ function kinematics(::Hopper3D, q)
 	p + R*[0.0; 0.0; -1.0 * q[7]]
 end
 
-kinematics(model, q1)
-
 # Methods
 function M_func(model::Hopper3D, q)
 	Diagonal(@SVector [model.mb + model.ml, model.mb + model.ml, model.mb + model.ml,

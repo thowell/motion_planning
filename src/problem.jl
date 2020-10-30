@@ -1,27 +1,58 @@
 abstract type Problem end
 
 struct TrajectoryOptimizationProblem <: Problem
-    T::Int # planning horizon
-
-    N::Int      # number of decision variables
-
-    M::Int      # number of constraints
-
-    xl     # state lower bound
-    xu     # state upper bound
-
-    ul     # control lower bound
-    uu     # control upper bound
-
-    idx    # indices
-
     model  # model
 
     h      # time step
+    T::Int # planning horizon
 
     obj    # objective
 
     con    # constraints
+    xl     # state lower bound
+    xu     # state upper bound
+    ul     # control lower bound
+    uu     # control upper bound
+
+    num_var::Int      # number of decision variables
+    num_con::Int      # number of constraints
+
+    idx    # indices
+end
+
+function trajectory_optimization_problem(model, obj, T;
+        h = 0.0,
+        xl = [-1.0 * Inf * ones(model.n) for t = 1:T],
+        xu = [Inf * ones(model.n) for t = 1:T],
+        ul = [-1.0 * Inf * ones(model.m) for t = 1:T-1],
+        uu = [Inf * ones(model.m) for t = 1:T-1],
+        con = EmptyConstraints(),
+        dynamics = true)
+
+    # indices
+    idx = indices(model.n, model.m, T)
+
+    # decision variables
+    num_state = model.n * T
+    num_control = model.m * (T - 1)
+    num_var = num_state + num_control
+
+    # constraints
+    dynamics && (con = add_constraints(con, dynamics_constraints(model, T)))
+
+    num_con = con.n
+
+    prob = TrajectoryOptimizationProblem(
+            model,
+            h,
+            T,
+            obj,
+            con, xl, xu, ul, uu,
+            num_var, num_con,
+            idx
+            )
+
+   return prob
 end
 
 function problem(model, obj, T;
@@ -33,29 +64,14 @@ function problem(model, obj, T;
         con = EmptyConstraints(),
         dynamics = true)
 
-    # indices
-    idx = init_indices(model.n, model.m, T)
-
-    # decision variables
-    N_state = model.n * T
-    N_control = model.m * (T - 1)
-    N = N_state + N_control
-
-    # constraints
-    dynamics && (con = add_constraints(con, dynamics_constraints(model, T)))
-
-    M = con.n
-
-    prob = TrajectoryOptimizationProblem(
-            T,
-            N, M,
-            xl, xu,
-            ul, uu,
-            idx,
-            model,
-            h,
-            obj,
-            con)
+   prob = trajectory_optimization_problem(model, obj, T,
+                h = h,
+                xl = xl,
+                xu = xu,
+                ul = ul,
+                uu = uu,
+                con = con,
+                dynamics = dynamics)
 
    prob_moi = moi_problem(prob)
 
@@ -66,7 +82,7 @@ function pack(X, U, prob::TrajectoryOptimizationProblem)
     T = prob.T
     idx = prob.idx
 
-    Z = zeros(prob.N)
+    Z = zeros(prob.num_var)
 
     for t = 1:T
         Z[idx.x[t]] = X[t]
@@ -92,8 +108,8 @@ end
 
 function moi_problem(prob::TrajectoryOptimizationProblem)
     return MOIProblem(
-        prob.N,
-        prob.M,
+        prob.num_var,
+        prob.num_con,
         primal_bounds(prob),
         constraint_bounds(prob),
         prob)
@@ -104,8 +120,8 @@ function primal_bounds(prob::TrajectoryOptimizationProblem)
     T = prob.T
     idx = prob.idx
 
-    Zl = -Inf * ones(prob.N)
-    Zu = Inf * ones(prob.N)
+    Zl = -Inf * ones(prob.num_var)
+    Zu = Inf * ones(prob.num_var)
 
     for t = 1:T
         Zl[idx.x[t]] = prob.xl[t]
@@ -121,11 +137,9 @@ function primal_bounds(prob::TrajectoryOptimizationProblem)
 end
 
 function constraint_bounds(prob::TrajectoryOptimizationProblem)
-    T = prob.T
-    M = prob.M
 
-    cl = zeros(M)
-    cu = zeros(M)
+    cl = zeros(prob.num_con)
+    cu = zeros(prob.num_con)
 
     cu[prob.con.ineq] .= Inf
 
@@ -155,3 +169,16 @@ end
 function sparsity_jacobian(prob::TrajectoryOptimizationProblem)
     constraints_sparsity(prob)
 end
+
+"""
+    objective
+"""
+objective(Z, prob::TrajectoryOptimizationProblem) = objective(Z, prob.obj, prob.idx, prob.T)
+objective_gradient!(∇J, Z, prob::TrajectoryOptimizationProblem) = objective_gradient!(∇J, Z, prob.obj, prob.idx, prob.T)
+
+"""
+    constraints
+"""
+constraints!(c, Z, prob::TrajectoryOptimizationProblem) = constraints!(c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
+constraints_jacobian!(∇c, Z, prob::TrajectoryOptimizationProblem) = constraints_jacobian!(∇c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
+constraints_sparsity(prob::TrajectoryOptimizationProblem; r_shift = 0) = constraints_sparsity(prob.con, prob.model, prob.idx, prob.T; r_shift = r_shift)

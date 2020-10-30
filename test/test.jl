@@ -1,7 +1,7 @@
 # test problem
-Z0_test = rand(prob.prob.N)
+Z0_test = rand(prob.prob.num_var)
 tmp_o(z) = eval_objective(prob.prob, z)
-∇obj = zeros(prob.prob.N)
+∇obj = zeros(prob.prob.num_var)
 eval_objective_gradient!(∇obj, Z0_test, prob.prob)
 @assert norm(ForwardDiff.gradient(tmp_o, Z0_test) - ∇obj) < 1.0e-10
 c0 = zeros(prob.prob.M)
@@ -10,7 +10,7 @@ tmp_c(c, z) = eval_constraint!(c, z, prob.prob)
 ForwardDiff.jacobian(tmp_c, c0, Z0_test)
 spar = sparsity_jacobian(prob.prob)
 ∇c_vec = zeros(length(spar))
-∇c = zeros(prob.prob.M, prob.prob.N)
+∇c = zeros(prob.prob.M, prob.prob.num_var)
 eval_constraint_jacobian!(∇c_vec, Z0_test, prob.prob)
 for (i,k) in enumerate(spar)
     ∇c[k[1],k[2]] = ∇c_vec[i]

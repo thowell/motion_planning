@@ -1,50 +1,44 @@
-include(joinpath(pwd(), "src/models/biped.jl"))
-include(joinpath(pwd(), "src/models/constraints_contact.jl"))
-include(joinpath(pwd(), "src/models/constraints_pinned_foot.jl"))
-
-# Visualize
-include(joinpath(pwd(), "src/models/visualize.jl"))
-vis = Visualizer()
-open(vis)
-
-θ = pi / 10.0
-# q1 = initial_configuration(model, θ)
-q1, qT = loop_configurations(model, θ)
-visualize!(vis, model, [q1])
+include(joinpath(pwd(), "src/models/box.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Horizon
-T = 11
+T = 26
 
 # Time step
-tf = 1.0
+tf = 2.5
 h = tf / (T-1)
 
 # Bounds
 
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
-_uu[model.idx_u] .= 10.0
 _ul = zeros(model.m)
-_ul[model.idx_u] .= -10.0
+_ul[model.idx_u] .= -Inf
 ul, uu = control_bounds(model, T, _ul, _uu)
 
-xl, xu = state_bounds(model, T, x1 = [q1; q1], xT = [Inf * ones(model.nq); qT])
+# Initial and final states
+mrp_init = MRP(UnitQuaternion(RotY(0.0) * RotX(0.0)))
+mrp_corner = MRP(UnitQuaternion(RotY(-1.0 * atan(1.0 / sqrt(2.0))) * RotX(pi / 4.0)))
+
+q1 = [model.r, model.r, model.r, mrp_init.x, mrp_init.y, mrp_init.z]
+qT = [0.0, 0.0, model.r * sqrt(3.0), mrp_corner.x, mrp_corner.y, mrp_corner.z]
+
+x1 = [q1; q1]
+
+xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
-X0 = configuration_to_state(q_ref)
-
-obj_penalty = PenaltyObjective(1000.0, model.m)
+obj_penalty = PenaltyObjective(100.0, model.m)
 
 Qq = Diagonal(ones(model.nq))
 Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
-QT = cat(0.5 * Qq, 10.0 * Diagonal(ones(model.nq)), dims = (1, 2))
+QT = cat(0.5 * Qq, 100.0 * Diagonal(ones(model.nq)), dims = (1, 2))
 R = Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...])
 
 obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
-    [X0[t] for t = 1:T],
+    [[zeros(model.nq); qT] for t = 1:T],
     [zeros(model.m) for t = 1:T]
     )
 
@@ -52,8 +46,6 @@ obj = MultiObjective([obj_tracking, obj_penalty])
 
 # Constraints
 con_contact = contact_constraints(model, T)
-con_pinned = pinned_foot_constraint(model, q1, T)
-con = multiple_constraints([con_contact, con_pinned])
 
 # Problem
 prob = problem(model,
@@ -64,12 +56,11 @@ prob = problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
+               con = con_contact
                )
 
 # Trajectory initialization
-q_ref = linear_interp(q1, qT, T)
-X0 = configuration_to_state(q_ref) # linear interpolation on state
+X0 = linear_interp(x1, [qT; qT], T) # linear interpolation on state
 U0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
@@ -89,5 +80,3 @@ include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
-
-plot(hcat(Ū...)[1:model.nu,:]', linetype = :steppost)

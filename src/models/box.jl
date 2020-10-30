@@ -68,6 +68,7 @@ corner_offset = @SVector [c1, c2, c3, c4, c5, c6, c7, c8]
 
 # Parameters
 μ = 1.0  # coefficient of friction
+g = 9.81
 mass = 1.0   # mass
 J = 1.0 / 12.0 * mass * ((2.0 * r)^2 + (2.0 * r)^2)
 

@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/simple_manipulator.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_contact.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Horizon
 T = 11

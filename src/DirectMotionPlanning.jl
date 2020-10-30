@@ -13,9 +13,13 @@ include("integration.jl")
 include("model.jl")
 
 include("problem.jl")
+
 include("objective.jl")
+include("objective/quadratic.jl")
+include("objective/penalty.jl")
+
 include("constraints.jl")
-include("constraints/constraints_dynamics.jl")
+include("constraints/dynamics.jl")
 
 include("moi.jl")
 include("solvers/snopt.jl")
