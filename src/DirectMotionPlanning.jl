@@ -15,8 +15,8 @@ include("model.jl")
 include("problem.jl")
 
 include("objective.jl")
-include("objective/quadratic.jl")
-include("objective/penalty.jl")
+include("objectives/quadratic.jl")
+include("objectives/penalty.jl")
 
 include("constraints.jl")
 include("constraints/dynamics.jl")
