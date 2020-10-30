@@ -1,25 +1,22 @@
-include(joinpath(pwd(), "src/models/box.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_contact.jl"))
+include(joinpath(pwd(), "src/models/particle.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Horizon
-T = 26
+T = 51
 
 # Time step
-tf = 2.5
+tf = 5.0
 h = tf / (T-1)
 
 # Bounds
-
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] .= 0.0
 _ul = zeros(model.m)
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-mrp = MRP(UnitQuaternion(RotY(pi / 10.0)*RotX(pi / 15.0)))
-
-q1 = [0.0, 0.0, 2.5, mrp.x, mrp.y, mrp.z]
-v1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+q1 = [0.0, 0.0, 1.0]
+v1 = [3.0, 5.0, 0.0]
 v2 = v1 - G_func(model,q1) * h
 q2 = q1 + 0.5 * h * (v1 + v2)
 
@@ -54,8 +51,7 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-5, c_tol = 1.0e-5)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)

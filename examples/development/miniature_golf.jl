@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/miniature_golf.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_contact.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/visualize.jl"))
 
 # Horizon

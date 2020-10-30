@@ -1,8 +1,8 @@
 const MOI = MathOptInterface
 
 struct MOIProblem <: MOI.AbstractNLPEvaluator
-    n::Int                 # number of decision variables
-    m::Int                 # number of constraints
+    num_var::Int                 # number of decision variables
+    num_con::Int                 # number of constraints
     primal_bounds
     constraint_bounds
     prob::Problem
@@ -64,6 +64,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         time_limit = 120,
         mipl = 0,
         mapl = 1)
+
     x_l, x_u = primal_bounds(prob)
     c_l, c_u = constraint_bounds(prob)
 
@@ -84,9 +85,9 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
                                   Minor_print_level = mipl)
     end
 
-    x = MOI.add_variables(solver, prob.n)
+    x = MOI.add_variables(solver, prob.num_var)
 
-    for i = 1:prob.n
+    for i = 1:prob.num_var
         xi = MOI.SingleVariable(x[i])
         MOI.add_constraint(solver, xi, MOI.LessThan(x_u[i]))
         MOI.add_constraint(solver, xi, MOI.GreaterThan(x_l[i]))
@@ -100,4 +101,6 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
 
     # Get the solution
     return MOI.get(solver, MOI.VariablePrimal(), x)
+
+
 end

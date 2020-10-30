@@ -1,6 +1,8 @@
 include(joinpath(pwd(), "src/models/hopper.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_contact.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_loop.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
+include(joinpath(pwd(), "src/constraints/loop.jl"))
+include(joinpath(pwd(), "src/constraints/free_time.jl"))
+
 
 # Free-time model
 model_ft = free_time_model(model)

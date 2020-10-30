@@ -6,7 +6,7 @@ struct Indices
     u
 end
 
-function init_indices(n, m, T;
+function indices(n, m, T;
     shift = 0)
     x = []
     u = []

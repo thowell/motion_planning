@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/hopper3D.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_contact.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Horizon
 T = 31

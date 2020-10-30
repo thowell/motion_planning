@@ -1,7 +1,7 @@
 include(joinpath(pwd(), "src/models/car.jl"))
 include(joinpath(pwd(), "src/constraints/constraints_obstacles.jl"))
 
-optimize = false
+optimize = true
 
 # Horizon
 T = 51

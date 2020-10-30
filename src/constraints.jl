@@ -1,5 +1,8 @@
 abstract type Constraints end
 
+"""
+    constraints template
+"""
 function constraints!(c, Z, con::Constraints, model, idx, h, T)
     return nothing
 end
@@ -88,7 +91,3 @@ function constraints_sparsity(con::MultiConstraints, model, idx, T; r_shift = 0)
     end
     return sparsity
 end
-
-constraints!(c, Z, prob::TrajectoryOptimizationProblem) = constraints!(c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
-constraints_jacobian!(∇c, Z, prob::TrajectoryOptimizationProblem) = constraints_jacobian!(∇c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
-constraints_sparsity(prob::TrajectoryOptimizationProblem; r_shift = 0) = constraints_sparsity(prob.con, prob.model, prob.idx, prob.T; r_shift = r_shift)
