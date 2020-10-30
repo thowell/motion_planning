@@ -1,0 +1,4 @@
+# Blend *.mtl file
+
+newmtl Barge
+map_Kd Barge.png

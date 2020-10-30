@@ -1,1 +1,1 @@
-# DirectMotionPlanning
+# Direct Motion Planning
