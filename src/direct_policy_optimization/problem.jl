@@ -14,24 +14,35 @@ struct DirectPolicyOptimizationProblem
 	# number of samples
 	N
 
-	# disturbance trajectories
+	# disturbance trajectory
 	W
-	W_sqrt
+	w
 	sqrt_type
 
 	# number of variables
 	num_var
 	num_con
 
+	num_var_sample
+	num_var_con
+
 	# indices
 	idx_nom
+	idx_mean
 	idx_sample
 	idx_policy
+
+	# shifts
+	shift_mean
+	shift_sample
+	shift_policy
 end
 
 function primal_bounds(dpo::DirectPolicyOptimizationProblem)
     T = dpo.prob_nom.T
+
     idx_nom = dpo.idx_nom
+	idx_mean = dpo.idx_mean
 	idx_sample = dpo.idx_sample
 
     Zl = -Inf * ones(dpo.num_var)
@@ -40,9 +51,12 @@ function primal_bounds(dpo::DirectPolicyOptimizationProblem)
 	# nominal
 	Zl[idx_nom], Zu[idx_nom] = primal_bounds(dpo.prob_nom)
 
+	# mean
+	Zl[idx_mean], Zu[idx_mean] = primal_bounds(dpo.prob_sample)
+
 	# sample
 	for i = 1:dpo.N
-		Zl[idx_sample[i]], Zu[idx_sample[i]] = primal_bounds(dpo.prob_sample[i])
+		Zl[idx_sample[i]], Zu[idx_sample[i]] = primal_bounds(dpo.prob_sample)
 	end
 
     return Zl, Zu
@@ -60,7 +74,7 @@ function constraint_bounds(dpo::DirectPolicyOptimizationProblem)
 
 	# sample
 	for i = 1:dpo.N
-		cu[idx_sample[i][dpo.prob_sample[i].con.ineq]] .= Inf
+		cu[idx_sample[i][dpo.prob_sample.con.ineq]] .= Inf
 	end
 
     return cl, cu
@@ -70,9 +84,14 @@ function eval_objective(dpo::DirectPolicyOptimizationProblem, Z)
 	# nominal
 	J = objective(view(Z, dpo.idx_nom), dpo.prob_nom)
 
+	# mean
+	for i = 1:2 * dpo.prob_sample.model.d
+		J += objective(view(Z, dpo.idx_mean), dpo.prob_sample)
+	end
+
 	# sample
 	for i = 1:dpo.N
-		J += objective(view(Z, dpo.idx_sample[i]), dpo.prob_sample[i])
+		J += objective(view(Z, dpo.idx_sample[i]), dpo.prob_sample)
 	end
 
 	# sample objective
@@ -99,14 +118,23 @@ function eval_objective_gradient!(∇l, Z, dpo::DirectPolicyOptimizationProblem)
     objective_gradient!(view(∇l, dpo.idx_nom),
 		view(Z, dpo.idx_nom), dpo.prob_nom)
 
-	# sample
+	# mean
+	for i = 1:2 * dpo.prob_sample.model.d
+		objective_gradient!(view(∇l, dpo.idx_mean),
+			view(Z, dpo.idx_mean), dpo.prob_sample)
+	end
+
+	# samples
 	for i = 1:dpo.N
 		objective_gradient!(view(∇l, dpo.idx_sample[i]),
-			view(Z, dpo.idx_sample[i]), dpo.prob_sample[i])
+			view(Z, dpo.idx_sample[i]), dpo.prob_sample)
 	end
 
 	# sample objective
 	if dpo.objective_sample
+		# mean
+
+		# samples
 		for i = 1:dpo.N
 			nothing
 		end
@@ -132,9 +160,9 @@ function eval_constraint!(c, Z, dpo::DirectPolicyOptimizationProblem)
 
 	# sample
 	for i = 1:dpo.N
-		constraints!(view(c, shift .+ (1:dpo.prob_sample[i].num_con)),
-			view(Z, dpo.idx_sample[i]), dpo.prob_sample[i])
-		shift += dpo.prob_sample[i].num_con
+		constraints!(view(c, shift .+ (1:dpo.prob_sample.num_con)),
+			view(Z, dpo.idx_sample[i]), dpo.prob_sample)
+		shift += dpo.prob_sample.num_con
 	end
 
 	# sample dynamics
@@ -145,8 +173,25 @@ function eval_constraint!(c, Z, dpo::DirectPolicyOptimizationProblem)
 
 	# policy
 	if dpo.constraints.policy
+		Θ = view(Z, dpo.idx_policy)
+		τ_nom = view(Z, dpo.idx_nom)
+
+		constraints!(view(c, shift .+ (1:dpo.con_policy.n)),
+				Θ, τ_nom, view(Z, dpo.idx_mean),
+				dpo.con_policy, dpo.prob_nom.model, dpo.prob_sample.model,
+				dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+				dpo.prob_nom.h, dpo.prob_nom.T)
+
+		shift += dpo.con_policy.n
+
 		for i = 1:dpo.N
-			shift += 0
+			constraints!(view(c, shift .+ (1:dpo.con_policy.n)),
+					Θ, τ_nom, view(Z, dpo.idx_sample[i]),
+					dpo.con_policy, dpo.prob_nom.model, dpo.prob_sample.model,
+					dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+					dpo.prob_nom.h, dpo.prob_nom.T)
+
+			shift += dpo.con_policy.n
 			nothing
 		end
 	end
@@ -164,9 +209,9 @@ function eval_constraint_jacobian!(∇c, Z, dpo::DirectPolicyOptimizationProblem
 
 	# sample
 	for i = 1:dpo.N
-		len = length(sparsity_jacobian(dpo.prob_sample[i]))
+		len = length(sparsity_jacobian(dpo.prob_sample))
 		constraints_jacobian!(view(∇c, shift .+ (1:len)),
-			view(Z, dpo.idx_sample[i]), dpo.prob_sample[i])
+			view(Z, dpo.idx_sample[i]), dpo.prob_sample)
 		shift += len
 	end
 
@@ -178,9 +223,35 @@ function eval_constraint_jacobian!(∇c, Z, dpo::DirectPolicyOptimizationProblem
 
 	# policy
 	if dpo.constraints_policy
+		Θ = view(Z, dpo.idx_policy)
+		τ_nom = view(Z, dpo.idx_nom)
+
+		len = length(constraints_sparsity(dpo.con_policy,
+		 		dpo.prob_nom.model, dpo.prob_sample.model,
+				dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+				dpo.prob_nom.T))
+
+		constraints_jacobian!(view(∇c, shift .+ (1:len)),
+				Θ, τ_nom, view(Z, dpo.idx_mean),
+				dpo.con_policy, dpo.prob_nom.model, dpo.prob_sample.model,
+				dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+				dpo.prob_nom.h, dpo.prob_nom.T)
+
+		shift += len
+
 		for i = 1:dpo.N
-			shift += 0
-			nothing
+			len = length(constraints_sparsity(dpo.con_policy,
+			 		dpo.prob_nom.model, dpo.prob_sample.model,
+					dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+					dpo.prob_nom.T))
+
+			constraints_jacobian!(view(∇c, shift .+ (1:len)),
+					Θ, τ_nom, view(Z, dpo.idx_sample[i]),
+					dpo.con_policy, dpo.prob_nom.model, dpo.prob_sample.model,
+					dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+					dpo.prob_nom.h, dpo.prob_nom.T)
+
+			shift += len
 		end
 	end
 
@@ -197,8 +268,8 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 	# sample
 	for i = 1:dpo.N
 		spar = collect([spar...,
-			constraints_sparsity(dpo.prob_sample[i], shift = shift)...])
-		shift += dpo.prob_sample[i].num_con
+			constraints_sparsity(dpo.prob_sample, shift = shift)...])
+		shift += dpo.prob_sample.num_con
 	end
 
 	# sample dynamics
@@ -209,9 +280,27 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 
 	# policy
 	if dpo.constraints_policy
+
+		spar = collect([spar...,
+				constraints_sparsity(dpo.con_policy,
+		 		dpo.prob_nom.model, dpo.prob_sample.model,
+				dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+				dpo.prob_nom.T,
+				shift_con = shift,
+				shift_sample = dpo.shift_mean,
+				shift_policy = dpo.shift_policy)]...)
+		shift += dpo.con_policy.n
+
 		for i = 1:dpo.N
-			shift += 0
-			nothing
+			spar = collect([spar...,
+					constraints_sparsity(dpo.con_policy,
+			 		dpo.prob_nom.model, dpo.prob_sample.model,
+					dpo.prob_nom.idx, dpo.prob_sample.idx, dpo.idx_policy,
+					dpo.prob_nom.T,
+					shift_con = shift,
+					shift_sample = dpo.shift_sample[i],
+					shift_policy = dpo.shift_policy)]...)
+			shift += dpo.con_policy.n
 		end
 	end
 

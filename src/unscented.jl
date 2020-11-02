@@ -14,7 +14,7 @@ end
 function sample_covariance(X, β)
     N = length(X)
     μ = sample_mean(X)
-    P = (0.5 / (N * β^2)) * sum([(X[i] - xμ) * (X[i] - xμ)' for i = 1:N])
+    P = (0.5 / (N * β^2)) * sum([(X[i] - μ) * (X[i] - μ)' for i = 1:N])
     return P
 end
 

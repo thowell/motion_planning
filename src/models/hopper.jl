@@ -61,8 +61,6 @@ idx_ψ = nu + nc + nb .+ (1:nc)
 idx_η = nu + nc + nb + nc .+ (1:nb)
 idx_s = nu + nc + nb + nc + nb .+ (1:ns)
 
-num_con_contact = nc * (T + 1) + nc * (T - 1) + nb * (T - 1) + 3.0 * (T - 1)
-
 # Kinematics
 kinematics(::Hopper, q) = [q[1] + q[4] * sin(q[3]), q[2] - q[4] * cos(q[3])]
 

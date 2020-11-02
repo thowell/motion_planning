@@ -106,6 +106,8 @@ check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
 
 @show Ū[4][end]
+
+using Plots
 plot(hcat(Ū...)[end,:], linetype=:steppost)
 
 include(joinpath(pwd(), "src/models/visualize.jl"))

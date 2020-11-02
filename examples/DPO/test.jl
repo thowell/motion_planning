@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/car.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_obstacles.jl"))
+include(joinpath(pwd(), "src/constraints/obstacles.jl"))
 
 optimize = true
 
@@ -82,6 +82,57 @@ models = [model for i = 1:N]
 Z_dims = [models[i].n * T + models[i].m * (T - 1) for i = 1:N]
 
 idxs = [indices(models[i].n, models[i].m, prob_traj.T,
-    shift = prob_traj.N + sum(Z_dims[1:(i-1)])) for i = 1:N]
+    shift = prob_traj.num_var + sum(Z_dims[1:(i-1)])) for i = 1:N]
 
+i = 1
 _prob = (models[i], EmptyObjective(), T)
+
+
+
+zl = rand(prob.prob.num_var)
+zu = rand(prob.prob.num_var)
+zl[:], zu[:] = primal_bounds(prob.prob)
+zl
+zu
+z0 = rand(prob.prob.num_var)
+j0 = zeros(prob.prob.num_var)
+Q = [Diagonal(ones(model.n)) for t = 1:T]
+R = [Diagonal(ones(model.m)) for t = 1:T-1]
+
+include(joinpath(pwd(), "src/direct_policy_optimization/objective.jl"))
+
+obj_sample = SampleObjective(Q, R)
+
+
+objective(z0, z0, obj_sample, model, model, prob_traj.idx, prob_traj.idx, T)
+objective_gradient!(j0, z0, z0, obj_sample, model, model, prob_traj.idx, prob_traj.idx, T)
+
+con_policy = policy_constraints(model, T)
+
+c0 = zeros(con_policy.n)
+θ0 = zeros(model.m * model.n * (T - 1))
+idx_policy = [(t - 1) * model.m * model.n .+ (1:model.m * model.n) for t = 1:T-1]
+
+constraints!(c0, z0, z0, θ0, con_policy, model, model,
+    prob_traj.idx, prob_traj.idx, idx_policy, h, T)
+
+spar = constraints_sparsity(con_policy, model, model,
+    prob_traj.idx, prob_traj.idx, idx_policy, T)
+
+∇c0 = zeros(length(spar))
+constraints_jacobian!(∇c0, z0, z0, θ0, con_policy, model, model,
+    prob_traj.idx, prob_traj.idx, idx_policy, h, T)
+
+
+N = model.n * 2
+
+M = N + 5
+
+_x = [rand(model.n) for i = 1:M]
+sample_mean(_x)
+
+_xr = resample(_x, 1.0)
+
+sample_mean(_xr)
+
+1 .+ prob_traj.idx.x[1]

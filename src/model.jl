@@ -19,3 +19,7 @@ function k(model::TemplateModel, x)
 end
 
 model = TemplateModel(0, 0, 0)
+
+state_output(model, x) = x
+state_output_idx(model, idx) = idx
+control_output(model, u) = u

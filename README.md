@@ -4,6 +4,7 @@
 - [ ] double integrator
 - [ ] acrobot
 - [ ] robotic arm
+- [ ] biped
 
 ## Contact-implicit trajectory optimization examples
 - [X] particle
@@ -15,7 +16,10 @@
 - [X] raibert hopper
 - [X] raibert hopper vertical gait
 - [X] hopper (3D)
+- [ ] hopper (3D) wall scaling
 - [X] miniature golf
+- [ ] ball-in-cup robot arm
+- [ ] ball-in-cup quadrotor
 - [ ] biped
 - [ ] quadruped
 - [ ] atlas
@@ -38,3 +42,4 @@ Motion Planning
 - [ ] check for SNOPT installation
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests
+- [ ] embed animations in readme
