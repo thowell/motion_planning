@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/car.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_obstacles.jl"))
+include(joinpath(pwd(), "src/constraints/obstacles.jl"))
 
 optimize = true
 
@@ -18,7 +18,6 @@ ul, uu = control_bounds(model, T, -3.0, 3.0)
 # Initial and final states
 x1 = [0.0; 0.0; 0.0]
 xT = [1.0; 1.0; 0.0]
-
 xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 
 # Objective

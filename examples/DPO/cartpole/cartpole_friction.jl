@@ -1,5 +1,5 @@
 include(joinpath(pwd(),"src/models/cartpole.jl"))
-include(joinpath(pwd(),"src/constraints/constraints_friction.jl"))
+include(joinpath(pwd(),"src/constraints/friction.jl"))
 
 optimize = true
 

@@ -1,5 +1,5 @@
 include(joinpath(pwd(),"src/models/quadrotor.jl"))
-include(joinpath(pwd(),"src/constraints/constraints_free_time.jl"))
+include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
 optimize = true
 
@@ -15,7 +15,6 @@ T = 31
 tf0 = 5.0
 h0 = tf0 / (T-1)
 
-model
 # Bounds
 hu = h0
 hl = 0.0*h0

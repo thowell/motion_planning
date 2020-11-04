@@ -47,18 +47,19 @@ function constraints_jacobian!(∇c, Z, con::PinnedFoot, model, idx, h, T)
     return nothing
 end
 
-function constraints_sparsity(con::PinnedFoot, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::PinnedFoot, model, idx, T;
+    shift_row = 0, shift_col = 0)
     row = []
     col = []
 
     for t = 1:T
         if t == 1
-            r_idx = r_shift .+ (1:2)
-            c_idx = idx.x[t][1:model.nq]
+            r_idx = shift_row .+ (1:2)
+            c_idx = shift_col .+ idx.x[t][1:model.nq]
             row_col!(row, col, r_idx, c_idx)
         end
-        r_idx = r_shift + 2 + (t - 1) * 2 .+ (1:2)
-        c_idx = idx.x[t][model.nq .+ (1:model.nq)]
+        r_idx = shift_row + 2 + (t - 1) * 2 .+ (1:2)
+        c_idx = shift_col .+ idx.x[t][model.nq .+ (1:model.nq)]
         row_col!(row, col, r_idx, c_idx)
     end
 

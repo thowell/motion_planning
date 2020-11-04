@@ -150,9 +150,9 @@ function eval_objective(prob::TrajectoryOptimizationProblem, Z)
     objective(Z, prob)
 end
 
-function eval_objective_gradient!(∇l, Z, prob::TrajectoryOptimizationProblem)
-    ∇l .= 0.0
-    objective_gradient!(∇l, Z, prob)
+function eval_objective_gradient!(∇J, Z, prob::TrajectoryOptimizationProblem)
+    ∇J .= 0.0
+    objective_gradient!(∇J, Z, prob)
     return nothing
 end
 
@@ -181,4 +181,4 @@ objective_gradient!(∇J, Z, prob::TrajectoryOptimizationProblem) = objective_gr
 """
 constraints!(c, Z, prob::TrajectoryOptimizationProblem) = constraints!(c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
 constraints_jacobian!(∇c, Z, prob::TrajectoryOptimizationProblem) = constraints_jacobian!(∇c, Z, prob.con, prob.model, prob.idx, prob.h, prob.T)
-constraints_sparsity(prob::TrajectoryOptimizationProblem; r_shift = 0) = constraints_sparsity(prob.con, prob.model, prob.idx, prob.T; r_shift = r_shift)
+constraints_sparsity(prob::TrajectoryOptimizationProblem; shift_row = 0, shift_col = 0) = constraints_sparsity(prob.con, prob.model, prob.idx, prob.T; shift_row = shift_row, shift_col = shift_col)

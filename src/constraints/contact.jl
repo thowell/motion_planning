@@ -223,74 +223,76 @@ function constraints_jacobian!(∇c, Z, con::ContactConstraints, model, idx, h, 
 	return nothing
 end
 
-function constraints_sparsity(con::ContactConstraints, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::ContactConstraints, model, idx, T;
+	shift_row = 0, shift_col = 0)
+
 	row = []
     col = []
 
-	c_shift = 0
+	con_shift = 0
 
 	# signed-distance function
 	for t = 1:T
 
 		if t == 1
-			r_idx = r_shift .+ (1:model.nc)
-			c_idx = idx.x[t][1:model.nq]
+			r_idx = shift_row .+ (1:model.nc)
+			c_idx = shift_col .+ idx.x[t][1:model.nq]
 			row_col!(row, col, r_idx, c_idx)
 		end
 
-		r_idx = r_shift + model.nc + (t-1) * model.nc .+ (1:model.nc)
-		c_idx = idx.x[t][model.nq .+ (1:model.nq)]
+		r_idx = shift_row + model.nc + (t-1) * model.nc .+ (1:model.nc)
+		c_idx = shift_col .+ idx.x[t][model.nq .+ (1:model.nq)]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
-	c_shift += model.nc * (T + 1)
+	con_shift += model.nc * (T + 1)
 
 	# friction cone
 	for t = 1:T-1
-		r_idx = r_shift + c_shift + (t - 1) * model.nc .+ (1:model.nc)
-		c_idx = idx.u[t]
+		r_idx = shift_row + con_shift + (t - 1) * model.nc .+ (1:model.nc)
+		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
-	c_shift += model.nc * (T - 1)
+	con_shift += model.nc * (T - 1)
 
 	# maximum dissipation
 	for t = 1:T-1
-		r_idx = r_shift + c_shift + (t - 1) * model.nb .+ (1:model.nb)
-		c_idx = idx.x[t + 1]
+		r_idx = shift_row + con_shift + (t - 1) * model.nb .+ (1:model.nb)
+		c_idx = shift_col .+ idx.x[t + 1]
 		row_col!(row, col, r_idx, c_idx)
 
-		c_idx = idx.u[t]
+		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
-	c_shift += model.nb * (T - 1)
+	con_shift += model.nb * (T - 1)
 
 	# impact complementarity
 	for t = 1:T-1
-		r_idx = r_shift + c_shift + (t-1) * 1 + 1
-		c_idx = idx.x[t + 1][model.nq .+ (1:model.nq)]
+		r_idx = shift_row + con_shift + (t-1) * 1 + 1
+		c_idx = shift_col .+ idx.x[t + 1][model.nq .+ (1:model.nq)]
 		row_col!(row, col, r_idx, c_idx)
 
-		c_idx = idx.u[t]
+		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
-	c_shift += (T - 1)
+	con_shift += (T - 1)
 
 	# friction cone complementarity
 	for t = 1:T-1
-		r_idx = r_shift + c_shift + (t-1) * 1 + 1
-		c_idx = idx.u[t]
+		r_idx = shift_row + con_shift + (t-1) * 1 + 1
+		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
-	c_shift += (T - 1)
+	con_shift += (T - 1)
 
 	# friction parameter complementarity
 	for t = 1:T-1
-		r_idx = r_shift + c_shift + (t-1) * 1 + 1
-		c_idx = idx.u[t]
+		r_idx = shift_row + con_shift + (t-1) * 1 + 1
+		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 

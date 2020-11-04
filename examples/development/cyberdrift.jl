@@ -88,7 +88,7 @@ Z0 = pack(X0, U0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time Z̄ = solve(prob, copy(Z0), nlp=:ipopt, tol = 1.0e-3, c_tol = 1.0e-3)
+@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
 
 check_slack(Z̄, prob)
 

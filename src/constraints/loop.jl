@@ -43,18 +43,18 @@ function constraints_jacobian!(∇c, Z, con::LoopConstraints, model, idx, h, T)
 end
 
 function constraints_sparsity(con::LoopConstraints, model, idx, T;
-		r_shift = 0)
+		shift_row = 0, shift_col = 0)
 	row = []
     col = []
 
 	n = model.n
 
-	r_idx = r_shift .+ (1:n)
+	r_idx = shift_row .+ (1:n)
 
-	c_idx = idx.x[con.idx_2]
+	c_idx = shift_col .+ idx.x[con.idx_2]
 	row_col!(row, col, r_idx, c_idx)
 
-	c_idx = idx.x[con.idx_1]
+	c_idx = shift_col .+ idx.x[con.idx_1]
 	row_col!(row, col, r_idx, c_idx)
 
     return collect(zip(row, col))

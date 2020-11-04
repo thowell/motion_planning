@@ -39,19 +39,18 @@ function constraints_jacobian!(∇c, Z, con::FreeTimeConstraints, model, idx, h,
 	return nothing
 end
 
-function constraints_sparsity(con::FreeTimeConstraints, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::FreeTimeConstraints, model, idx, T;
+	shift_row = 0, shift_col = 0)
     row = []
     col = []
 
-	shift = 0
-
 	for t = 1:T-2
-		r_idx = r_shift .+ (t:t)
+		r_idx = shift_row .+ (t:t)
 
-		c_idx = (idx.u[t][end]:idx.u[t][end])
+		c_idx = shift_col .+ (idx.u[t][end]:idx.u[t][end])
 		row_col!(row, col, r_idx, c_idx)
 
-		c_idx = (idx.u[t + 1][end]:idx.u[t + 1][end])
+		c_idx = shift_col .+ (idx.u[t + 1][end]:idx.u[t + 1][end])
 		row_col!(row, col, r_idx, c_idx)
 	end
     return collect(zip(row, col))

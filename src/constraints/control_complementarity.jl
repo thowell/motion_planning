@@ -66,26 +66,27 @@ function constraints_jacobian!(∇c, Z, con::ControlComplementarity, model, idx,
     return nothing
 end
 
-function constraints_sparsity(con::ControlComplementarity, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::ControlComplementarity, model, idx, T;
+    shift_row = 0, shift_col = 0)
     row = []
     col = []
 
     for t = 1:T-1
 
-        r_idx = r_shift + (t - 1) * con.n_stage .+ (1:1)
+        r_idx = shift_row + (t - 1) * con.n_stage .+ (1:1)
 
-        c_idx = idx.x[t+1][model.nq .+ (1:model.nq)]
+        c_idx = shift_col .+ idx.x[t+1][model.nq .+ (1:model.nq)]
         row_col!(row, col, r_idx, c_idx)
 
-        c_idx = idx.u[t]
+        c_idx = shift_col .+ idx.u[t]
         row_col!(row, col, r_idx, c_idx)
 
-        r_idx = r_shift + (t - 1) * con.n_stage + 1 .+ (1:1)
+        r_idx = shift_row + (t - 1) * con.n_stage + 1 .+ (1:1)
 
-        c_idx = idx.x[t+1][model.nq .+ (1:model.nq)]
+        c_idx = shift_col .+ idx.x[t+1][model.nq .+ (1:model.nq)]
         row_col!(row, col, r_idx, c_idx)
 
-        c_idx = idx.u[t]
+        c_idx = shift_col .+ idx.u[t]
         row_col!(row, col, r_idx, c_idx)
     end
 
