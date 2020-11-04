@@ -39,15 +39,16 @@ function constraints_jacobian!(∇c, Z, con::ObstacleConstraints, model, idx, h,
     return nothing
 end
 
-function constraints_sparsity(con::ObstacleConstraints, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::ObstacleConstraints, model, idx, T;
+    shift_row = 0, shift_col = 0)
     n = model.n
 
     row = []
     col = []
 
     for t = 1:T
-        r_idx = r_shift + (t - 1) * con.n_stage .+ (1:con.n_stage)
-        c_idx = idx.x[t]
+        r_idx = shift_row + (t - 1) * con.n_stage .+ (1:con.n_stage)
+        c_idx = shift_col .+ idx.x[t]
 
         row_col!(row, col, r_idx, c_idx)
     end

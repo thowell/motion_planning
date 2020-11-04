@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/pendulum.jl"))
-include(joinpath(pwd(), "src/constraints/constraints_free_time.jl"))
+include(joinpath(pwd(), "src/constraints/free_time.jl"))
 
 optimize = true
 

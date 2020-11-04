@@ -1,6 +1,6 @@
 include(joinpath(pwd(), "src/models/biped.jl"))
-include(joinpath(pwd(), "src/models/contact.jl"))
-include(joinpath(pwd(), "src/models/pinned_foot.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
+include(joinpath(pwd(), "src/constraints/pinned_foot.jl"))
 
 # Visualize
 include(joinpath(pwd(), "src/models/visualize.jl"))

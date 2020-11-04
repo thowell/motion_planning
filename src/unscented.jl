@@ -22,7 +22,6 @@ end
     deterministic resampling
 """
 function resample(X, β)
-    N = length(X)
     n = length(X[1])
     μ = sample_mean(X)
     P = sample_covariance(X, β)

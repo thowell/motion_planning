@@ -65,17 +65,18 @@ function constraints_jacobian!(∇c, Z, con::DynamicsConstraints, model, idx, h,
     return nothing
 end
 
-function constraints_sparsity(con::DynamicsConstraints, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::DynamicsConstraints, model, idx, T;
+    shift_row = 0, shift_col = 0)
     n = model.n
 
     row = []
     col = []
 
     for t = 1:T-1
-        r_idx = r_shift + (t-1) * n .+ (1:n)
-        row_col!(row, col, r_idx, idx.x[t])
-        row_col!(row, col, r_idx, idx.u[t])
-        row_col!(row, col, r_idx, idx.x[t + 1])
+        r_idx = shift_row + (t-1) * n .+ (1:n)
+        row_col!(row, col, r_idx, shift_col .+ idx.x[t])
+        row_col!(row, col, r_idx, shift_col .+ idx.u[t])
+        row_col!(row, col, r_idx, shift_col .+ idx.x[t + 1])
     end
 
     return collect(zip(row, col))

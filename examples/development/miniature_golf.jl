@@ -72,8 +72,8 @@ U0 = [[u_ref[1:model.nu]; 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # ra
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
 
-@time Z̄ = solve(prob, copy(Z0), nlp=:ipopt,
-	c_tol = 1.0e-3, tol = 1.0e-3, max_iter = 1000, time_limit = 60 * 5)
+@time Z̄ = solve(prob, copy(Z0),
+	c_tol = 1.0e-3, tol = 1.0e-3, max_iter = 1000)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)

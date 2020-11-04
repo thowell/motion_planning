@@ -4,7 +4,7 @@ include(joinpath(pwd(), "src/constraints/obstacles.jl"))
 optimize = true
 
 # Horizon
-T = 51
+T = 21
 
 # Time step
 tf = 1.0
@@ -47,7 +47,7 @@ n_con = n_stage * T
 con_obstacles = ObstacleConstraints(n_con, (1:n_con), n_stage)
 
 # Problem
-prob = problem(model,
+prob_moi = problem(model,
                obj,
                T,
                h = h,
@@ -63,7 +63,7 @@ X0 = linear_interp(x1, xT, T) # linear interpolation on state
 U0 = random_controls(model, T, 0.001) # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+Z0 = pack(X0, U0, prob_moi)
 #
 # #NOTE: may need to run examples multiple times to get good trajectories
 # # Solve nominal problem
@@ -75,64 +75,86 @@ Z0 = pack(X0, U0, prob)
 #     @load joinpath(@__DIR__, "sol.jld2") Z̄
 # end
 
-prob_traj = prob.prob
+include(joinpath(pwd(), "src/direct_policy_optimization/problem.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/objective.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/dynamics.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/policy.jl"))
 
 N = 2 * model.n
-models = [model for i = 1:N]
-Z_dims = [models[i].n * T + models[i].m * (T - 1) for i = 1:N]
-
-idxs = [indices(models[i].n, models[i].m, prob_traj.T,
-    shift = prob_traj.num_var + sum(Z_dims[1:(i-1)])) for i = 1:N]
-
-i = 1
-_prob = (models[i], EmptyObjective(), T)
+M = N + 2 * model.d
+prob = prob_moi.prob
+prob_nom = prob
+prob_mean = prob
+prob_sample = [prob for i = 1:N]
 
 
+probs = prob_problems(prob_nom, prob_mean, prob_sample)
 
-zl = rand(prob.prob.num_var)
-zu = rand(prob.prob.num_var)
-zl[:], zu[:] = primal_bounds(prob.prob)
-zl
-zu
-z0 = rand(prob.prob.num_var)
-j0 = zeros(prob.prob.num_var)
+idxs, num_var = dpo_indices(probs, model.m * model.n, N, M)
+
 Q = [Diagonal(ones(model.n)) for t = 1:T]
 R = [Diagonal(ones(model.m)) for t = 1:T-1]
 
-include(joinpath(pwd(), "src/direct_policy_optimization/objective.jl"))
-
 obj_sample = SampleObjective(Q, R)
 
+z0 = rand(prob.num_var)
+objective(z0, z0, obj_sample, model, model, prob.idx, prob.idx, T)
+objective_gradient!(j0, z0, z0,
+    obj_sample, model, model,
+    prob.idx, prob.idx,
+    (1:prob.num_var), (1:prob.num_var), T)
 
-objective(z0, z0, obj_sample, model, model, prob_traj.idx, prob_traj.idx, T)
-objective_gradient!(j0, z0, z0, obj_sample, model, model, prob_traj.idx, prob_traj.idx, T)
-
-con_policy = policy_constraints(model, T)
-
+model.m * (T - 1)
+con_policy.con[1]
+con_policy = policy_constraints(probs, N)
 c0 = zeros(con_policy.n)
-θ0 = zeros(model.m * model.n * (T - 1))
-idx_policy = [(t - 1) * model.m * model.n .+ (1:model.m * model.n) for t = 1:T-1]
+z0 = zeros(num_var)
+constraints!(c0, z0, con_policy, probs, idxs, N)
 
-constraints!(c0, z0, z0, θ0, con_policy, model, model,
-    prob_traj.idx, prob_traj.idx, idx_policy, h, T)
-
-spar = constraints_sparsity(con_policy, model, model,
-    prob_traj.idx, prob_traj.idx, idx_policy, T)
+spar = constraints_sparsity(con_policy,
+    probs, idxs, N)
 
 ∇c0 = zeros(length(spar))
-constraints_jacobian!(∇c0, z0, z0, θ0, con_policy, model, model,
-    prob_traj.idx, prob_traj.idx, idx_policy, h, T)
+constraints_jacobian!(∇c0, z0, con_policy, probs, idxs, N)
 
+β = 1.0
+w = [rand(model.d) for t = 1:T-1]
+con_dynamics = sample_dynamics_constraints(probs, N, M)
 
-N = model.n * 2
+c0 = zeros(con_dynamics.n)
+constraints!(c0, z0, con_dynamics, probs, idxs, N, model.d * 2, w, β)
 
-M = N + 5
+spar = constraints_sparsity(con_dynamics, probs, idxs, N, model.d * 2)
 
-_x = [rand(model.n) for i = 1:M]
-sample_mean(_x)
+∇c0 = zeros(length(spar))
+constraints_jacobian!(∇c0, z0, con_dynamics, probs, idxs, N, model.d * 2,
+    w, β)
 
-_xr = resample(_x, 1.0)
+W = [Diagonal(ones(model.d)) for t = 1:T-1]
+prob_dpo = dpo_problem(probs.nom, probs.mean, probs.sample, Q, R, W, β)
 
-sample_mean(_xr)
+primal_bounds(prob_dpo)
+constraint_bounds(prob_dpo)
 
-1 .+ prob_traj.idx.x[1]
+eval_objective(prob_dpo, z0)
+∇j = zeros(num_var)
+eval_objective_gradient!(∇j, z0, prob_dpo)
+
+c0 = zeros(prob_dpo.num_con)
+eval_constraint!(c0, z0, prob_dpo)
+
+spar = sparsity_jacobian(prob_dpo)
+∇c0 = zeros(length(spar))
+eval_constraint_jacobian!(∇c0, z0, prob_dpo)
+
+a1 = length(sparsity_jacobian(prob)) * (N + 1)
+a3 = length(constraints_sparsity(con_dynamics, prob_dpo.prob, prob_dpo.idx, N, model.d * 2))
+a2 = length(constraints_sparsity(con_policy, prob_dpo.prob, prob_dpo.idx, N))
+
+a1 + a2 + a3
+a1 + a2
+a1 + a3
+
+spar = sparsity_jacobian(prob_dpo)
+
+constraints_sparsity(con_policy, prob_dpo, dpo_idx, N)

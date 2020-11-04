@@ -6,45 +6,98 @@ struct SampleObjective <: Objective
     R
 end
 
-function objective(τ_nom, τ, obj::SampleObjective, model_nom, model_sample,
-        idx_nom, idx_sample, T)
+function objective(τ_nom, τ_sample, obj::SampleObjective,
+        model_nom, model_sample,
+        idx_τ_nom, idx_τ_sample, T)
 
     J = 0.0
 
     for t = 1:T
-        ȳ = state_output(model_nom, view(τ_nom, idx_nom.x[t]))
-        y = state_output(model_sample, view(τ, idx_sample.x[t]))
+        ȳ = state_output(model_nom, view(τ_nom, idx_τ_nom.x[t]))
+        y = state_output(model_sample, view(τ_sample, idx_τ_sample.x[t]))
 
         J += (y - ȳ)' * obj.Q[t] * (y - ȳ)
 
         t == T && continue
 
-        v̄ = control_output(model_nom, view(τ_nom, idx_nom.u[t]))
-        v = control_output(model_sample, view(τ, idx_sample.u[t]))
+        v̄ = control_output(model_nom, view(τ_nom, idx_τ_nom.u[t]))
+        v = control_output(model_sample, view(τ_sample, idx_τ_sample.u[t]))
         J += (v - v̄)' * obj.R[t] * (v - v̄)
     end
 
     return J
 end
 
-function objective_gradient!(∇J, τ_nom, τ, obj::SampleObjective,
-        model_nom, model_sample, idx_nom, idx_sample, T; shift_sample = 0)
+function objective_gradient!(∇J, τ_nom, τ_sample, obj::SampleObjective,
+        model_nom, model_sample,
+        idx_τ_nom, idx_τ_sample,
+        idx_z_nom, idx_z_sample, T)
 
     for t = 1:T
-        ȳ = state_output(model_nom, view(τ_nom, idx_nom.x[t]))
-        y = state_output(model_sample, view(τ, idx_sample.x[t]))
+        ȳ = state_output(model_nom, view(τ_nom, idx_τ_nom.x[t]))
+        y = state_output(model_sample, view(τ_sample, idx_τ_sample.x[t]))
 
-        ∇J[state_output_idx(model_nom, idx_nom.x[t])] += 2.0 * obj.Q[t] * (y - ȳ)
-        ∇J[state_output_idx(model_sample, shift_sample .+ idx_sample.x[t])] += 2.0 * obj.Q[t] * (y - ȳ)
+        ∇J[state_output_idx(model_nom, idx_z_nom[idx_τ_nom.x[t]])] -= 2.0 * obj.Q[t] * (y - ȳ)
+        ∇J[state_output_idx(model_sample, idx_z_sample[idx_τ_sample.x[t]])] += 2.0 * obj.Q[t] * (y - ȳ)
 
         t == T && continue
 
-        v̄ = control_output(model_nom, view(τ_nom, idx_nom.u[t]))
-        v = control_output(model_sample, view(τ, shift_sample .+ idx_sample.u[t]))
+        v̄ = control_output(model_nom, view(τ_nom, idx_τ_nom.u[t]))
+        v = control_output(model_sample, view(τ_sample, idx_τ_sample.u[t]))
 
-        ∇J[control_output(model_nom, idx_nom.u[t])] += 2.0 * obj.R[t] * (v - v̄)
-        ∇J[control_output(model_sample, shift_sample .+ idx_sample.u[t])] += 2.0 * obj.R[t] * (v - v̄)
+        ∇J[control_output(model_nom, idx_z_nom[idx_τ_nom.u[t]])] -= 2.0 * obj.R[t] * (v - v̄)
+        ∇J[control_output(model_sample, idx_z_sample[idx_τ_sample.u[t]])] += 2.0 * obj.R[t] * (v - v̄)
     end
 
     return nothing
+end
+
+function objective(Z, obj::SampleObjective,
+		prob::DPOProblems, idx::DPOIndices, N, D)
+
+	J = 0.0
+
+	# mean samples
+	τ_nom = view(Z, idx.nom)
+	τ_mean = view(Z, idx.mean)
+
+	J += D * objective(τ_nom, τ_mean, obj,
+		prob.nom.model, prob.mean.model,
+	    prob.nom.idx, prob.mean.idx, prob.nom.T)
+
+	# samples
+	for i = 1:N
+		τ_sample = view(Z, idx.sample[i])
+		J += objective(τ_nom, τ_sample, obj,
+			prob.nom.model, prob.sample[i].model,
+		    prob.nom.idx, prob.sample[i].idx, prob.nom.T)
+	end
+
+	return J
+end
+
+function objective_gradient!(∇J, Z, obj::SampleObjective,
+		prob::DPOProblems, idx::DPOIndices, N, D)
+
+	τ_nom = view(Z, idx.nom)
+	τ_mean = view(Z, idx.mean)
+
+	for i = 1:D
+		objective_gradient!(∇J, τ_nom, τ_mean, obj,
+			prob.nom.model, prob.mean.model,
+	    	prob.nom.idx, prob.mean.idx,
+			idx.nom, idx.mean,
+			prob.nom.T)
+	end
+
+	for i = 1:N
+		τ_sample = view(Z, idx.sample[i])
+		objective_gradient!(∇J, τ_nom, τ_sample, obj,
+		 	prob.nom.model, prob.sample[i].model,
+		    prob.nom.idx, prob.sample[i].idx,
+			idx.nom, idx.sample[i],
+			prob.nom.T)
+	end
+
+	nothing
 end

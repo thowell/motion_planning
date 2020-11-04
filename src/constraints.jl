@@ -11,7 +11,8 @@ function constraints_jacobian!(∇c, Z, con::Constraints, model, idx, h, T)
    return nothing
 end
 
-function constraints_sparsity(con::Constraints, model, idx, T; r_shift = 0)
+function constraints_sparsity(con::Constraints, model, idx, T;
+    shift_row = 0, shift_col = 0)
     row = []
     col = []
     return collect(zip(row, col))
@@ -69,25 +70,27 @@ function constraints!(c, Z, con::MultiConstraints, model, idx, h, T)
 end
 
 function constraints_jacobian!(∇c, Z, con::MultiConstraints, model, idx, h, T)
-    c_shift = 0
+    con_shift = 0
     jac_shift = 0
     for _con in con.con
-        jac_len = length(constraints_sparsity(_con, model, idx, T, r_shift = c_shift))
+        jac_len = length(constraints_sparsity(_con, model, idx, T, shift_row = con_shift))
         jac_idx = jac_shift .+ (1:jac_len)
         constraints_jacobian!(view(∇c, jac_idx), Z, _con, model, idx, h, T)
-        c_shift += _con.n
+        con_shift += _con.n
         jac_shift += jac_len
     end
     return nothing
 end
 
-function constraints_sparsity(con::MultiConstraints, model, idx, T; r_shift = 0)
-    c_shift = r_shift
+function constraints_sparsity(con::MultiConstraints, model, idx, T;
+    shift_row = 0, shift_col = 0)
+
     sparsity = []
     for _con in con.con
-        spar = constraints_sparsity(_con, model, idx, T, r_shift = c_shift)
+        spar = constraints_sparsity(_con, model, idx, T,
+            shift_row = shift_row, shift_col = shift_col)
         sparsity = collect([sparsity..., spar...])
-        c_shift += _con.n
+        shift_row += _con.n
     end
     return sparsity
 end
