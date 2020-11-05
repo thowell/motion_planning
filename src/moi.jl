@@ -72,7 +72,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         nlp = :ipopt,
         time_limit = 120,
         mipl = 0,
-        mapl = 1)
+        mapl = 5)
 
     x_l, x_u = primal_bounds(prob)
     c_l, c_u = constraint_bounds(prob)
@@ -92,7 +92,9 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
                                   Major_optimality_tolerance = tol,
                                   Time_limit = time_limit,
                                   Major_print_level = mapl,
-                                  Minor_print_level = mipl)
+                                  Minor_print_level = mipl,
+                                  Print_file = 0)
+                                  # Summary_file = 0)
     end
 
     x = MOI.add_variables(solver, prob.num_var)

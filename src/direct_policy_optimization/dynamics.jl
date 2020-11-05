@@ -33,10 +33,10 @@ function sample_dynamics_constraints(prob, N, M)
 		end
 	end
 
-	# resample
-	for i = 1:N
-		n += prob.sample[i].model.n * (T - 1)
-	end
+	# # resample
+	# for i = 1:N
+	# 	n += prob.sample[i].model.n * (T - 1)
+	# end
 
 	ineq = (1:0)
 	w0 = [zeros(p.model.n) for p in prob.sample]
@@ -104,21 +104,21 @@ function constraints!(c, Z, con::SampleDynamics,
 		end
 	end
 
-	# resample
-	for t = 1:T-1
-		# samples
-		x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
-
-		# slacks
-		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
-
-		xs⁺ = resample(s⁺, sample.α[t], sample.β[t], sample.γ[t])
-
-		for i = 1:N
-			c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
-			con_shift += prob.sample[i].model.n
-		end
-	end
+	# # resample
+	# for t = 1:T-1
+	# 	# samples
+	# 	x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
+	#
+	# 	# slacks
+	# 	s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
+	#
+	# 	xs⁺ = resample(s⁺, sample.α[t], sample.β[t], sample.γ[t])
+	#
+	# 	for i = 1:N
+	# 		c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
+	# 		con_shift += prob.sample[i].model.n
+	# 	end
+	# end
 
     return nothing
 end
@@ -233,35 +233,35 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 		end
 	end
 
-	# resample
-	for t = 1:T-1
-		# samples
-		x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
-
-		# slacks
-		s⁺_vec = vcat([view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]...)
-		s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
-
-		for i = 1:N
-			# c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
-
-			r_idx = con_shift .+ (1:prob.sample[i].model.n)
-
-			c_idx = idx.sample[i][prob.sample[i].idx.x[t + 1]]
-			len = length(r_idx) * length(c_idx)
-			∇c[jac_shift .+ (1:len)] = vec(Diagonal(ones(prob.sample[i].model.n)))
-			jac_shift += len
-
-			c_idx = s_idx_vec
-			len = length(r_idx) * length(c_idx)
-			r_vec(q) = resample_vec(q, prob.mean.model.n, M, i,
-				sample.α[t], sample.β[t], sample.γ[t])
-			∇c[jac_shift .+ (1:len)] = vec(real.(-1.0 * FiniteDiff.finite_difference_jacobian(r_vec, s⁺_vec)))
-			jac_shift += len
-
-			con_shift += prob.sample[i].model.n
-		end
-	end
+	# # resample
+	# for t = 1:T-1
+	# 	# samples
+	# 	x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
+	#
+	# 	# slacks
+	# 	s⁺_vec = vcat([view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]...)
+	# 	s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
+	#
+	# 	for i = 1:N
+	# 		# c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
+	#
+	# 		r_idx = con_shift .+ (1:prob.sample[i].model.n)
+	#
+	# 		c_idx = idx.sample[i][prob.sample[i].idx.x[t + 1]]
+	# 		len = length(r_idx) * length(c_idx)
+	# 		∇c[jac_shift .+ (1:len)] = vec(Diagonal(ones(prob.sample[i].model.n)))
+	# 		jac_shift += len
+	#
+	# 		c_idx = s_idx_vec
+	# 		len = length(r_idx) * length(c_idx)
+	# 		r_vec(q) = resample_vec(q, prob.mean.model.n, M, i,
+	# 			sample.α[t], sample.β[t], sample.γ[t])
+	# 		∇c[jac_shift .+ (1:len)] = vec(real.(-1.0 * FiniteDiff.finite_difference_jacobian(r_vec, s⁺_vec)))
+	# 		jac_shift += len
+	#
+	# 		con_shift += prob.sample[i].model.n
+	# 	end
+	# end
 
 	return nothing
 end
@@ -330,21 +330,21 @@ function constraints_sparsity(con::SampleDynamics,
 		end
 	end
 
-	# resample
-	for t = 1:T-1
-		for i = 1:N
-			r_idx = shift_row + con_shift .+ (1:prob.sample[i].model.n)
-
-			c_idx = shift_col .+ idx.sample[i][prob.sample[i].idx.x[t + 1]]
-			row_col!(row, col, r_idx, c_idx)
-
-			s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
-			c_idx = shift_col .+ s_idx_vec
-			row_col!(row, col, r_idx, c_idx)
-
-			con_shift += prob.sample[i].model.n
-		end
-	end
+	# # resample
+	# for t = 1:T-1
+	# 	for i = 1:N
+	# 		r_idx = shift_row + con_shift .+ (1:prob.sample[i].model.n)
+	#
+	# 		c_idx = shift_col .+ idx.sample[i][prob.sample[i].idx.x[t + 1]]
+	# 		row_col!(row, col, r_idx, c_idx)
+	#
+	# 		s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
+	# 		c_idx = shift_col .+ s_idx_vec
+	# 		row_col!(row, col, r_idx, c_idx)
+	#
+	# 		con_shift += prob.sample[i].model.n
+	# 	end
+	# end
 
     return collect(zip(row, col))
 end

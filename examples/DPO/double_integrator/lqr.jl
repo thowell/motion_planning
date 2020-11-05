@@ -39,15 +39,16 @@ x1 = resample(zeros(model.n), Diagonal(ones(model.n)), 1.0)
 prob_mean = trajectory_optimization(
 				model,
 				EmptyObjective(),
-				dynamics = false,
-				T)
+				T,
+				dynamics = false
+				)
 
 # sample problems
 prob_sample = [trajectory_optimization(
 				model,
 				EmptyObjective(),
-				dynamics = false,
 				T,
+				dynamics = false,
 				xl = state_bounds(model, T, x1 = x1[i])[1],
 				xu = state_bounds(model, T, x1 = x1[i])[2]
 				) for i = 1:N]
@@ -75,7 +76,7 @@ z_sol = solve(prob_dpo, copy(z0),
 	tol = 1.0e-8, c_tol = 1.0e-8,
 	mapl = 0)
 
-# tvlqr policy
+# TVLQR policy
 A, B = get_dynamics(model)
 K = tvlqr(
 	[A for t = 1:T-1],
@@ -83,8 +84,10 @@ K = tvlqr(
 	[Q[t] for t = 1:T],
 	[R[t] for t = 1:T-1])
 
+# DPO policy
 θ = [reshape(z_sol[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
 	model.m, model.n) for t = 1:T-1]
 
-policy_error = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
-println("policy difference (inf. norm): $(norm(policy_error, Inf))")
+# Policy difference
+policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
+println("policy difference (inf. norm): $(norm(policy_diff, Inf))")
