@@ -1,0 +1,5 @@
+include(joinpath(pwd(), "src/direct_policy_optimization/problem.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/objective.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/dynamics.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/policy.jl"))
+include(joinpath(pwd(), "src/direct_policy_optimization/disturbances.jl"))

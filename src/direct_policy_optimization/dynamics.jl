@@ -1,3 +1,17 @@
+struct Sample
+	α
+	β
+	γ
+end
+
+function sample_params(a, b, c, T)
+	α = [a for t = 1:T]
+	β = [b for t = 1:T]
+	γ = [c for t = 1:T]
+
+	return Sample(α, β, γ)
+end
+
 struct SampleDynamics <: Constraints
 	n
 	ineq
@@ -33,10 +47,12 @@ end
 function constraints!(c, Z, con::SampleDynamics,
 	prob::DPOProblems, idx::DPOIndices,
 	N, D,
-	w, β)
+	dist,
+	sample)
 
 	T = prob.nom.T
 	h = prob.nom.h
+	M = N + D
 
 	con_shift = 0
 
@@ -50,7 +66,7 @@ function constraints!(c, Z, con::SampleDynamics,
 		x = [view(Z, idx.sample[i][prob.sample[i].idx.x[t]]) for i = 1:N]
 
 		# sample mean
-		c[con_shift .+ (1:prob.mean.model.n)] = μ - sample_mean(x)
+		c[con_shift .+ (1:prob.mean.model.n)] = μ - sample_mean(x, sample.β[t])
 		con_shift += prob.mean.model.n
 	end
 
@@ -71,16 +87,16 @@ function constraints!(c, Z, con::SampleDynamics,
 		# propagate
 		for j = 1:M
 			if j <= N
-				c[con_shift .+ (1:prob.sample[i].model.n)] = fd(prob.sample[i].model,
+				c[con_shift .+ (1:prob.sample[j].model.n)] = fd(prob.sample[j].model,
 					s⁺[j], x[j], u[j],
 					con.w0[j], h, t)
 
-				con_shift += prob.sample[i].model.n
+				con_shift += prob.sample[j].model.n
 			else
 				k = j - N
 				c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
 					s⁺[j], μ, ν,
-					β * w[t][k],
+					sample.α[t] * dist.w[t][k],
 					h, t)
 
 				con_shift += prob.mean.model.n
@@ -96,7 +112,7 @@ function constraints!(c, Z, con::SampleDynamics,
 		# slacks
 		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
 
-		xs⁺ = resample(s⁺, β)
+		xs⁺ = resample(s⁺, sample.α[t], sample.β[t], sample.γ[t])
 
 		for i = 1:N
 			c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
@@ -110,7 +126,8 @@ end
 function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 	prob::DPOProblems, idx::DPOIndices,
 	N, D,
-	w, β)
+	dist,
+	sample)
 
 	T = prob.nom.T
 	h = prob.nom.h
@@ -123,7 +140,7 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 	for t = 1:T
 		# samples
 		x_vec = vcat([view(Z, idx.sample[i][prob.mean.idx.x[t]]) for i = 1:N]...)
-		sample_mean_vec(y) = sample_mean([view(y, (i - 1) * prob.mean.model.n .+ (1:prob.mean.model.n)) for i = 1:N])
+		sample_mean_vec(y) = sample_mean([view(y, (i - 1) * prob.mean.model.n .+ (1:prob.mean.model.n)) for i = 1:N], sample.β[t])
 
 		r_idx = con_shift .+ (1:prob.mean.model.n)
 
@@ -185,14 +202,14 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 				con_shift += prob.sample[j].model.n
 			else
 				k = j - N
-				c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
-					s⁺[j], μ, ν,
-					β * w[t][k],
-					h, t)
+				# c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
+				# 	s⁺[j], μ, ν,
+				# 	β * dist.w[t][k],
+				# 	h, t)
 
-				_fds(y) = fd(prob.mean.model, y, μ, ν, β * w[k], h, t)
-				_fdx(y) = fd(prob.mean.model, s⁺[j], y, ν, β * w[k], h, t)
-				_fdu(y) = fd(prob.mean.model, s⁺[j], μ, y, β * w[k], h, t)
+				_fds(y) = fd(prob.mean.model, y, μ, ν, sample.α[t] * dist.w[t][k], h, t)
+				_fdx(y) = fd(prob.mean.model, s⁺[j], y, ν, sample.α[t] * dist.w[t][k], h, t)
+				_fdu(y) = fd(prob.mean.model, s⁺[j], μ, y, sample.α[t] * dist.w[t][k], h, t)
 
 				r_idx = con_shift .+ (1:prob.mean.model.n)
 
@@ -201,12 +218,12 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fds, s⁺[j]))
 				jac_shift += len
 
-				c_idx = idx.sample[j][prob.mean.idx.x[t]]
+				c_idx = idx.mean[prob.mean.idx.x[t]]
 				len = length(r_idx) * length(c_idx)
 				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fdx, μ))
 				jac_shift += len
 
-				c_idx = idx.sample[j][prob.mean.idx.u[t]]
+				c_idx = idx.mean[prob.mean.idx.u[t]]
 				len = length(r_idx) * length(c_idx)
 				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fdu, ν))
 				jac_shift += len
@@ -237,7 +254,8 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 
 			c_idx = s_idx_vec
 			len = length(r_idx) * length(c_idx)
-			r_vec(q) = resample_vec(q, prob.mean.model.n, M, i, β)
+			r_vec(q) = resample_vec(q, prob.mean.model.n, M, i,
+				sample.α[t], sample.β[t], sample.γ[t])
 			∇c[jac_shift .+ (1:len)] = vec(real.(-1.0 * FiniteDiff.finite_difference_jacobian(r_vec, s⁺_vec)))
 			jac_shift += len
 
@@ -301,10 +319,10 @@ function constraints_sparsity(con::SampleDynamics,
 				c_idx = shift_col .+ idx.slack[j][idx.s[t]]
 				row_col!(row, col, r_idx, c_idx)
 
-				c_idx = shift_col .+ idx.sample[j][prob.mean.idx.x[t]]
+				c_idx = shift_col .+ idx.mean[prob.mean.idx.x[t]]
 				row_col!(row, col, r_idx, c_idx)
 
-				c_idx = shift_col .+ idx.sample[j][prob.mean.idx.u[t]]
+				c_idx = shift_col .+ idx.mean[prob.mean.idx.u[t]]
 				row_col!(row, col, r_idx, c_idx)
 
 				con_shift += prob.mean.model.n

@@ -12,11 +12,14 @@ struct DirectPolicyOptimizationProblem
 	N # 2n
 	D # 2d
 
+	# policy
+	policy
+
 	# disturbance trajectory
-	W
-	w
-	sqrt_type
-	β
+	dist
+
+	# resampling
+	sample
 
 	# number of variables
 	num_var
@@ -26,18 +29,21 @@ struct DirectPolicyOptimizationProblem
 	idx
 end
 
-function dpo_problem(prob_nom, prob_mean, prob_sample, Q, R, W, β;
-		p = prob_nom.model.m * prob_nom.model.n,
-		N = 2 * prob_nom.model.n, D = 2 * prob_nom.model.d)
+function dpo(
+		prob_nom, prob_mean, prob_sample,
+		obj,
+		policy,
+		dist,
+		sample;
+		N = 2 * prob_mean.model.n, D = 2 * prob_mean.model.d)
+
+	M = N + D
 
 	# problem(s)
 	prob = DPOProblems(prob_nom, prob_mean, prob_sample)
 
 	# indices
-	idx, num_var = dpo_indices(prob, p, N, D)
-
-	# objective
-	obj = SampleObjective(Q, R)
+	idx, num_var = dpo_indices(prob, policy.p, N, D)
 
 	# constraints
 	con_dynamics = sample_dynamics_constraints(prob, N, M)
@@ -47,23 +53,36 @@ function dpo_problem(prob_nom, prob_mean, prob_sample, Q, R, W, β;
 	num_con = prob.nom.num_con + sum([prob.sample[i].num_con for i = 1:N])
 	num_con += con_dynamics.n + con_policy.n
 
-	# disturbances
-	w = []
-	for t = 1:prob.nom.T-1
-		_w = sqrt(W[t])
-		tmp = []
-		for i = 1:prob.mean.model.d
-			push!(tmp, _w[:, i])
-			push!(tmp, -1.0 * _w[:, i])
-		end
-		push!(w, tmp)
-	end
 
-	return DirectPolicyOptimizationProblem(prob, obj, con,
+	return DirectPolicyOptimizationProblem(
+		prob, obj, con,
 		N, D,
-		W, w, :principle, β,
+		policy,
+		dist,
+		sample,
 		num_var, num_con,
 		idx)
+end
+
+function dpo_problem(
+		prob_nom, prob_mean, prob_sample,
+		obj,
+		policy,
+		dist,
+		sample;
+		N = 2 * prob_mean.model.n, D = 2 * prob_mean.model.d)
+
+	prob = dpo(
+			prob_nom, prob_mean, prob_sample,
+			obj,
+			policy,
+			dist,
+			sample;
+			N = N, D = D)
+
+	prob_moi = moi_problem(prob)
+
+	return prob_moi
 end
 
 struct DPOProblems
@@ -97,8 +116,8 @@ function dpo_indices(prob::DPOProblems, p, N, D)
     shift = prob.nom.num_var + prob.mean.num_var
     idx_sample = []
     for i = 1:N
-        push!(idx_sample, shift .+ (1:prob_sample[i].num_var))
-        shift += prob_sample[i].num_var
+        push!(idx_sample, shift .+ (1:prob.sample[i].num_var))
+        shift += prob.sample[i].num_var
     end
 
     # policy
@@ -210,12 +229,12 @@ function eval_constraint!(c, Z, dpo::DirectPolicyOptimizationProblem)
 
 	# sample dynamics
 	constraints!(view(c, shift .+ (1:dpo.con[1].n)), Z, dpo.con[1],
-		dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.w, dpo.β)
+		dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.dist, dpo.sample)
 	shift += dpo.con[1].n
 
 	# policy
 	constraints!(view(c, shift .+ (1:dpo.con[2].n)), Z, dpo.con[2],
-		dpo.prob, dpo.idx, dpo.N)
+		dpo.policy, dpo.prob, dpo.idx, dpo.N)
 	shift += dpo.con[2].n
 
 
@@ -244,13 +263,14 @@ function eval_constraint_jacobian!(∇c, Z, dpo::DirectPolicyOptimizationProblem
 	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[1],
 		dpo.prob, dpo.idx,
 		dpo.N, dpo.D,
-		dpo.w, dpo.β)
+		dpo.dist, dpo.sample)
 	shift += len
 
 	# policy
-	len = length(constraints_sparsity(dpo.con[2], dpo.prob, dpo.idx,
+	len = length(constraints_sparsity(dpo.con[2], dpo.policy, dpo.prob, dpo.idx,
 		dpo.N))
 	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[2],
+		dpo.policy,
 		dpo.prob, dpo.idx, dpo.N)
 	shift += len
 
@@ -282,7 +302,8 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 
 	# policy
 	spar = collect([spar...,
-					constraints_sparsity(dpo.con[2], dpo.prob, dpo.idx,
+					constraints_sparsity(dpo.con[2], dpo.policy,
+					dpo.prob, dpo.idx,
 					dpo.N, shift_row = con_shift)...])
 	con_shift += dpo.con[2].n
 

@@ -20,7 +20,7 @@ struct TrajectoryOptimizationProblem <: Problem
     idx    # indices
 end
 
-function trajectory_optimization_problem(model, obj, T;
+function trajectory_optimization(model, obj, T;
         h = 0.0,
         xl = [-1.0 * Inf * ones(model.n) for t = 1:T],
         xu = [Inf * ones(model.n) for t = 1:T],
@@ -55,7 +55,7 @@ function trajectory_optimization_problem(model, obj, T;
    return prob
 end
 
-function problem(model, obj, T;
+function trajectory_optimization_problem(model, obj, T;
         xl = [-1.0 * Inf * ones(model.n) for t = 1:T],
         xu = [Inf * ones(model.n) for t = 1:T],
         ul = [-1.0 * Inf * ones(model.m) for t = 1:T-1],
@@ -64,7 +64,7 @@ function problem(model, obj, T;
         con = EmptyConstraints(),
         dynamics = true)
 
-   prob = trajectory_optimization_problem(model, obj, T,
+   prob = trajectory_optimization(model, obj, T,
                 h = h,
                 xl = xl,
                 xu = xu,
@@ -104,17 +104,6 @@ function unpack(Z, prob::TrajectoryOptimizationProblem)
 
     return X, U
 end
-
-
-function moi_problem(prob::TrajectoryOptimizationProblem)
-    return MOIProblem(
-        prob.num_var,
-        prob.num_con,
-        primal_bounds(prob),
-        constraint_bounds(prob),
-        prob)
-end
-
 
 function primal_bounds(prob::TrajectoryOptimizationProblem)
     T = prob.T
