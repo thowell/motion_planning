@@ -5,7 +5,16 @@ struct MOIProblem <: MOI.AbstractNLPEvaluator
     num_con::Int                 # number of constraints
     primal_bounds
     constraint_bounds
-    prob::Problem
+    prob
+end
+
+function moi_problem(prob)
+    return MOIProblem(
+        prob.num_var,
+        prob.num_con,
+        primal_bounds(prob),
+        constraint_bounds(prob),
+        prob)
 end
 
 pack(X, U, prob::MOIProblem) = pack(X, U, prob.prob)
@@ -76,6 +85,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["max_iter"] = max_iter
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
+        solver.options["print_level"] = mapl
     else
         solver = SNOPT7.Optimizer(Major_feasibility_tolerance = c_tol,
                                   Minor_feasibility_tolerance = tol,

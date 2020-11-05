@@ -6,6 +6,8 @@ struct SampleObjective <: Objective
     R
 end
 
+sample_objective(Q, R) = SampleObjective(Q, R)
+
 function objective(τ_nom, τ_sample, obj::SampleObjective,
         model_nom, model_sample,
         idx_τ_nom, idx_τ_sample, T)

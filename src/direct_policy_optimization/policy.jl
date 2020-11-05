@@ -1,3 +1,21 @@
+abstract type Policy end
+
+struct LinearFeedback <: Policy
+	input
+	output
+	p
+end
+
+function linear_feedback(input, output)
+	return LinearFeedback(input, output , input * output)
+end
+
+# linear state-feedback policy
+function eval_policy(policy::LinearFeedback, θ, x, x̄, ū)
+	ū - reshape(θ, policy.output, policy.input) * (x - x̄)
+end
+
+
 struct PolicyConstraint <: Constraints
 	n
 	ineq
@@ -5,7 +23,7 @@ struct PolicyConstraint <: Constraints
 end
 
 function policy_constraint(model, T; control_dim = model.m)
-	n = model.m * (T - 1)
+	n = control_dim * (T - 1)
 	ineq = (1:0)
 
 	return PolicyConstraint(n, ineq, control_dim)
@@ -23,12 +41,12 @@ function policy_constraints(prob, N;
 	T = prob.nom.T
 
 	con = [policy_constraint(prob.mean.model, T,
-		control_dim = prob.mean.model.m)]
+		control_dim = control_dim)]
 	n = con[end].n
 
 	for i = 1:N
 		push!(con, policy_constraint(prob.sample[i].model, T,
-			control_dim = prob.mean.model.m))
+			control_dim = control_dim))
 		n += con[i + 1].n
 	end
 
@@ -38,6 +56,7 @@ function policy_constraints(prob, N;
 end
 
 function constraints!(c, Θ, τ_nom, τ_sample, con::PolicyConstraint,
+		policy::Policy,
 		model_nom, model_sample,
 		idx_τ_nom, idx_τ_sample, idx_θ,
 		h, T)
@@ -53,12 +72,13 @@ function constraints!(c, Θ, τ_nom, τ_sample, con::PolicyConstraint,
 		x = view(τ_sample, idx_τ_sample.x[t])
 		u = view(τ_sample, idx_τ_sample.u[t])
 
-		c[(t - 1) * p .+ (1:p)] = policy(model_sample, θ, x, x̄, ū) - view(u, 1:p)
+		c[(t - 1) * p .+ (1:p)] = eval_policy(policy, θ, x, x̄, ū) - view(u, 1:p)
 	end
     return nothing
 end
 
 function constraints_jacobian!(∇c, Θ, τ_nom, τ_sample, con::PolicyConstraint,
+		policy::Policy,
 		model_nom, model_sample,
 		idx_τ_nom, idx_τ_sample, idx_θ,
 		h, T)
@@ -76,11 +96,11 @@ function constraints_jacobian!(∇c, Θ, τ_nom, τ_sample, con::PolicyConstrain
 		x = view(τ_sample, idx_τ_sample.x[t])
 		u = view(τ_sample, idx_τ_sample.u[t])
 
-		pθ(y) = policy(model_sample, y, x, x̄, ū) - view(u, 1:p)
-		px(y) = policy(model_sample, θ, y, x̄, ū) - view(u, 1:p)
-		px̄(y) = policy(model_sample, θ, x, y, ū) - view(u, 1:p)
-		pū(y) = policy(model_sample, θ, x, x̄, y) - view(u, 1:p)
-		pu(y) = policy(model_sample, θ, x, x̄, ū) - view(y, 1:p)
+		pθ(y) = eval_policy(policy, y, x, x̄, ū) - view(u, 1:p)
+		px(y) = eval_policy(policy, θ, y, x̄, ū) - view(u, 1:p)
+		px̄(y) = eval_policy(policy, θ, x, y, ū) - view(u, 1:p)
+		pū(y) = eval_policy(policy, θ, x, x̄, y) - view(u, 1:p)
+		pu(y) = eval_policy(policy, θ, x, x̄, ū) - view(y, 1:p)
 
 		# c[(t - 1) * p .+ (1:p)] = policy(model_sample, θ, x, x̄, ū) - view(u, 1:p)
 
@@ -115,6 +135,7 @@ function constraints_jacobian!(∇c, Θ, τ_nom, τ_sample, con::PolicyConstrain
 end
 
 function constraints_sparsity(con::PolicyConstraint,
+		policy,
 		model_nom, model_sample,
 		idx_τ_nom, idx_τ_sample, idx_θ,
 		idx_z_nom, idx_z_sample, idx_z_policy,
@@ -149,6 +170,7 @@ function constraints_sparsity(con::PolicyConstraint,
 end
 
 function constraints!(c, Z, con::PolicyConstraints,
+	policy::Policy,
 	prob::DPOProblems, idx::DPOIndices, N)
 
 	shift = 0
@@ -159,7 +181,7 @@ function constraints!(c, Z, con::PolicyConstraints,
 	τ_mean = view(Z, idx.mean)
 
 	constraints!(view(c, shift .+ (1:con.con[1].n)),
-			Θ, τ_nom, τ_mean, con.con[1],
+			Θ, τ_nom, τ_mean, con.con[1], policy,
 			prob.nom.model, prob.mean.model,
 			prob.nom.idx, prob.mean.idx, idx.θ,
 			prob.nom.h, prob.nom.T)
@@ -169,8 +191,8 @@ function constraints!(c, Z, con::PolicyConstraints,
 	for i = 1:N
 		τ_sample = view(Z, idx.sample[i])
 		constraints!(view(c, shift .+ (1:con.con[i + 1].n)),
-				Θ, τ_nom, τ_sample,
-				con.con[i + 1], prob.nom.model, prob.sample[i].model,
+				Θ, τ_nom, τ_sample,	con.con[i + 1], policy,
+				prob.nom.model, prob.sample[i].model,
 				prob.nom.idx, prob.sample[i].idx, idx.θ,
 				prob.nom.h, prob.nom.T)
 		shift += con.con[i + 1].n
@@ -179,6 +201,7 @@ function constraints!(c, Z, con::PolicyConstraints,
 end
 
 function constraints_jacobian!(∇c, Z, con::PolicyConstraints,
+		policy::Policy,
 		prob::DPOProblems, idx::DPOIndices, N)
 
 	shift = 0
@@ -188,14 +211,15 @@ function constraints_jacobian!(∇c, Z, con::PolicyConstraints,
 	τ_mean = view(Z, idx.mean)
 
 	len = length(constraints_sparsity(con.con[1],
+			policy,
 	 		prob.nom.model, prob.mean.model,
 			prob.nom.idx, prob.mean.idx, idx.θ,
 			idx.nom, idx.mean, idx.policy,
 			prob.nom.T))
 
 	constraints_jacobian!(view(∇c, shift .+ (1:len)),
-			Θ, τ_nom, τ_mean,
-			con.con[1], prob.nom.model, prob.mean.model,
+			Θ, τ_nom, τ_mean, con.con[1], policy,
+			prob.nom.model, prob.mean.model,
 			prob.nom.idx, prob.mean.idx, idx.θ,
 			prob.nom.h, prob.nom.T)
 
@@ -205,14 +229,15 @@ function constraints_jacobian!(∇c, Z, con::PolicyConstraints,
 		τ_sample = view(Z, idx.sample[i])
 
 		len = length(constraints_sparsity(con.con[i + 1],
+				policy,
 		 		prob.nom.model, prob.sample[i].model,
 				prob.nom.idx, prob.sample[i].idx, idx.θ,
 				idx.nom, idx.mean, idx.policy,
 				prob.nom.T))
 
 		constraints_jacobian!(view(∇c, shift .+ (1:len)),
-				Θ, τ_nom, τ_sample,
-				con.con[i + 1], prob.nom.model, prob.sample[i].model,
+				Θ, τ_nom, τ_sample, con.con[i + 1], policy,
+				prob.nom.model, prob.sample[i].model,
 				prob.nom.idx, prob.sample[i].idx, idx.θ,
 				prob.nom.h, prob.nom.T)
 
@@ -222,10 +247,12 @@ function constraints_jacobian!(∇c, Z, con::PolicyConstraints,
 end
 
 function constraints_sparsity(con::PolicyConstraints,
+		policy::Policy,
 		prob::DPOProblems, idx::DPOIndices, N;
 		shift_row = 0, shift_col = 0)
 
 	spar = constraints_sparsity(con.con[1],
+			policy,
 			prob.nom.model, prob.mean.model,
 			prob.nom.idx, prob.mean.idx, idx.θ,
 			idx.nom, idx.mean, idx.policy,
@@ -236,6 +263,7 @@ function constraints_sparsity(con::PolicyConstraints,
 	for i = 1:N
 		spar = collect([spar...,
 				constraints_sparsity(con.con[i + 1],
+				policy,
 				prob.nom.model, prob.sample[i].model,
 				prob.nom.idx, prob.sample[i].idx, idx.θ,
 				idx.nom, idx.sample[i], idx.policy,
@@ -245,9 +273,4 @@ function constraints_sparsity(con::PolicyConstraints,
 	end
 
 	return spar
-end
-
-# linear state-feedback policy
-function policy(model, θ, x, x̄, ū)
-	ū - reshape(θ, model.m, model.n) * (x - x̄)
 end

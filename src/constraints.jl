@@ -26,13 +26,13 @@ end
     empty constraints
 """
 
-struct EmptyConstraints
+struct EmptyConstraints <: Constraints
     n
     ineq
+end
 
-    function EmptyConstraints()
-        EmptyConstraints(0, (1:0))
-    end
+function EmptyConstraints()
+    EmptyConstraints(0, (1:0))
 end
 
 """

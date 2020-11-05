@@ -1,7 +1,7 @@
 """
     test direct policy optimization
 """
-
+prob_dpo = prob_dpo.prob
 # objective
 z0 = rand(prob_dpo.num_var)
 tmp_o(z) = eval_objective(prob_dpo,z)
@@ -15,7 +15,7 @@ con_dynamics = sample_dynamics_constraints(prob_dpo.prob,
 c0 = zeros(con_dynamics.n)
 _c(c,z) = constraints!(c, z, con_dynamics,
     prob_dpo.prob, prob_dpo.idx, prob_dpo.N, prob_dpo.D,
-    prob_dpo.w, prob_dpo.β)
+    prob_dpo.dist, prob_dpo.sample)
 ∇c_fd = zeros(con_dynamics.n, prob_dpo.num_var)
 FiniteDiff.finite_difference_jacobian!(∇c_fd, _c, z0)
 # ∇c_fd = ForwardDiff.jacobian(_c, c0, z0)
@@ -25,7 +25,7 @@ spar = constraints_sparsity(con_dynamics, prob_dpo.prob, prob_dpo.idx,
 ∇c = zeros(con_dynamics.n, prob_dpo.num_var)
 constraints_jacobian!(∇c_vec, z0, con_dynamics,
     prob_dpo.prob, prob_dpo.idx, prob_dpo.N, prob_dpo.D,
-    prob_dpo.w, prob_dpo.β)
+    prob_dpo.dist, prob_dpo.sample)
 for (i,k) in enumerate(spar)
     ∇c[k[1],k[2]] = ∇c_vec[i]
 end
@@ -33,19 +33,22 @@ end
 @assert sum(∇c) - sum(∇c_fd) < 1.0e-6
 
 # policy
+prob_dpo.con[2]
+model.m * (T - 1) * (N + 1)
 con_policy = policy_constraints(prob_dpo.prob, prob_dpo.N)
 c0 = zeros(con_policy.n)
-_c(c,z) = constraints!(c, z, con_policy,
+_c(c,z) = constraints!(c, z, con_policy, prob_dpo.policy,
     prob_dpo.prob, prob_dpo.idx, prob_dpo.N)
 
+_c(c0,z0)
 # ∇c_fd = zeros(con_policy.n, prob_dpo.num_var)
 # FiniteDiff.finite_difference_jacobian!(∇c_fd, _c, z0)
 ∇c_fd = ForwardDiff.jacobian(_c, c0, z0)
-spar = constraints_sparsity(con_policy, prob_dpo.prob, prob_dpo.idx,
-    prob_dpo.N)
+spar = constraints_sparsity(con_policy, prob_dpo.policy, prob_dpo.prob,
+    prob_dpo.idx, prob_dpo.N)
 ∇c_vec = zeros(length(spar))
 ∇c = zeros(con_policy.n, prob_dpo.num_var)
-constraints_jacobian!(∇c_vec, z0, con_policy,
+constraints_jacobian!(∇c_vec, z0, con_policy, prob_dpo.policy,
     prob_dpo.prob, prob_dpo.idx, prob_dpo.N)
 
 for (i,k) in enumerate(spar)

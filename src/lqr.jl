@@ -38,8 +38,8 @@ function jacobians(model, X, U)
         fx⁺(z) = fd(model, z, x, u, w, h, t)
 
         A⁺ = ForwardDiff.jacobian(fx⁺, x⁺)
-        push!(A,-1.0 * A⁺ \ ForwardDiff.jacobian(fx, x))
-        push!(B,-1.0 * A⁺ \ ForwardDiff.jacobian(fu, u))
+        push!(A, -1.0 * A⁺ \ ForwardDiff.jacobian(fx, x))
+        push!(B, -1.0 * A⁺ \ ForwardDiff.jacobian(fu, u))
     end
 
     return A, B

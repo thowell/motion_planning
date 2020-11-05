@@ -46,16 +46,16 @@ n_con = n_stage * T
 con_obstacles = ObstacleConstraints(n_con, (1:n_con), n_stage)
 
 # Problem
-prob = problem(model,
-               obj,
-               T,
-               h = h,
-               xl = xl,
-               xu = xu,
-               ul = ul,
-               uu = uu,
-               con = con_obstacles
-               )
+prob = trajectory_optimization_problem(model,
+           obj,
+           T,
+           h = h,
+           xl = xl,
+           xu = xu,
+           ul = ul,
+           uu = uu,
+           con = con_obstacles
+           )
 
 # Trajectory initialization
 X0 = linear_interp(x1, xT, T) # linear interpolation on state
