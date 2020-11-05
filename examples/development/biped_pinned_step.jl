@@ -1,4 +1,8 @@
 include(joinpath(pwd(), "src/models/biped.jl"))
+
+include(joinpath(pwd(), "src/objectives/velocity.jl"))
+include(joinpath(pwd(), "src/objectives/acceleration.jl"))
+
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/pinned_foot.jl"))
 
@@ -34,7 +38,7 @@ xl, xu = state_bounds(model, T, x1 = [q1; q1], xT = [Inf * ones(model.nq); qT])
 q_ref = linear_interp(q1, qT, T)
 X0 = configuration_to_state(q_ref)
 
-obj_penalty = PenaltyObjective(1000.0, model.m)
+obj_penalty = PenaltyObjective(1.0e5, model.m)
 
 Qq = Diagonal(ones(model.nq))
 Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
@@ -47,8 +51,13 @@ obj_tracking = quadratic_tracking_objective(
     [X0[t] for t = 1:T],
     [zeros(model.m) for t = 1:T]
     )
-
-obj = MultiObjective([obj_tracking, obj_penalty])
+obj_velocity = velocity_objective(
+    [Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
+    model.nq)
+obj_acceleration = acceleration_objective(
+    [Diagonal(1.0e-1 * ones(model.nq)) for t = 1:T-1],
+    model.nq)
+obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity, obj_acceleration])
 
 # Constraints
 con_contact = contact_constraints(model, T)
@@ -56,7 +65,7 @@ con_pinned = pinned_foot_constraint(model, q1, T)
 con = multiple_constraints([con_contact, con_pinned])
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -67,7 +76,7 @@ prob = problem(model,
                con = con
                )
 
-# Trajectory initialization
+# trajectory initialization
 q_ref = linear_interp(q1, qT, T)
 X0 = configuration_to_state(q_ref) # linear interpolation on state
 U0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
@@ -78,16 +87,14 @@ Z0 = pack(X0, U0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 check_slack(Z̄, prob)
 
 X̄, Ū = unpack(Z̄, prob)
 
 # Visualize
-include(joinpath(pwd(), "src/models/visualize.jl"))
-vis = Visualizer()
-open(vis)
+
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
 
 plot(hcat(Ū...)[1:model.nu,:]', linetype = :steppost)

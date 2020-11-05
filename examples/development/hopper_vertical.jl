@@ -1,8 +1,6 @@
 include(joinpath(pwd(), "src/models/hopper.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/loop.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
-
 
 # Free-time model
 model_ft = free_time_model(model)
@@ -45,18 +43,20 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-# _uu[end] = h
+_uu[end] = 5.0 * h
 _ul = zeros(model_ft.m)
 _ul[model_ft.idx_u] .= -Inf
-_ul[end] = h
+_ul[end] = 0.25 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
 # Initial and final states
-z_h = 0.5
+z_h = 0.0
 q1 = [0.0, 0.5 + z_h, 0.0, 0.5]
 
-xl, xu = state_bounds(model_ft, T, [model_ft.qL; model_ft.qL], [model_ft.qU; model_ft.qU],
-        x1 = [Inf*ones(model_ft.nq); q1])
+xl, xu = state_bounds(model_ft, T,
+		[model_ft.qL; model_ft.qL],
+		[model_ft.qU; model_ft.qU],
+        x1 = [q1; q1])
 
 # Objective
 Qq = Diagonal([1.0, 1.0, 1.0, 1.0])
@@ -77,11 +77,10 @@ obj = MultiObjective([obj_tracking, obj_contact_penalty])
 # Constraints
 con_free_time = free_time_constraints(T)
 con_contact = contact_constraints(model_ft, T)
-con_loop = loop_constraints(model_ft, 1, T)
-con = multiple_constraints([con_free_time, con_contact, con_loop])
+con = multiple_constraints([con_free_time, con_contact])
 
 # Problem
-prob = problem(model_ft,
+prob = trajectory_optimization_problem(model_ft,
                obj,
                T,
                xl = xl,
@@ -100,12 +99,17 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
+include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+
+@time Z̄ = solve(prob, copy(Z0),
+	nlp = :SNOPT7,
+	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
 
 @show Ū[4][end]
+@show check_slack(Z̄, prob)
 
 using Plots
 plot(hcat(Ū...)[end,:], linetype=:steppost)

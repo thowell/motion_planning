@@ -15,7 +15,7 @@ end
 
 function tvlqr(model, X, U, Q, R)
     A, B = jacobians(model, X, U)
-    K = TVLQR(A, B, Q, R)
+    K = tvlqr(A, B, Q, R)
     return K
 end
 

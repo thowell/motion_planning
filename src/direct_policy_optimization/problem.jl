@@ -48,11 +48,10 @@ function dpo(
 	# constraints
 	con_dynamics = sample_dynamics_constraints(prob, N, M)
 	con_policy = policy_constraints(prob, N)
-	con = [con_dynamics, con_policy]
+	con = [con_dynamics]#, con_policy]
 
 	num_con = prob.nom.num_con + sum([prob.sample[i].num_con for i = 1:N])
-	num_con += con_dynamics.n + con_policy.n
-
+	num_con += con_dynamics.n# + con_policy.n
 
 	return DirectPolicyOptimizationProblem(
 		prob, obj, con,
@@ -134,6 +133,7 @@ function dpo_indices(prob::DPOProblems, p, N, D)
         push!(idx_slack, shift .+ (1:n_slack))
         shift += n_slack
     end
+
 	num_var = shift
 
     return DPOIndices(idx_nom, idx_mean, idx_sample, idx_θ, idx_policy, idx_s, idx_slack), num_var
@@ -167,12 +167,16 @@ function constraint_bounds(dpo::DirectPolicyOptimizationProblem)
     cl = zeros(dpo.num_con)
     cu = zeros(dpo.num_con)
 
+	shift = 0
+
 	# nominal
-    cu[idx_nom[dpo.prob.nom.con.ineq]] .= Inf
+    cu[dpo.prob.nom.con.ineq] .= Inf
+	shift += dpo.prob.nom.num_con
 
 	# sample
 	for i = 1:dpo.N
-		cu[idx_sample[i][dpo.prob.sample[i].con.ineq]] .= Inf
+		cu[(shift .+ (1:dpo.prob.sample[i].num_con))[dpo.prob.sample[i].con.ineq]] .= Inf
+		shift += dpo.prob.sample[i].num_con
 	end
 
     return cl, cu
@@ -227,15 +231,15 @@ function eval_constraint!(c, Z, dpo::DirectPolicyOptimizationProblem)
 		shift += dpo.prob.sample[i].num_con
 	end
 
-	# sample dynamics
-	constraints!(view(c, shift .+ (1:dpo.con[1].n)), Z, dpo.con[1],
-		dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.dist, dpo.sample)
-	shift += dpo.con[1].n
+	# # sample dynamics
+	# constraints!(view(c, shift .+ (1:dpo.con[1].n)), Z, dpo.con[1],
+	# 	dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.dist, dpo.sample)
+	# shift += dpo.con[1].n
 
-	# policy
-	constraints!(view(c, shift .+ (1:dpo.con[2].n)), Z, dpo.con[2],
-		dpo.policy, dpo.prob, dpo.idx, dpo.N)
-	shift += dpo.con[2].n
+	# # policy
+	# constraints!(view(c, shift .+ (1:dpo.con[2].n)), Z, dpo.con[2],
+	# 	dpo.policy, dpo.prob, dpo.idx, dpo.N)
+	# shift += dpo.con[2].n
 
 
     return nothing
@@ -257,22 +261,22 @@ function eval_constraint_jacobian!(∇c, Z, dpo::DirectPolicyOptimizationProblem
 		shift += len
 	end
 
-	# sample dynamics
-	len = length(constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
-		dpo.N, dpo.D))
-	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[1],
-		dpo.prob, dpo.idx,
-		dpo.N, dpo.D,
-		dpo.dist, dpo.sample)
-	shift += len
+	# # sample dynamics
+	# len = length(constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
+	# 	dpo.N, dpo.D))
+	# constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[1],
+	# 	dpo.prob, dpo.idx,
+	# 	dpo.N, dpo.D,
+	# 	dpo.dist, dpo.sample)
+	# shift += len
 
-	# policy
-	len = length(constraints_sparsity(dpo.con[2], dpo.policy, dpo.prob, dpo.idx,
-		dpo.N))
-	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[2],
-		dpo.policy,
-		dpo.prob, dpo.idx, dpo.N)
-	shift += len
+	# # policy
+	# len = length(constraints_sparsity(dpo.con[2], dpo.policy, dpo.prob, dpo.idx,
+	# 	dpo.N))
+	# constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[2],
+	# 	dpo.policy,
+	# 	dpo.prob, dpo.idx, dpo.N)
+	# shift += len
 
     return nothing
 end
@@ -294,18 +298,18 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 		shift_col += dpo.prob.sample[i].num_var
 	end
 
-	# sample dynamics
-	spar = collect([spar...,
-					constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
-						dpo.N, dpo.D, shift_row = con_shift)...])
-	con_shift += dpo.con[1].n
+	# # sample dynamics
+	# spar = collect([spar...,
+	# 				constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
+	# 					dpo.N, dpo.D, shift_row = con_shift)...])
+	# con_shift += dpo.con[1].n
 
-	# policy
-	spar = collect([spar...,
-					constraints_sparsity(dpo.con[2], dpo.policy,
-					dpo.prob, dpo.idx,
-					dpo.N, shift_row = con_shift)...])
-	con_shift += dpo.con[2].n
+	# # policy
+	# spar = collect([spar...,
+	# 				constraints_sparsity(dpo.con[2], dpo.policy,
+	# 				dpo.prob, dpo.idx,
+	# 				dpo.N, shift_row = con_shift)...])
+	# con_shift += dpo.con[2].n
 
 	return spar
 end
