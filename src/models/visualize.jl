@@ -2,9 +2,10 @@ using Colors
 using CoordinateTransformations
 using FileIO
 using GeometryTypes
-using MeshCat
+using MeshCat, MeshCatMechanisms
 using MeshIO
 using Rotations
+using RigidBodyDynamics
 
 function cable_transform(y, z)
     v1 = [0.0, 0.0, 1.0]

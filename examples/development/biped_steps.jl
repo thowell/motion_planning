@@ -33,7 +33,7 @@ T = 11
 
 # Time step
 tf = 1.0
-h = tf / (T-1)
+h = tf / (T - 1)
 
 # Bounds
 

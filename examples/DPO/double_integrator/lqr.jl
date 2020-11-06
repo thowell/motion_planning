@@ -80,8 +80,7 @@ A, B = get_dynamics(model)
 K = tvlqr(
 	[A for t = 1:T-1],
 	[B for t = 1:T-1],
-	[Q[t] for t = 1:T],
-	[R[t] for t = 1:T-1])
+	Q, R)
 
 # DPO policy
 θ = [reshape(z_sol[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
