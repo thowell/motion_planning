@@ -4,7 +4,7 @@
 function sample_mean(X, β)
     N = length(X)
     n = length(X[1])
-    μ = β * sum(X)
+    μ = β * sum(X) ./ N
     return μ
 end
 
@@ -14,7 +14,7 @@ end
 function sample_covariance(X, β, γ)
     N = length(X)
     μ = sample_mean(X, β)
-    P = γ * sum([(X[i] - μ) * (X[i] - μ)' for i = 1:N])
+    P = γ * sum([(X[i] - μ) * (X[i] - μ)' for i = 1:N]) ./ N
     return P
 end
 
@@ -31,7 +31,7 @@ function resample(X, α::T, β::T, γ::T) where T
 end
 
 function resample_vec(X, n, N, k, α, β, γ)
-    _X = [X[(i-1) * n .+ (1:n)] for i = 1:N]
+    _X = [X[(i - 1) * n .+ (1:n)] for i = 1:N]
     Xs = resample(_X, α, β, γ)
     return Xs[k]
 end

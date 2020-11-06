@@ -48,10 +48,10 @@ function dpo(
 	# constraints
 	con_dynamics = sample_dynamics_constraints(prob, N, M)
 	con_policy = policy_constraints(prob, N)
-	con = [con_dynamics]#, con_policy]
+	con = [con_dynamics, con_policy]
 
 	num_con = prob.nom.num_con + sum([prob.sample[i].num_con for i = 1:N])
-	num_con += con_dynamics.n# + con_policy.n
+	num_con += con_dynamics.n + con_policy.n
 
 	return DirectPolicyOptimizationProblem(
 		prob, obj, con,
@@ -231,15 +231,15 @@ function eval_constraint!(c, Z, dpo::DirectPolicyOptimizationProblem)
 		shift += dpo.prob.sample[i].num_con
 	end
 
-	# # sample dynamics
-	# constraints!(view(c, shift .+ (1:dpo.con[1].n)), Z, dpo.con[1],
-	# 	dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.dist, dpo.sample)
-	# shift += dpo.con[1].n
+	# sample dynamics
+	constraints!(view(c, shift .+ (1:dpo.con[1].n)), Z, dpo.con[1],
+		dpo.prob, dpo.idx, dpo.N, dpo.D, dpo.dist, dpo.sample)
+	shift += dpo.con[1].n
 
-	# # policy
-	# constraints!(view(c, shift .+ (1:dpo.con[2].n)), Z, dpo.con[2],
-	# 	dpo.policy, dpo.prob, dpo.idx, dpo.N)
-	# shift += dpo.con[2].n
+	# policy
+	constraints!(view(c, shift .+ (1:dpo.con[2].n)), Z, dpo.con[2],
+		dpo.policy, dpo.prob, dpo.idx, dpo.N)
+	shift += dpo.con[2].n
 
 
     return nothing
@@ -261,22 +261,22 @@ function eval_constraint_jacobian!(∇c, Z, dpo::DirectPolicyOptimizationProblem
 		shift += len
 	end
 
-	# # sample dynamics
-	# len = length(constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
-	# 	dpo.N, dpo.D))
-	# constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[1],
-	# 	dpo.prob, dpo.idx,
-	# 	dpo.N, dpo.D,
-	# 	dpo.dist, dpo.sample)
-	# shift += len
+	# sample dynamics
+	len = length(constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
+		dpo.N, dpo.D))
+	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[1],
+		dpo.prob, dpo.idx,
+		dpo.N, dpo.D,
+		dpo.dist, dpo.sample)
+	shift += len
 
-	# # policy
-	# len = length(constraints_sparsity(dpo.con[2], dpo.policy, dpo.prob, dpo.idx,
-	# 	dpo.N))
-	# constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[2],
-	# 	dpo.policy,
-	# 	dpo.prob, dpo.idx, dpo.N)
-	# shift += len
+	# policy
+	len = length(constraints_sparsity(dpo.con[2], dpo.policy, dpo.prob, dpo.idx,
+		dpo.N))
+	constraints_jacobian!(view(∇c, shift .+ (1:len)), Z, dpo.con[2],
+		dpo.policy,
+		dpo.prob, dpo.idx, dpo.N)
+	shift += len
 
     return nothing
 end
@@ -297,19 +297,20 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 		con_shift += dpo.prob.sample[i].num_con
 		shift_col += dpo.prob.sample[i].num_var
 	end
+	shift_col = 0
 
-	# # sample dynamics
-	# spar = collect([spar...,
-	# 				constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
-	# 					dpo.N, dpo.D, shift_row = con_shift)...])
-	# con_shift += dpo.con[1].n
+	# sample dynamics
+	spar = collect([spar...,
+					constraints_sparsity(dpo.con[1], dpo.prob, dpo.idx,
+						dpo.N, dpo.D, shift_row = con_shift)...])
+	con_shift += dpo.con[1].n
 
-	# # policy
-	# spar = collect([spar...,
-	# 				constraints_sparsity(dpo.con[2], dpo.policy,
-	# 				dpo.prob, dpo.idx,
-	# 				dpo.N, shift_row = con_shift)...])
-	# con_shift += dpo.con[2].n
+	# policy
+	spar = collect([spar...,
+					constraints_sparsity(dpo.con[2], dpo.policy,
+					dpo.prob, dpo.idx,
+					dpo.N, shift_row = con_shift)...])
+	con_shift += dpo.con[2].n
 
 	return spar
 end

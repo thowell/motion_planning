@@ -558,11 +558,11 @@ function visualize!(vis, model::Biped, q;
 			k_leg_2 = kinematics_2(model, q[t], body = :leg_2, mode = :ee)
 			p_leg_2 = [k_leg_2[1], 0.0, k_leg_2[2]]
 
-			settransform!(vis["torso"], cable_transform(p, p_torso))
 			settransform!(vis["thigh1"], cable_transform(p, p_thigh_1))
 			settransform!(vis["leg1"], cable_transform(p_thigh_1, p_leg_1))
 			settransform!(vis["thigh2"], cable_transform(p, p_thigh_2))
 			settransform!(vis["leg2"], cable_transform(p_thigh_2, p_leg_2))
+			settransform!(vis["torso"], cable_transform(p_torso,p))
 		end
 	end
 
