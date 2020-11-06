@@ -1,15 +1,11 @@
 struct Sample
-	α
 	β
-	γ
+	#TODO: adaptive sampling
 end
 
-function sample_params(a, b, c, T)
-	α = [a for t = 1:T]
+function sample_params(b, T)
 	β = [b for t = 1:T]
-	γ = [c for t = 1:T]
-
-	return Sample(α, β, γ)
+	return Sample(β)
 end
 
 struct SampleDynamics <: Constraints
@@ -66,7 +62,7 @@ function constraints!(c, Z, con::SampleDynamics,
 		x = [view(Z, idx.sample[i][prob.sample[i].idx.x[t]]) for i = 1:N]
 
 		# sample mean
-		c[con_shift .+ (1:prob.mean.model.n)] = μ - sample_mean(x, sample.β[t])
+		c[con_shift .+ (1:prob.mean.model.n)] = μ - sample_mean(x)
 		con_shift += prob.mean.model.n
 	end
 
@@ -97,7 +93,7 @@ function constraints!(c, Z, con::SampleDynamics,
 				k = j - N
 				c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
 					s⁺[j], μ, ν,
-					sample.α[t] * dist.w[t][k],
+					sample.β[t] * dist.w[t][k],
 					h, t)
 
 				con_shift += prob.mean.model.n
@@ -113,7 +109,7 @@ function constraints!(c, Z, con::SampleDynamics,
 		# slacks
 		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
 
-		xs⁺ = resample(s⁺, sample.α[t], sample.β[t], sample.γ[t])
+		xs⁺ = resample(s⁺, sample.β[t])
 
 		for i = 1:N
 			c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
@@ -141,7 +137,8 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 	for t = 1:T
 		# samples
 		x_vec = vcat([view(Z, idx.sample[i][prob.sample[i].idx.x[t]]) for i = 1:N]...)
-		sample_mean_vec(y) = sample_mean([view(y, (i - 1) * prob.mean.model.n .+ (1:prob.mean.model.n)) for i = 1:N], sample.β[t])
+		sample_mean_vec(y) = sample_mean([view(y, (i - 1) * prob.mean.model.n
+			.+ (1:prob.mean.model.n)) for i = 1:N])
 
 		r_idx = con_shift .+ (1:prob.mean.model.n)
 
@@ -208,9 +205,12 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 				# 	β * dist.w[t][k],
 				# 	h, t)
 
-				_fds(y) = fd(prob.mean.model, y, μ, ν, sample.α[t] * dist.w[t][k], h, t)
-				_fdx(y) = fd(prob.mean.model, s⁺[j], y, ν, sample.α[t] * dist.w[t][k], h, t)
-				_fdu(y) = fd(prob.mean.model, s⁺[j], μ, y, sample.α[t] * dist.w[t][k], h, t)
+				_fds(y) = fd(prob.mean.model, y, μ, ν,
+					sample.β[t] * dist.w[t][k], h, t)
+				_fdx(y) = fd(prob.mean.model, s⁺[j], y, ν,
+					sample.β[t] * dist.w[t][k], h, t)
+				_fdu(y) = fd(prob.mean.model, s⁺[j], μ, y,
+					sample.β[t] * dist.w[t][k], h, t)
 
 				r_idx = con_shift .+ (1:prob.mean.model.n)
 
@@ -255,8 +255,7 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 
 			c_idx = s_idx_vec
 			len = length(r_idx) * length(c_idx)
-			r_vec(y) = resample_vec(y, prob.mean.model.n, M, i,
-				sample.α[t], sample.β[t], sample.γ[t])
+			r_vec(y) = resample_vec(y, prob.mean.model.n, M, i, sample.β[t])
 			∇c[jac_shift .+ (1:len)] = vec(real.(-1.0 * FiniteDiff.finite_difference_jacobian(r_vec, s⁺_vec)))
 			jac_shift += len
 

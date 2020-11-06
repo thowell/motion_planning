@@ -28,33 +28,11 @@ prob_nom = trajectory_optimization(
 N = 2 * model.n
 D = 2 * model.d
 
-α = 1.0
 β = 1.0
-γ = 0.5 * (N + D)
-δ = 10.0
+δ = 1.0
 
-r = 0.5
-x1 = resample(ones(model.n), Diagonal(ones(model.n)), r)
+x1 = resample(ones(model.n), Diagonal(ones(model.n)), β)
 
-function sample_mean(X, β)
-    N = length(X)
-    n = length(X[1])
-    μ = sum(X) ./ N
-    return μ
-end
-
-"""
-    sample covariance
-"""
-function sample_covariance(X, β, γ)
-    N = length(X)
-    μ = sample_mean(X, β)
-    P = sum([(X[i] - μ) * (X[i] - μ)' for i = 1:N]) ./ (2 * γ^2.0)
-    return P
-end
-
-sample_mean(x1, 1.0)
-sample_covariance(x1, 1.0, r)
 
 # mean problem
 prob_mean = trajectory_optimization(
@@ -81,7 +59,7 @@ R = [Diagonal(ones(model.m)) for t = 1:T-1]
 obj_sample = sample_objective(Q, R)
 policy = linear_feedback(model.n, model.m)
 dist = disturbances([Diagonal(δ * ones(model.d)) for t = 1:T-1])
-sample = sample_params(α, β, γ, T)
+sample = sample_params(β, T)
 
 prob_dpo = dpo_problem(
 	prob_nom, prob_mean, prob_sample,
