@@ -46,7 +46,7 @@ Qq = 10.0 * Diagonal(ones(model.nq))
 Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
 QT = cat(0.5 * Qq, 100.0 * Diagonal(ones(model.nq)), dims = (1, 2))
 R = Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...])
-X0
+
 obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
@@ -91,9 +91,8 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 @time Z̄ = solve(prob, copy(Z0),
-    nlp = :SNOPT7, time_limit = 300,
+    nlp = :ipopt,
     tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 check_slack(Z̄, prob)
