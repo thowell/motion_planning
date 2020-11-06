@@ -48,7 +48,7 @@ con_friction = FrictionConstraints(n_stage * (T - 1),
     n_stage)
 
 # Problem
-prob_nominal = problem(model_nominal,
+prob_nominal = trajectory_optimization_problem(model_nominal,
                     multi_obj,
                     T,
                     xl = xl,
@@ -58,7 +58,7 @@ prob_nominal = problem(model_nominal,
                     h = h,
                     con = con_friction)
 
-prob_friction = problem(model_friction,
+prob_friction = trajectory_optimization_problem(model_friction,
                     multi_obj,
                     T,
                     xl = xl,
