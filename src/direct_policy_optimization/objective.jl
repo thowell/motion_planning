@@ -59,13 +59,7 @@ function objective(Z, obj::SampleObjective,
 
 	J = 0.0
 
-	# mean samples
 	τ_nom = view(Z, idx.nom)
-	τ_mean = view(Z, idx.mean)
-
-	# J += D * objective(τ_nom, τ_mean, obj,
-	# 	prob.nom.model, prob.mean.model,
-	#     prob.nom.idx, prob.mean.idx, prob.nom.T)
 
 	# samples
 	for i = 1:N
@@ -82,15 +76,6 @@ function objective_gradient!(∇J, Z, obj::SampleObjective,
 		prob::DPOProblems, idx::DPOIndices, N, D)
 
 	τ_nom = view(Z, idx.nom)
-	# τ_mean = view(Z, idx.mean)
-
-	# for i = 1:D
-	# 	objective_gradient!(∇J, τ_nom, τ_mean, obj,
-	# 		prob.nom.model, prob.mean.model,
-	#     	prob.nom.idx, prob.mean.idx,
-	# 		idx.nom, idx.mean,
-	# 		prob.nom.T)
-	# end
 
 	for i = 1:N
 		τ_sample = view(Z, idx.sample[i])
