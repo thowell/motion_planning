@@ -8,7 +8,6 @@ struct Pendulum{T} <: Model
     lc::T   # length to center of mass
     I::T    # inertia
     g::T    # gravity
-
 end
 
 function f(model::Pendulum, x, u, w)

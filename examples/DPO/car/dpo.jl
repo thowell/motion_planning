@@ -65,7 +65,7 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K = tvlqr(model, X̄, Ū, Q, R)
+K = tvlqr(model, X̄, Ū, Q, R, h)
 
 z0_dpo = zeros(prob_dpo.num_var)
 z0_dpo[prob_dpo.prob.idx.nom] = pack(X̄, Ū, prob_nom)
@@ -76,15 +76,13 @@ end
 for j = 1:(N + D)
 	z0_dpo[prob_dpo.prob.idx.slack[j]] = vcat(X̄[2:end]...)
 end
-# for t = 1:T-1
-# 	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
-# end
+for t = 1:T-1
+	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
+end
 
 include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 
 # Solve
-z_sol_dpo = solve(prob_dpo, copy(z0_dpo),
-	nlp = :ipopt,
-	tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 1000,
-	time_limit = 180,
-	mapl = 5)
+Z = solve(prob_dpo, copy(z0_dpo),
+	tol = 1.0e-3, c_tol = 1.0e-3,
+	max_iter = 1000)

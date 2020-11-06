@@ -47,7 +47,7 @@ function dpo(
 
 	# constraints
 	con_dynamics = sample_dynamics_constraints(prob, N, M)
-	con_policy = policy_constraints(prob, N)
+	con_policy = policy_constraints(prob, N, control_dim = policy.output)
 	con = [con_dynamics, con_policy]
 
 	num_con = prob.nom.num_con + sum([prob.sample[i].num_con for i = 1:N])

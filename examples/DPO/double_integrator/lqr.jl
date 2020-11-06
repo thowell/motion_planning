@@ -29,9 +29,9 @@ N = 2 * model.n
 D = 2 * model.d
 
 α = 1.0
-β = 1.0 / (N + D)
-γ = 0.5
-δ = 1.0
+β = 1.0
+γ = 0.5 * (N + D)
+δ = 10.0
 
 x1 = resample(zeros(model.n), Diagonal(ones(model.n)), 1.0)
 
