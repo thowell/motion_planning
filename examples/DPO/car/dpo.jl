@@ -16,13 +16,13 @@ prob_nom = prob.prob
 N = 2 * model.n
 D = 2 * model.d
 
-α = 1.0e-5
-β = 1.0 / (N + D)
-γ = 1.0 / (N + D)
-δ = 1.0e-5
+α = 1.0
+β = 1.0
+γ = 1.0
+δ = 2.5e-2
 
 # initial samples
-x1_sample = resample(x1, Diagonal([1.0; 1.0; 0.1]), 1.0e-5)
+x1_sample = resample(x1, Diagonal([1.0; 1.0; 0.1]), 1.0e-1)
 
 # mean problem
 prob_mean = trajectory_optimization(
@@ -39,22 +39,21 @@ prob_sample = [trajectory_optimization(
 				EmptyObjective(),
 				T,
 				h = h,
-				# xl = state_bounds(model, T, x1 = x1_sample[i])[1],
-				# xu = state_bounds(model, T, x1 = x1_sample[i])[2],
-				ul = control_bounds(model, T, -3.0, 3.0)[1],
-				uu = control_bounds(model, T, -3.0, 3.0)[2],
+				xl = state_bounds(model, T, x1 = x1_sample[i])[1],
+				xu = state_bounds(model, T, x1 = x1_sample[i])[2],
+				ul = ul,
+				uu = uu,
 				dynamics = false,
 				con = con_obstacles
 				) for i = 1:N]
 
 # sample objective
-# Q = [(t < T ? Diagonal([10.0; 10.0; 1.0])
-	# : Diagonal(100.0 * ones(model.n))) for t = 1:T]
-Q = [Diagonal([10.0; 10.0; 1.0]) for t = 1:T]
+Q = [(t < T ? Diagonal([10.0; 10.0; 1.0])
+	: Diagonal(100.0 * ones(model.n))) for t = 1:T]
 R = [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
 
 obj_sample = sample_objective(Q, R)
-policy = linear_feedback(0, 0)#model.n, model.m)
+policy = linear_feedback(model.n, model.m)
 dist = disturbances([Diagonal(δ * [1.0; 1.0; 0.1]) for t = 1:T-1])
 sample = sample_params(α, β, γ, T)
 
@@ -81,11 +80,11 @@ end
 # 	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
 # end
 
-# include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 
 # Solve
 z_sol_dpo = solve(prob_dpo, copy(z0_dpo),
 	nlp = :ipopt,
-	tol = 1.0e-2, c_tol = 1.0e-2, max_iter = 1000,
+	tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 1000,
 	time_limit = 180,
 	mapl = 5)

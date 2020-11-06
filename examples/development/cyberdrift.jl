@@ -65,7 +65,7 @@ con_contact = contact_constraints(model, T)
 con = multiple_constraints([con_contact, con_ctrl_comp, con_obstacles])
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -87,8 +87,11 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
+include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time Z̄ = solve(prob, copy(Z0),
+    nlp = :SNOPT7,
+    tol = 1.0e-3, c_tol = 1.0e-3)
 
 check_slack(Z̄, prob)
 

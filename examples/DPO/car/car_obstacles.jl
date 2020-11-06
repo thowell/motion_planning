@@ -4,7 +4,7 @@ include(joinpath(pwd(), "src/constraints/obstacles.jl"))
 optimize = true
 
 # Horizon
-T = 11
+T = 51
 
 # Time step
 tf = 1.0

@@ -72,7 +72,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         nlp = :ipopt,
         time_limit = 120,
         mipl = 0,
-        mapl = 5)
+        mapl = 1)
 
     x_l, x_u = primal_bounds(prob)
     c_l, c_u = constraint_bounds(prob)
@@ -85,16 +85,13 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["max_iter"] = max_iter
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
-        solver.options["print_level"] = mapl
     else
         solver = SNOPT7.Optimizer(Major_feasibility_tolerance = c_tol,
                                   Minor_feasibility_tolerance = tol,
                                   Major_optimality_tolerance = tol,
                                   Time_limit = time_limit,
                                   Major_print_level = mapl,
-                                  Minor_print_level = mipl,
-                                  Print_file = 0)
-                                  # Summary_file = 0)
+                                  Minor_print_level = mipl)
     end
 
     x = MOI.add_variables(solver, prob.num_var)
@@ -113,6 +110,4 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
 
     # Get the solution
     return MOI.get(solver, MOI.VariablePrimal(), x)
-
-
 end

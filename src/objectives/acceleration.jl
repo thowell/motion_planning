@@ -4,9 +4,10 @@
 struct AccelerationObjective <: Objective
     Q
     n
+    h
 end
 
-acceleration_objective(Q, n) = AccelerationObjective(Q, n)
+acceleration_objective(Q, n; h = 0.0) = AccelerationObjective(Q, n, h)
 
 function objective(Z, obj::AccelerationObjective, idx, T)
     n = obj.n
@@ -20,8 +21,8 @@ function objective(Z, obj::AccelerationObjective, idx, T)
         q⁺ = view(Z, idx.x[t + 1][n .+ (1:n)])
 
         # time steps
-        h⁻ = view(Z, idx.u[t - 1])[end]
-        h⁺ = view(Z, idx.u[t])[end]
+        h⁻ = obj.h == 0.0 ? view(Z, idx.u[t - 1])[end] : obj.h
+        h⁺ = obj.h == 0.0 ? view(Z, idx.u[t])[end] : obj.h
 
         # velocities
         v⁺ = (q⁺ - q) / h⁺
@@ -47,8 +48,8 @@ function objective_gradient!(∇J, Z, obj::AccelerationObjective, idx, T)
         q⁺ = view(Z, idx.x[t + 1][n .+ (1:n)])
 
         # time steps
-        h⁻ = view(Z, idx.u[t - 1])[end]
-        h⁺ = view(Z, idx.u[t])[end]
+        h⁻ = obj.h == 0.0 ? view(Z, idx.u[t - 1])[end] : obj.h
+        h⁺ = obj.h == 0.0 ? view(Z, idx.u[t])[end] : obj.h
 
         # velocities
         v⁺ = (q⁺ - q) / h⁺
@@ -72,8 +73,10 @@ function objective_gradient!(∇J, Z, obj::AccelerationObjective, idx, T)
         ∇J[idx.x[t - 1][n .+ (1:n)]] += dJda * dadv⁻ * dv⁻dq⁻
         ∇J[idx.x[t][n .+ (1:n)]] += dJda * (dadv⁺ * dv⁺dq + dadv⁻ * dv⁻dq)
         ∇J[idx.x[t + 1][n .+ (1:n)]] += dJda * dadv⁺ * dv⁺dq⁺
-        ∇J[idx.u[t - 1][end]] += dJda' * (dadh⁻ + dadv⁻ * dv⁻dh⁻)
-        ∇J[idx.u[t][end]] += dJda' * (dadh⁺ + dadv⁺ * dv⁺dh⁺)
+        if obj.h == 0.0
+            ∇J[idx.u[t - 1][end]] += dJda' * (dadh⁻ + dadv⁻ * dv⁻dh⁻)
+            ∇J[idx.u[t][end]] += dJda' * (dadh⁺ + dadv⁺ * dv⁺dh⁺)
+        end
     end
 
     return nothing
