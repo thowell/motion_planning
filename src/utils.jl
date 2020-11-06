@@ -109,3 +109,9 @@ function free_time_model(model::T) where T
 	 	for f in fieldnames(typeof(model))]...)
 	return model_ft
 end
+
+function additive_noise_model(model::T) where T
+	model_ft = typeof(model)([f == :d ? model.n : getfield(model,f)
+	 	for f in fieldnames(typeof(model))]...)
+	return model_ft
+end

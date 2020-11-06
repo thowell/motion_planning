@@ -67,7 +67,7 @@ obj = quadratic_time_tracking_objective(
 con_free_time = free_time_constraints(T)
 
 # Problem
-prob = problem(model_ft_nom,
+prob = trajectory_optimization_problem(model_ft_nom,
 					obj,
 					T,
                     xl = xl,
