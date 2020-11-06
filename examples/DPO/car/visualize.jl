@@ -47,7 +47,7 @@ Py_dpo = [X̄_dpo[t][2] for t = 1:T]
 
 Px_dpo_mean = [X̄_dpo_mean[t][1] for t = 1:T]
 Py_dpo_mean = [X̄_dpo_mean[t][2] for t = 1:T]
-plt = plot!(Px_dpo_mean, Py_dpo_mean, width = 2.0, label = "TO", color = :green)
+plt = plot!(Px_dpo_mean, Py_dpo_mean, width = 2.0, label = "DPO (mean)", color = :green)
 
 Px_sample = []
 Py_sample = []
@@ -58,13 +58,11 @@ for i = 1:N
 	push!(Py_sample, py)
 end
 
-plt = plot!(Px_dpo, Py_dpo, width = 4.0, label = "TO", color = :orange)
+plt = plot!(Px_dpo, Py_dpo, width = 4.0, label = "DPO (nominal)", color = :orange)
 for i = 1:N
 	plt = plot!(Px_sample[i], Py_sample[i], width = 1.0, label = "", color = :grey)
 end
 display(plt)
-
-
 
 # using PGFPlots
 # const PGF = PGFPlots

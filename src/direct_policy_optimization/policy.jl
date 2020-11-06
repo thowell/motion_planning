@@ -12,9 +12,8 @@ end
 
 # linear state-feedback policy
 function eval_policy(policy::LinearFeedback, θ, x, x̄, ū)
-	ū - reshape(θ, policy.output, policy.input) * (x - x̄)
+	view(ū, 1:policy.output) - reshape(θ, policy.output, policy.input) * (x - x̄)
 end
-
 
 struct PolicyConstraint <: Constraints
 	n
