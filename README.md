@@ -1,12 +1,12 @@
 # Direct Motion Planning
 
-## Classic examples
+## classic examples
 - [ ] double integrator
 - [ ] acrobot
 - [ ] robotic arm
 - [ ] biped
 
-## Contact-implicit trajectory optimization examples
+## contact-implicit trajectory optimization examples
 - [X] particle
 - [X] simple manipulation
 - [X] cyberdrift
@@ -15,6 +15,7 @@
 - [X] box on corner
 - [X] raibert hopper
 - [X] raibert hopper vertical gait
+- [X] raibert hopper flip
 - [X] hopper (3D)
 - [ ] hopper (3D) wall scaling
 - [X] miniature golf
@@ -24,21 +25,21 @@
 - [ ] quadruped
 - [ ] atlas
 
-## Direct Policy Optimization examples
+## direct policy optimization examples
 LQR
-- [ ] double integrator
+- [X] double integrator
 - [ ] planar quadrotor
 
-Motion Planning
-- [ ] pendulum
-- [ ] autonomous car
+motion planning
+- [X] pendulum
+- [X] autonomous car
 - [ ] cart-pole
 - [ ] rocket
 - [ ] quadrotor
 
 
 ## TODO
-- [ ] Direct Policy Optimization implementation
+- [X] direct policy optimization implementation
 - [ ] check for SNOPT installation
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests
