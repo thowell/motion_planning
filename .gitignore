@@ -1,1 +1,3 @@
-snopt.out
+*.out
+fort.10
+Manifest.toml
