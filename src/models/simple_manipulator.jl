@@ -209,10 +209,10 @@ function visualize!(vis, model::RRParticle, q;
 		convert(Float32, 0.025))
     setobject!(vis["l2"], l2, MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-    setobject!(vis["elbow"], HyperSphere(Point3f0(0),
+    setobject!(vis["elbow"], Sphere(Point3f0(0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-    setobject!(vis["ee"], HyperSphere(Point3f0(0),
+    setobject!(vis["ee"], Sphere(Point3f0(0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
 
@@ -225,7 +225,7 @@ function visualize!(vis, model::RRParticle, q;
         settransform!(vis["particle"], compose(Translation([q[1][3] + x_offset,
 			-1.0 * r, q[1][4]]), LinearMap(RotZ(pi) * RotX(pi / 2.0))))
     else
-        setobject!(vis["particle"], HyperRectangle(Vec(0,0,0), Vec(2r,2r,2r)))
+        setobject!(vis["particle"], Rect(Vec(0,0,0), Vec(2r,2r,2r)))
     end
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))

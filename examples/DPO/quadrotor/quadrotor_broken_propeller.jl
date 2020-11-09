@@ -12,16 +12,15 @@ end
 
 # Horizon
 T = 31
+
+# Time step
 tf0 = 5.0
 h0 = tf0 / (T-1)
 
-# Bounds
-hu = h0
-hl = 0.0*h0
-
 # ul <= u <= uu
 _uu = 5.0 * ones(model_ft.m)
-_uu[end] = hu
+_uu[end] = h0
+
 uu_nom = copy(_uu)
 uu1 = copy(_uu)
 uu1[1] *= 0.5
@@ -33,7 +32,7 @@ uu4 = copy(_uu)
 uu4[4] *= 0.5
 
 _ul = zeros(model_ft.m)
-_ul[end] = hl
+_ul[end] = 0.0
 ul_nom = copy(_ul)
 @assert sum(_uu) > -1.0 * model_ft.mass * model.g[3]
 
@@ -68,7 +67,7 @@ obj = quadratic_time_tracking_objective(
 con_free_time = free_time_constraints(T)
 
 # Problem
-prob = problem(model_ft,
+prob = trajectory_optimization_problem(model_ft,
 			   obj,
 			   T,
                xl = xl,

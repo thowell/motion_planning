@@ -167,17 +167,17 @@ function visualize!(vis, model::Hopper3D, q;
 	Δt = 0.1)
 
 	r_foot = 0.05
-	setobject!(vis["body"], HyperSphere(Point3f0(0),
+	setobject!(vis["body"], Sphere(Point3f0(0),
 	   convert(Float32, 0.1)),
 	   MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
-	setobject!(vis["foot"], HyperSphere(Point3f0(0),
+	setobject!(vis["foot"], Sphere(Point3f0(0),
 	   convert(Float32, r_foot)),
 	   MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
 
 	r_leg = 0.5 * r_foot
 	n_leg = 100
 	for i = 1:n_leg
-	   setobject!(vis["leg$i"], HyperSphere(Point3f0(0),
+	   setobject!(vis["leg$i"], Sphere(Point3f0(0),
 	       convert(Float32, r_leg)),
 	       MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 	end

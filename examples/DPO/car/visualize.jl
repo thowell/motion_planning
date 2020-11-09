@@ -26,8 +26,8 @@ plt = plot!(Px, Py, aspect_ratio = :equal, xlabel = "x", ylabel = "y",
     width = 4.0, label = "TO", color = :purple, legend = :topleft)
 
 #DPO
-X̄_dpo, Ū_dpo = unpack(z_sol_dpo[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
-X̄_dpo_mean, Ū_dpo_mean = unpack(z_sol_dpo[prob_dpo.prob.idx.mean], prob_dpo.prob.prob.mean)
+X̄_dpo, Ū_dpo = unpack(Z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
+X̄_dpo_mean, Ū_dpo_mean = unpack(Z[prob_dpo.prob.idx.mean], prob_dpo.prob.prob.mean)
 
 X̄[end]
 X̄_dpo[end]
@@ -35,7 +35,7 @@ X̄_dpo_mean[end]
 X_sample = []
 U_sample = []
 for i = 1:N
-	x, u = unpack(z_sol_dpo[prob_dpo.prob.idx.sample[i]],
+	x, u = unpack(Z[prob_dpo.prob.idx.sample[i]],
 		prob_dpo.prob.prob.sample[i])
 	push!(X_sample, x)
 	push!(U_sample, u)
@@ -109,7 +109,7 @@ display(plt)
 #
 # q_to = deepcopy(X_nom)
 # for t = 1:T
-# 	setobject!(vis["traj_to$t"], HyperSphere(Point3f0(0),
+# 	setobject!(vis["traj_to$t"], Sphere(Point3f0(0),
 # 		convert(Float32,0.075)),
 # 		MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,0.75)))
 # 	settransform!(vis["traj_to$t"], Translation((q_to[t][1],q_to[t][2],-0.1)))
@@ -118,7 +118,7 @@ display(plt)
 #
 # q_dpo = deepcopy(X_nom_sample)
 # for t = 1:T
-# 	setobject!(vis["traj_dpo$t"], HyperSphere(Point3f0(0),
+# 	setobject!(vis["traj_dpo$t"], Sphere(Point3f0(0),
 # 		convert(Float32,0.075)),
 # 		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,0.75)))
 # 	settransform!(vis["traj_dpo$t"], Translation((q_dpo[t][1],q_dpo[t][2],-0.05)))

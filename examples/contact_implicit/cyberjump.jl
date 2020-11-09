@@ -121,7 +121,7 @@ height = range(0, stop = jump_slope * jump_length, length = Ns)
 width = range(0, stop = jump_length, length = Ns)
 wid = jump_length / Ns
 for i = 1:Ns
-    setobject!(vis["stair$i"], HyperRectangle(Vec(0., 0.0, 0.0), Vec(0.01, 1.0, height[i])))
+    setobject!(vis["stair$i"], Rect(Vec(0., 0.0, 0.0), Vec(0.01, 1.0, height[i])))
     settransform!(vis["stair$i"], Translation(width[i], -0.5, 0))
 end
 

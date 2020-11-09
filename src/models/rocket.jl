@@ -124,16 +124,12 @@ function f(model::Rocket, x, u, w)
 		+ jacobian_thruster(model, q)' * u[1:2])]
 end
 
-function policy(model::RocketSlosh, K, x, u, x_nom, u_nom)
-	u_nom - reshape(K, model.m, model.n - 2) * (output(model, x) - x_nom)
+function state_output(model::RocketSlosh, x)
+	x[collect([1, 2, 3, 5, 6, 7])]
 end
 
-function output(model::RocketSlosh, x)
-	x[[(1:3)..., (5:7)...]]
-end
-
-function output(model::RocketNominal, x)
-	x
+function state_output_idx(mode::RocketSlosh, idx)
+	idx[collect([1, 2, 3, 5, 6, 7])]
 end
 
 function visualize!(vis, model::Rocket, x;

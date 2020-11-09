@@ -3,16 +3,25 @@ abstract type Policy end
 struct LinearFeedback <: Policy
 	input
 	output
+	idx_input
+	idx_input_nom
+	idx_output
 	p
 end
 
-function linear_feedback(input, output)
-	return LinearFeedback(input, output , input * output)
+function linear_feedback(input, output;
+		idx_input = (1:input),
+		idx_input_nom = (1:input),
+		idx_output = (1:output))
+
+	return LinearFeedback(input, output,
+		idx_input, idx_input_nom, idx_output,
+		input * output)
 end
 
 # linear state-feedback policy
 function eval_policy(policy::LinearFeedback, θ, x, x̄, ū)
-	view(ū, 1:policy.output) - reshape(θ, policy.output, policy.input) * (x - x̄)
+	view(ū, policy.idx_output) - reshape(θ, policy.output, policy.input) * (view(x, policy.idx_input) - view(x̄, policy.idx_input_nom))
 end
 
 struct PolicyConstraint <: Constraints

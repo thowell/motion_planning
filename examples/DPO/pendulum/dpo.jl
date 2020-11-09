@@ -9,10 +9,8 @@ prob_nom = prob.prob
 N = 2 * model_ft.n
 D = 2 * model_ft.d
 
-α = 1.0
 β = 1.0
-γ = 1.0
-δ = 1.0e-2
+δ = 1.0e-3
 
 # initial samples
 x1_sample = resample(x1, Diagonal([1.0; 1.0]), 1.0e-3)
@@ -45,7 +43,7 @@ R = [Diagonal(1.0e-1 * [1.0; 10.0]) for t = 1:T-1]
 obj_sample = sample_objective(Q, R)
 policy = linear_feedback(model_ft.n, model_ft.m - 1)
 dist = disturbances([Diagonal(δ * ones(model_ft.d)) for t = 1:T-1])
-sample = sample_params(α, β, γ, T)
+sample = sample_params(β, T)
 
 prob_dpo = dpo_problem(
 	prob_nom, prob_mean, prob_sample,

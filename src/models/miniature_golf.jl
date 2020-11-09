@@ -384,7 +384,7 @@ function visualize!(mvis, model::KukaParticle, q;
 	p_hole = [0.66; -3.0; 0.0]
 	f = x -> x[3] - softplus(x[1])
 
-	sdf = SignedDistanceField(f, HyperRectangle(Vec(-5, -10, -1), Vec(10, 10, 4)))
+	sdf = SignedDistanceField(f, Rect(Vec(-5, -10, -1), Vec(10, 10, 4)))
 	mesh = HomogenousMesh(sdf, MarchingTetrahedra())
 	setobject!(vis["slope"], mesh,
 			   MeshPhongMaterial(color=RGBA{Float32}(86/255, 125/255, 70/255, 1.0)))
@@ -396,7 +396,7 @@ function visualize!(mvis, model::KukaParticle, q;
 	settransform!(vis["circle1"], compose(Translation(0.25, -1.5, 0.0)))
 
 
-	setobject!(vis["ball"], HyperSphere(Point3f0(0),
+	setobject!(vis["ball"], Sphere(Point3f0(0),
 				convert(Float32, r_ball)),
 				MeshPhongMaterial(color = RGBA(1,1,1,1.0)))
 
