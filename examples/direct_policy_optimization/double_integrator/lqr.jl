@@ -29,7 +29,7 @@ N = 2 * model.n
 D = 2 * model.d
 
 β = 1.0
-δ = 1.0
+δ = 10.0
 
 x1 = resample(ones(model.n), Diagonal(ones(model.n)), β)
 

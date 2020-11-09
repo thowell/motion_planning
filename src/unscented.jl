@@ -21,7 +21,7 @@ end
 """
     deterministic sampling
 """
-function resample(X, β) where T
+function resample(X, β)
     n = length(X[1])
     μ = sample_mean(X)
     P = sample_covariance(X, β)
@@ -30,7 +30,12 @@ function resample(X, β) where T
     return Xs
 end
 
-function resample_vec(X, n, N, k, β)
+function resample_vec(X, n, N, β)
+    _X = [X[(i - 1) * n .+ (1:n)] for i = 1:N]
+    return vcat(resample(_X, β)...)
+end
+
+function resample_vec(X, n, N, β, k)
     _X = [X[(i - 1) * n .+ (1:n)] for i = 1:N]
     Xs = resample(_X, β)
     return Xs[k]

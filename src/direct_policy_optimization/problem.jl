@@ -95,11 +95,11 @@ struct DPOIndices
 	mean
 	sample
 
+	xt
+	ut
+
 	θ
 	policy
-
-	s
-	slack
 end
 
 function dpo_indices(prob::DPOProblems, p, N, D)
@@ -119,24 +119,20 @@ function dpo_indices(prob::DPOProblems, p, N, D)
         shift += prob.sample[i].num_var
     end
 
+	xt = [vcat([idx_sample[i][prob.sample[i].idx.x[t]] for i = 1:N]...) for t = 1:T]
+	ut = [vcat([idx_sample[i][prob.sample[i].idx.u[t]] for i = 1:N]...) for t = 1:T-1]
+
     # policy
     idx_θ = [(t - 1) * p .+ (1:p) for t = 1:T-1]
     n_policy = p * (T - 1)
     idx_policy = shift .+ (1:n_policy)
     shift += n_policy
 
-    # slack
-    idx_s = [(t - 1) * prob.mean.model.n .+ (1:prob.mean.model.n) for t = 1:T-1]
-    idx_slack = []
-    n_slack = prob.mean.model.n * (T - 1)
-    for j = 1:(N + D)
-        push!(idx_slack, shift .+ (1:n_slack))
-        shift += n_slack
-    end
-
 	num_var = shift
 
-    return DPOIndices(idx_nom, idx_mean, idx_sample, idx_θ, idx_policy, idx_s, idx_slack), num_var
+    return DPOIndices(idx_nom, idx_mean, idx_sample,
+		xt, ut,
+		idx_θ, idx_policy), num_var
 end
 
 function primal_bounds(dpo::DirectPolicyOptimizationProblem)
