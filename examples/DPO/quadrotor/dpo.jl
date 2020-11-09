@@ -1,3 +1,111 @@
+include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+include(joinpath(@__DIR__, "quadrotor_broken_propeller.jl"))
+
+# Additive noise model
+model = additive_noise_model(model)
+
+function fd(model::Quadrotor, x⁺, x, u, w, h, t)
+    midpoint_implicit(model, x⁺, x, u, w, h) - w
+end
+
+# Nominal solution
+X̄, Ū = unpack(Z̄, prob)
+prob_nom = prob.prob
+
+# DPO
+N = 2 * model.n
+D = 2 * model.d
+
+β = 1.0
+δ = 1.0e-3
+
+# initial samples
+x1_sample = resample(x1, Diagonal(ones(model.n)), 1.0e-3)
+
+# mean problem
+prob_mean = trajectory_optimization(
+				model,
+				EmptyObjective(),
+				T,
+				ul = control_bounds(model, T, [Inf * ones(4); 0.0], [Inf * ones(4); 0.0])[1],
+				uu = control_bounds(model, T, [Inf * ones(4); 0.0], [Inf * ones(4); 0.0])[2],
+				dynamics = false
+				)
+
+# sample problems
+uu_sample = []
+for i = 1:6
+	push!(uu_sample, [uu1; Inf])
+end
+for i = 1:6
+	push!(uu_sample, [uu2; Inf])
+end
+for i = 1:6
+	push!(uu_sample, [uu3; Inf])
+end
+for i = 1:6
+	push!(uu_sample, [uu4; Inf])
+end
+
+prob_sample = [trajectory_optimization(
+				model,
+				EmptyObjective(),
+				T,
+				xl = state_bounds(model, T, x1 = x1_sample[i])[1],
+				xu = state_bounds(model, T, x1 = x1_sample[i])[2],
+				ul = ul,
+				uu = control_bounds(model, T, Inf * ones(model.m), uu_sample[i]),
+				dynamics = false,
+				con = con_free_time
+				) for i = 1:N]
+
+# sample objective
+Q = [(t < T ? Diagonal([10.0; 10.0; 1.0])
+	: Diagonal(100.0 * ones(model.n))) for t = 1:T]
+R = [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
+
+obj_sample = sample_objective(Q, R)
+policy = linear_feedback(model.n, model.m-1)
+dist = disturbances([Diagonal(δ * [1.0; 1.0; 0.1]) for t = 1:T-1])
+sample = sample_params(β, T)
+
+prob_dpo = dpo_problem(
+	prob_nom, prob_mean, prob_sample,
+	obj_sample,
+	policy,
+	dist,
+	sample)
+
+# TVLQR policy
+K = tvlqr(model, X̄, Ū, Q, R, h)
+
+z0_dpo = zeros(prob_dpo.num_var)
+z0_dpo[prob_dpo.prob.idx.nom] = pack(X̄, Ū, prob_nom)
+z0_dpo[prob_dpo.prob.idx.mean] = pack(X̄, Ū, prob_nom)
+for i = 1:N
+	z0_dpo[prob_dpo.prob.idx.sample[i]] = pack(X̄, Ū, prob_nom)
+end
+for j = 1:(N + D)
+	z0_dpo[prob_dpo.prob.idx.slack[j]] = vcat(X̄[2:end]...)
+end
+for t = 1:T-1
+	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
+end
+
+# Solve
+Z = solve(prob_dpo, copy(z0_dpo),
+	tol = 1.0e-3, c_tol = 1.0e-3,
+	max_iter = 1000)
+
+
+
+
+
+
+
+
+
+
 
 # Simulate TVLQR
 
@@ -8,51 +116,7 @@ H_lqr = [1.0 for t = 1:T-1]
 
 K = TVLQR_gains(model,X_nom,U_nom,[H_nom[1] for t = 1:T-1],Q_lqr,R_lqr)
 
-using Distributions
 
-model_sim = model
-x1_sim = copy(x1)
-T_sim = 10*T
-
-W = Distributions.MvNormal(zeros(model_sim.nx),
-	Diagonal(1.0e-32*ones(model_sim.nx)))
-w = rand(W,T_sim)
-
-W0 = Distributions.MvNormal(zeros(model_sim.nx),
-	Diagonal(1.0e-32*ones(model_sim.nx)))
-w0 = rand(W0,1)
-
-z0_sim = vec(copy(x1_sim) + w0)
-
-t_nom = range(0,stop=sum(H_nom),length=T)
-t_sim_nom = range(0,stop=sum(H_nom),length=T_sim)
-
-# simulate
-z_tvlqr, u_tvlqr, J_tvlqr, Jx_tvlqr, Ju_tvlqr = simulate_linear_controller(K,
-    X_nom,U_nom,model_sim,Q_lqr,R_lqr,T_sim,H_nom[1],z0_sim,w,_norm=2,
-	ul=ul_nom,uu=uu_nom)
-
-# plot states
-plt_x = plot(t_nom,hcat(X_nom...)[1:model.nx,:]',
-	legend=:topright,color=:red,
-    label="",width=2.0,xlabel="time (s)",
-    title="Quadrotor",ylabel="state")
-plt_x = plot!(t_sim_nom,hcat(z_tvlqr...)[1:model.nx,:]',color=:black,label="",
-    width=1.0)
-
-# plot COM
-plot_traj = plot(hcat(X_nom...)[1,:],hcat(X_nom...)[2,:],
-	legend=:topright,color=:red,
-    label="",width=2.0,xlabel="y",ylabel="z",
-    title="Quadrotor")
-plot_traj = plot!(hcat(z_tvlqr...)[1,:],hcat(z_tvlqr...)[2,:],
-	color=:black,
-    label="",width=1.0)
-
-plot(t_nom[1:end-1],hcat(U_nom...)',
-	linetype=:steppost,color=:red,width=2.0)
-plot!(t_sim_nom[1:end-1],hcat(u_tvlqr...)',
-	linetype=:steppost,color=:black,width=1.0)
 
 # Sample
 N = 2*model.nx
@@ -409,7 +473,7 @@ for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
 	i = k
 	q_to = z
 	for t = 1:3:T_sim
-		setobject!(vis["traj_to$t$i"], HyperSphere(Point3f0(0),
+		setobject!(vis["traj_to$t$i"], Sphere(Point3f0(0),
 			convert(Float32,0.025)),
 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
 		settransform!(vis["traj_to$t$i"], Translation((q_to[t][1],q_to[t][2],q_to[t][3])))
@@ -418,7 +482,7 @@ for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
 end
 q_to_nom = X_nom
 for t = 1:T
-	setobject!(vis["traj_to_nom$t"], HyperSphere(Point3f0(0),
+	setobject!(vis["traj_to_nom$t"], Sphere(Point3f0(0),
 		convert(Float32,0.05)),
 		MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
 	settransform!(vis["traj_to_nom$t"], Translation((q_to_nom[t][1],q_to_nom[t][2],q_to_nom[t][3])))
@@ -429,7 +493,7 @@ for (k,z) in enumerate([z_sample1,z_sample2,z_sample3,z_sample4])
 	i = k
 	q_dpo = z
 	for t = 1:3:T_sim
-		setobject!(vis["traj_dpo$t$i"], HyperSphere(Point3f0(0),
+		setobject!(vis["traj_dpo$t$i"], Sphere(Point3f0(0),
 			convert(Float32,0.025)),
 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
 		settransform!(vis["traj_dpo$t$i"], Translation((q_dpo[t][1],q_dpo[t][2],q_dpo[t][3])))
@@ -439,7 +503,7 @@ end
 
 q_dpo_nom = X_nom_sample
 for t = 1:T
-	setobject!(vis["traj_dpo_nom$t"], HyperSphere(Point3f0(0),
+	setobject!(vis["traj_dpo_nom$t"], Sphere(Point3f0(0),
 		convert(Float32,0.05)),
 		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,1.0)))
 	settransform!(vis["traj_dpo_nom$t"], Translation((q_dpo_nom[t][1],q_dpo_nom[t][2],q_dpo_nom[t][3])))

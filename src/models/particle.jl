@@ -126,7 +126,7 @@ model = Particle(n, m, d,
 function visualize!(vis, model::Particle, q;
 	Δt = 0.1, r = 0.25)
 
-    setobject!(vis["particle"], HyperRectangle(Vec(0, 0, 0),Vec(2r, 2r, 2r)))
+    setobject!(vis["particle"], Rect(Vec(0, 0, 0),Vec(2r, 2r, 2r)))
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 

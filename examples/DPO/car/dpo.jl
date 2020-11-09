@@ -16,10 +16,8 @@ prob_nom = prob.prob
 N = 2 * model.n
 D = 2 * model.d
 
-α = 1.0
 β = 1.0
-γ = 1.0
-δ = 2.5e-2
+δ = 1.0e-3
 
 # initial samples
 x1_sample = resample(x1, Diagonal([1.0; 1.0; 0.1]), 1.0e-1)
@@ -55,7 +53,7 @@ R = [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
 obj_sample = sample_objective(Q, R)
 policy = linear_feedback(model.n, model.m)
 dist = disturbances([Diagonal(δ * [1.0; 1.0; 0.1]) for t = 1:T-1])
-sample = sample_params(α, β, γ, T)
+sample = sample_params(β, T)
 
 prob_dpo = dpo_problem(
 	prob_nom, prob_mean, prob_sample,
@@ -79,8 +77,6 @@ end
 for t = 1:T-1
 	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
 end
-
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 
 # Solve
 Z = solve(prob_dpo, copy(z0_dpo),

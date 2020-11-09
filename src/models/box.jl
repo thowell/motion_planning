@@ -197,13 +197,13 @@ model = Box(n, m, d,
 function visualize!(vis, model::Box, q;
         Δt = 0.1)
 
-    setobject!(vis["box"], HyperRectangle(Vec(-1.0 * model.r,
+    setobject!(vis["box"], Rect(Vec(-1.0 * model.r,
 		-1.0 * model.r,
 		-1.0 * model.r),
 		Vec(2.0 * model.r, 2.0 * model.r, 2.0 * model.r)))
 
     for i = 1:model.n_corners
-        setobject!(vis["corner$i"], HyperSphere(Point3f0(0),
+        setobject!(vis["corner$i"], Sphere(Point3f0(0),
             convert(Float32, 0.05)),
             MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
     end

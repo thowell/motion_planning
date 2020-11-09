@@ -34,7 +34,7 @@ obj = PenaltyObjective(1000.0, model.m)
 con_contact = contact_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -64,3 +64,10 @@ include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
+
+obj = Rect(Vec(-1.0 * model.r,
+    -1.0 * model.r,
+    -1.0 * model.r),
+    Vec(2.0 * model.r, 2.0 * model.r, 2.0 * model.r))
+
+setobject!(vis, obj)
