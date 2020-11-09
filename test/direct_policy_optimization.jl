@@ -29,8 +29,8 @@ constraints_jacobian!(∇c_vec, z0, con_dynamics,
 for (i,k) in enumerate(spar)
     ∇c[k[1],k[2]] = ∇c_vec[i]
 end
-@assert norm(vec(∇c) - vec(∇c_fd)) < 1.0e-6
-@assert sum(∇c) - sum(∇c_fd) < 1.0e-6
+@assert norm(vec(∇c) - vec(∇c_fd)) < 1.0e-5
+@assert sum(∇c) - sum(∇c_fd) < 1.0e-5
 
 # policy
 prob_dpo.con[2]
@@ -72,3 +72,41 @@ for (i,k) in enumerate(spar)
 end
 @assert norm(vec(∇c) - vec(∇c_fd)) < 1.0e-5
 @assert sum(∇c) - sum(∇c_fd) < 1.0e-5
+
+
+# sample dynamics
+t = 10
+xt = view(z0_dpo, prob_dpo.idx.xt[t])
+ut = view(z0_dpo, prob_dpo.idx.ut[t])
+μ = view(z0_dpo, prob_dpo.idx.mean[prob_dpo.prob.mean.idx.x[t]])
+ν = view(z0_dpo, prob_dpo.idx.mean[prob_dpo.prob.mean.idx.u[t]])
+
+propagate_dynamics(model, rand(model.n), rand(model.m), rand(model.d), h, t)
+propagate_dynamics_jacobian(model, rand(model.n), rand(model.m), rand(model.d), h, t)
+
+sample_dynamics(model, xt, ut, μ, ν, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)
+
+a1, a2, a3, a4 = sample_dynamics_jacobian(model, xt, ut, μ, ν, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)
+
+sdx(y) = sample_dynamics(model, y, ut, μ, ν, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)[1]
+sdx(xt)
+
+sdu(y) = sample_dynamics(model, xt, y, μ, ν, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)[1]
+sdu(ut)
+
+sdμ(y) = sample_dynamics(model, xt, ut, y, ν, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)[1]
+sdμ(μ)
+
+sdν(y) = sample_dynamics(model, xt, ut, μ, y, prob_dpo.dist.w, h, t,
+	prob_dpo.sample.β)[1]
+sdν(ν)
+
+@assert norm(FiniteDiff.finite_difference_jacobian(sdx, xt) - a1) < 1.0e-5
+@assert norm(FiniteDiff.finite_difference_jacobian(sdu, ut) - a2) < 1.0e-5
+@assert norm(FiniteDiff.finite_difference_jacobian(sdμ, μ) - a3) < 1.0e-5
+@assert norm(FiniteDiff.finite_difference_jacobian(sdν, ν) - a4) < 1.0e-5

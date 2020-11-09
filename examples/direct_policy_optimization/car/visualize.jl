@@ -1,4 +1,4 @@
-# using Plots
+using Plots
 # include(joinpath(@__DIR__, "car_obstacles.jl"))
 
 X̄, Ū = unpack(Z̄, prob)

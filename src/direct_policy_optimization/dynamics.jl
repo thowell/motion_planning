@@ -20,18 +20,9 @@ function sample_dynamics_constraints(prob, N, M)
 	# sample mean
 	n = prob.mean.model.n * T
 
-	# propagate samples
-	for j = 1:M
-		if j <= N
-			n += prob.sample[j].model.n * (T - 1)
-		else
-			n += prob.mean.model.n * (T - 1)
-		end
-	end
-
 	# resample
-	for i = 1:N
-		n += prob.sample[i].model.n * (T - 1)
+	for t = 1:T-1
+		n += prob.mean.model.n * N
 	end
 
 	ineq = (1:0)
@@ -66,55 +57,21 @@ function constraints!(c, Z, con::SampleDynamics,
 		con_shift += prob.mean.model.n
 	end
 
-	# propagate samples sigma points (xj, uj, wj)
-	for t = 1:T-1
+	# resample
+	n_resample = N * prob.mean.model.n
 
-		# mean
+	for t = 1:T-1
+		xt = view(Z, idx.xt[t])
+		ut = view(Z, idx.ut[t])
 		μ = view(Z, idx.mean[prob.mean.idx.x[t]])
 		ν = view(Z, idx.mean[prob.mean.idx.u[t]])
 
 		# samples
-		x = [view(Z, idx.sample[i][prob.sample[i].idx.x[t]]) for i = 1:N]
-		u = [view(Z, idx.sample[i][prob.sample[i].idx.u[t]]) for i = 1:N]
+		xt⁺ = view(Z, idx.xt[t + 1])
 
-		# state slacks
-		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
-
-		# propagate
-		for j = 1:M
-			if j <= N
-				c[con_shift .+ (1:prob.sample[j].model.n)] = fd(prob.sample[j].model,
-					s⁺[j], x[j], u[j],
-					con.w0[j],
-					h, t)
-
-				con_shift += prob.sample[j].model.n
-			else
-				k = j - N
-				c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
-					s⁺[j], μ, ν,
-					sample.β[t] * dist.w[t][k],
-					h, t)
-
-				con_shift += prob.mean.model.n
-			end
-		end
-	end
-
-	# resample
-	for t = 1:T-1
-		# samples
-		x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
-
-		# slacks
-		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
-
-		xs⁺ = resample(s⁺, sample.β[t])
-
-		for i = 1:N
-			c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
-			con_shift += prob.sample[i].model.n
-		end
+		c[con_shift .+ (1:n_resample)] = sample_dynamics(prob.mean.model,
+			xt, ut, μ, ν, dist.w, h, t, sample.β)[1] - xt⁺
+		con_shift += n_resample
 	end
 
     return nothing
@@ -155,112 +112,47 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 		con_shift += prob.mean.model.n
 	end
 
-	# propagate samples sigma points (xj, uj, wj)
+	# resample
+	n_resample = N * prob.mean.model.n
 	for t = 1:T-1
-
-		# mean
+		xt = view(Z, idx.xt[t])
+		ut = view(Z, idx.ut[t])
 		μ = view(Z, idx.mean[prob.mean.idx.x[t]])
 		ν = view(Z, idx.mean[prob.mean.idx.u[t]])
 
 		# samples
-		x = [view(Z, idx.sample[i][prob.sample[i].idx.x[t]]) for i = 1:N]
-		u = [view(Z, idx.sample[i][prob.sample[i].idx.u[t]]) for i = 1:N]
+		# xt⁺ = view(Z, idx.xt[t + 1])
 
-		# state slacks
-		s⁺ = [view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]
+		a1, a2, a3, a4 = sample_dynamics_jacobian(model, xt, ut, μ, ν,
+			dist.w, h, t, sample.β)
 
-		# propagate
-		for j = 1:M
-			if j <= N
-				# c[con_shift .+ (1:prob.sample[j].model.n)] = fd(prob.sample[j].model,
-				# 	s⁺[j], x[j], u[j],
-				# 	con.w[j], h, t)
+		r_idx = con_shift .+ (1:n_resample)
 
-				fds(y) = fd(prob.sample[j].model, y, x[j], u[j], con.w0[j], h, t)
-				fdx(y) = fd(prob.sample[j].model, s⁺[j], y, u[j], con.w0[j], h, t)
-				fdu(y) = fd(prob.sample[j].model, s⁺[j], x[j], y, con.w0[j], h, t)
+		c_idx = idx.xt[t]
+		len = length(r_idx) * length(c_idx)
+		∇c[jac_shift .+ (1:len)] = vec(a1)
+		jac_shift += len
 
-				r_idx = con_shift .+ (1:prob.sample[j].model.n)
+		c_idx = idx.ut[t]
+		len = length(r_idx) * length(c_idx)
+		∇c[jac_shift .+ (1:len)] = vec(a2)
+		jac_shift += len
 
-				c_idx = idx.slack[j][idx.s[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(fds, s⁺[j]))
-				jac_shift += len
+		c_idx = idx.mean[prob.mean.idx.x[t]]
+		len = length(r_idx) * length(c_idx)
+		∇c[jac_shift .+ (1:len)] = vec(a3)
+		jac_shift += len
 
-				c_idx = idx.sample[j][prob.sample[j].idx.x[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(fdx, x[j]))
-				jac_shift += len
+		c_idx = idx.mean[prob.mean.idx.u[t]]
+		len = length(r_idx) * length(c_idx)
+		∇c[jac_shift .+ (1:len)] = vec(a4)
+		jac_shift += len
 
-				c_idx = idx.sample[j][prob.sample[j].idx.u[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(fdu, u[j]))
-				jac_shift += len
-
-				con_shift += prob.sample[j].model.n
-			else
-				k = j - N
-				# c[con_shift .+ (1:prob.mean.model.n)] = fd(prob.mean.model,
-				# 	s⁺[j], μ, ν,
-				# 	β * dist.w[t][k],
-				# 	h, t)
-
-				_fds(y) = fd(prob.mean.model, y, μ, ν,
-					sample.β[t] * dist.w[t][k], h, t)
-				_fdx(y) = fd(prob.mean.model, s⁺[j], y, ν,
-					sample.β[t] * dist.w[t][k], h, t)
-				_fdu(y) = fd(prob.mean.model, s⁺[j], μ, y,
-					sample.β[t] * dist.w[t][k], h, t)
-
-				r_idx = con_shift .+ (1:prob.mean.model.n)
-
-				c_idx = idx.slack[j][idx.s[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fds, s⁺[j]))
-				jac_shift += len
-
-				c_idx = idx.mean[prob.mean.idx.x[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fdx, μ))
-				jac_shift += len
-
-				c_idx = idx.mean[prob.mean.idx.u[t]]
-				len = length(r_idx) * length(c_idx)
-				∇c[jac_shift .+ (1:len)] = vec(ForwardDiff.jacobian(_fdu, ν))
-				jac_shift += len
-
-				con_shift += prob.mean.model.n
-			end
-		end
-	end
-
-	# resample
-	for t = 1:T-1
-		# samples
-		x⁺ = [view(Z, idx.sample[i][prob.sample[i].idx.x[t + 1]]) for i = 1:N]
-
-		# slacks
-		s⁺_vec = vcat([view(Z, idx.slack[j][idx.s[t]]) for j = 1:M]...)
-		s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
-
-		for i = 1:N
-			# c[con_shift .+ (1:prob.sample[i].model.n)] = x⁺[i] - xs⁺[i]
-
-			r_idx = con_shift .+ (1:prob.sample[i].model.n)
-
-			c_idx = idx.sample[i][prob.sample[i].idx.x[t + 1]]
-			len = length(r_idx) * length(c_idx)
-			∇c[jac_shift .+ (1:len)] = vec(Diagonal(ones(prob.sample[i].model.n)))
-			jac_shift += len
-
-			c_idx = s_idx_vec
-			len = length(r_idx) * length(c_idx)
-			r_vec(y) = resample_vec(y, prob.mean.model.n, M, i, sample.β[t])
-			∇c[jac_shift .+ (1:len)] = vec(real.(-1.0 * FiniteDiff.finite_difference_jacobian(r_vec, s⁺_vec)))
-			jac_shift += len
-
-			con_shift += prob.sample[i].model.n
-		end
+		c_idx = idx.xt[t + 1]
+		len = length(r_idx) * length(c_idx)
+		∇c[jac_shift .+ (1:len)] = vec(-1.0 * Diagonal(ones(n_resample)))
+		jac_shift += len
+		con_shift += n_resample
 	end
 
 	return nothing
@@ -294,57 +186,119 @@ function constraints_sparsity(con::SampleDynamics,
 		con_shift += prob.mean.model.n
 	end
 
-	# propagate samples sigma points (xj, uj, wj)
+	# resample
+	n_resample = N * prob.mean.model.n
 	for t = 1:T-1
-		# propagate
-		for j = 1:M
-			if j <= N
-				r_idx = shift_row + con_shift .+ (1:prob.sample[j].model.n)
+		r_idx = shift_row + con_shift .+ (1:n_resample)
 
-				c_idx = shift_col .+ idx.slack[j][idx.s[t]]
-				row_col!(row, col, r_idx, c_idx)
+		c_idx = shift_col .+ idx.xt[t]
+		row_col!(row, col, r_idx, c_idx)
 
-				c_idx = shift_col .+ idx.sample[j][prob.sample[j].idx.x[t]]
-				row_col!(row, col, r_idx, c_idx)
+		c_idx = shift_col .+ idx.ut[t]
+		row_col!(row, col, r_idx, c_idx)
 
-				c_idx = shift_col .+ idx.sample[j][prob.sample[j].idx.u[t]]
-				row_col!(row, col, r_idx, c_idx)
+		c_idx = shift_col .+ idx.mean[prob.mean.idx.x[t]]
+		row_col!(row, col, r_idx, c_idx)
 
-				con_shift += prob.sample[j].model.n
-			else
-				k = j - N
+		c_idx = shift_col .+ idx.mean[prob.mean.idx.u[t]]
+		row_col!(row, col, r_idx, c_idx)
 
-				r_idx = shift_row + con_shift .+ (1:prob.mean.model.n)
+		c_idx = shift_col .+ idx.xt[t + 1]
+		row_col!(row, col, r_idx, c_idx)
 
-				c_idx = shift_col .+ idx.slack[j][idx.s[t]]
-				row_col!(row, col, r_idx, c_idx)
+		con_shift += n_resample
+	end
 
-				c_idx = shift_col .+ idx.mean[prob.mean.idx.x[t]]
-				row_col!(row, col, r_idx, c_idx)
+    return collect(zip(row, col))
+end
 
-				c_idx = shift_col .+ idx.mean[prob.mean.idx.u[t]]
-				row_col!(row, col, r_idx, c_idx)
+function sample_dynamics(model, xt, ut, μ, ν, w, h, t, β)
+	N = 2 * model.n
+	D = 2 * model.d
+	M = N + D
 
-				con_shift += prob.mean.model.n
-			end
+	w0 = zeros(model.d)
+
+	# propagate samples
+	s = zeros(model.n * M)
+
+	for j = 1:M
+		if j <= N
+			xi = view(xt, (j - 1) * model.n .+ (1:model.n))
+			ui = view(ut, (j - 1) * model.m .+ (1:model.m))
+			s[(j - 1) * model.n .+ (1:model.n)] = propagate_dynamics(model,
+				xi, ui, w0, h, t)
+		else
+			k = j - N
+			s[(j - 1) * model.n .+ (1:model.n)] = propagate_dynamics(model,
+				μ, ν,
+				β[t] * w[t][k], h, t)
 		end
 	end
 
 	# resample
-	for t = 1:T-1
-		for i = 1:N
-			r_idx = shift_row + con_shift .+ (1:prob.sample[i].model.n)
+	xt⁺ = resample_vec(s, model.n, M, β[t + 1])
 
-			c_idx = shift_col .+ idx.sample[i][prob.sample[i].idx.x[t + 1]]
-			row_col!(row, col, r_idx, c_idx)
+	return xt⁺, s
+end
 
-			s_idx_vec = vcat([idx.slack[j][idx.s[t]] for j = 1:M]...)
-			c_idx = shift_col .+ s_idx_vec
-			row_col!(row, col, r_idx, c_idx)
+function sample_dynamics_jacobian(model, xt, ut, μ, ν, w, h, t, β)
+	N = 2 * model.n
+	D = 2 * model.d
+	M = N + D
 
-			con_shift += prob.sample[i].model.n
+	w0 = zeros(model.d)
+
+	dx⁺dxt = zeros(model.n * M, model.n * N)
+	dx⁺dut = zeros(model.n * M, model.m * N)
+	dx⁺dμ = zeros(model.n * M, model.n)
+	dx⁺dν = zeros(model.n * M, model.m)
+
+	dsdxt = zeros(model.n * M, model.n * N)
+	dsdut = zeros(model.n * M, model.m * N)
+	dsdμ = zeros(model.n * M, model.n)
+	dsdν = zeros(model.n * M, model.m)
+
+	xt⁺, s = sample_dynamics(model, xt, ut, μ, ν, w, h, t, β)
+	r(y) = resample_vec(y, model.n, M, β[t + 1])
+	dx⁺ds = real.(FiniteDiff.finite_difference_jacobian(r, s))
+
+	# s = []
+	# A = []
+	# B = []
+
+	for j = 1:M
+		if j <= N
+			xi = view(xt, (j - 1) * model.n .+ (1:model.n))
+			ui = view(ut, (j - 1) * model.m .+ (1:model.m))
+			_, _A, _B = propagate_dynamics_jacobian(model, xi, ui,
+				w0, h, t)
+			# push!(s, _s)
+			# push!(A, _A)
+			# push!(B, _B)
+
+			dsdxt[(j - 1) * model.n .+ (1:model.n),
+				(j - 1) * model.n .+ (1:model.n)] = _A
+			dsdut[(j - 1) * model.n .+ (1:model.n),
+				(j - 1) * model.m .+ (1:model.m)] = _B
+		else
+			k = j - N
+			_, _A, _B = propagate_dynamics_jacobian(model, μ, ν,
+				β[t] * w[t][k], h, t)
+
+			# push!(s, _s)
+			# push!(A, _A)
+			# push!(B, _B)
+
+			dsdμ[(j - 1) * model.n .+ (1:model.n), :] = _A
+			dsdν[(j - 1) * model.n .+ (1:model.n), :] = _B
 		end
 	end
 
-    return collect(zip(row, col))
+	dx⁺dxt = dx⁺ds * dsdxt
+	dx⁺dut = dx⁺ds * dsdut
+	dx⁺dμ = dx⁺ds * dsdμ
+	dx⁺dν = dx⁺ds * dsdν
+
+	return dx⁺dxt, dx⁺dut, dx⁺dμ, dx⁺dν
 end
