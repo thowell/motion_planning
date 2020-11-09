@@ -1,60 +1,51 @@
-include(joinpath(pwd(), "src/models/pendulum.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
-
-optimize = true
-
-# Free-time model with additive noise
-model_ft = Pendulum(2, 2, 1, 1.0, 0.1, 0.5, 0.25, 9.81)
-
-function fd(model::Pendulum, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w[1] * ones(model.n)
-end
+include(joinpath(pwd(), "src/models/acrobot.jl"))
 
 # Horizon
-T = 51
+T = 101
+
+# Time step
+tf = 5.0
+h = tf / (T - 1)
 
 # Bounds
-tf = 2.0
-h0 = tf / (T-1) # timestep
 
-ul, uu = control_bounds(model_ft, T, [-3.0; 0.0], [3.0; h0])
+# ul <= u <= uu
+ul, uu = control_bounds(model, T, -10.0, 10.0)
 
 # Initial and final states
-x1 = [0.0; 0.0]
-xT = [π; 0.0]
+x1 = [0.0; 0.0; 0.0; 0.0]
+xT = [π; 0.0; 0.0; 0.0]
+xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 
-xl, xu = state_bounds(model_ft, T, x1 = x1, xT = xT)
-
-# Objective (minimum time)
-obj = PenaltyObjective(1.0, model_ft.m)
-
-# Time step constraints
-con_free_time = free_time_constraints(T)
+# Objective
+obj = quadratic_tracking_objective(
+        [t < T ? Diagonal(ones(model.n)) : Diagonal(ones(model.n)) for t = 1:T],
+        [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1],
+        [xT for t = 1:T], [zeros(model.m) for t = 1:T])
 
 # Problem
-prob = trajectory_optimization_problem(model_ft,
-			   obj,
-			   T,
-               xl = xl,
-               xu = xu,
-               ul = ul,
-               uu = uu,
-			   con = con_free_time
-               )
+prob = trajectory_optimization_problem(model,
+           obj,
+           T,
+           h = h,
+           xl = xl,
+           xu = xu,
+           ul = ul,
+           uu = uu,
+           )
 
-# Initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation for states
-U0 = [ones(model_ft.m) for t = 1:T-1]
+# Trajectory initialization
+X0 = linear_interp(x1, xT, T) # linear interpolation on state
+U0 = random_controls(model, T, 0.001) # random controls
 
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
-if optimize
-    @time Z̄ = solve(prob, copy(Z0))
-    @save joinpath(@__DIR__, "sol.jld2") Z̄
-else
-    println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄
-end
+# Solve
+@time Z̄ = solve(prob, copy(Z0))
+
+# Visualize
+using Plots
+X̄, Ū = unpack(Z̄, prob)
+plot(hcat(X̄...)', width = 2.0)
+plot(hcat(Ū...)', width = 2.0, linetype = :steppost)
