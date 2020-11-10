@@ -123,7 +123,7 @@ function constraints_jacobian!(∇c, Z, con::SampleDynamics,
 		# samples
 		# xt⁺ = view(Z, idx.xt[t + 1])
 
-		a1, a2, a3, a4 = sample_dynamics_jacobian(model, xt, ut, μ, ν,
+		a1, a2, a3, a4 = sample_dynamics_jacobian(prob.mean.model, xt, ut, μ, ν,
 			dist.w, h, t, sample.β)
 
 		r_idx = con_shift .+ (1:n_resample)
@@ -249,23 +249,13 @@ function sample_dynamics_jacobian(model, xt, ut, μ, ν, w, h, t, β)
 
 	w0 = zeros(model.d)
 
-	dx⁺dxt = zeros(model.n * M, model.n * N)
-	dx⁺dut = zeros(model.n * M, model.m * N)
-	dx⁺dμ = zeros(model.n * M, model.n)
-	dx⁺dν = zeros(model.n * M, model.m)
-
-	dsdxt = zeros(model.n * M, model.n * N)
-	dsdut = zeros(model.n * M, model.m * N)
-	dsdμ = zeros(model.n * M, model.n)
-	dsdν = zeros(model.n * M, model.m)
-
+	dsdxt = spzeros(model.n * M, model.n * N)
+	dsdut = spzeros(model.n * M, model.m * N)
+	dsdμ = spzeros(model.n * M, model.n)
+	dsdν = spzeros(model.n * M, model.m)
 	xt⁺, s = sample_dynamics(model, xt, ut, μ, ν, w, h, t, β)
 	r(y) = resample_vec(y, model.n, M, β[t + 1])
 	dx⁺ds = real.(FiniteDiff.finite_difference_jacobian(r, s))
-
-	# s = []
-	# A = []
-	# B = []
 
 	for j = 1:M
 		if j <= N
@@ -273,9 +263,6 @@ function sample_dynamics_jacobian(model, xt, ut, μ, ν, w, h, t, β)
 			ui = view(ut, (j - 1) * model.m .+ (1:model.m))
 			_, _A, _B = propagate_dynamics_jacobian(model, xi, ui,
 				w0, h, t)
-			# push!(s, _s)
-			# push!(A, _A)
-			# push!(B, _B)
 
 			dsdxt[(j - 1) * model.n .+ (1:model.n),
 				(j - 1) * model.n .+ (1:model.n)] = _A
@@ -286,19 +273,10 @@ function sample_dynamics_jacobian(model, xt, ut, μ, ν, w, h, t, β)
 			_, _A, _B = propagate_dynamics_jacobian(model, μ, ν,
 				β[t] * w[t][k], h, t)
 
-			# push!(s, _s)
-			# push!(A, _A)
-			# push!(B, _B)
-
 			dsdμ[(j - 1) * model.n .+ (1:model.n), :] = _A
 			dsdν[(j - 1) * model.n .+ (1:model.n), :] = _B
 		end
 	end
 
-	dx⁺dxt = dx⁺ds * dsdxt
-	dx⁺dut = dx⁺ds * dsdut
-	dx⁺dμ = dx⁺ds * dsdμ
-	dx⁺dν = dx⁺ds * dsdν
-
-	return dx⁺dxt, dx⁺dut, dx⁺dμ, dx⁺dν
+	return dx⁺ds * dsdxt, dx⁺ds * dsdut, dx⁺ds * dsdμ, dx⁺ds * dsdν
 end

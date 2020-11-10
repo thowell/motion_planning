@@ -17,7 +17,7 @@ N = 2 * model_friction.n
 D = 2 * model_friction.d
 
 β = 1.0
-δ = 1.0e-2
+δ = 1.0e-3
 
 # initial samples
 x1_sample = resample(x1, Diagonal(ones(model_friction.n)), 1.0)
@@ -71,9 +71,6 @@ z0_dpo[prob_dpo.prob.idx.nom] = pack(X̄, Ū, prob_nom)
 z0_dpo[prob_dpo.prob.idx.mean] = pack(X̄, Ū, prob_nom)
 for i = 1:N
 	z0_dpo[prob_dpo.prob.idx.sample[i]] = pack(X̄, Ū, prob_nom)
-end
-for j = 1:(N + D)
-	z0_dpo[prob_dpo.prob.idx.slack[j]] = vcat(X̄[2:end]...)
 end
 for t = 1:T-1
 	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))

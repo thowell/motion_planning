@@ -1,8 +1,8 @@
 include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
 include(joinpath(@__DIR__, "pendulum_minimum_time.jl"))
 
-propagate_dynamics(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
-propagate_dynamics_jacobian(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
+# propagate_dynamics(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
+# propagate_dynamics_jacobian(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
 
 # Nominal solution
 X̄, Ū = unpack(Z̄, prob)
@@ -13,7 +13,7 @@ N = 2 * model_ft.n
 D = 2 * model_ft.d
 
 β = 1.0
-δ = 1.0e-3
+δ = 5.0e-3
 
 # initial samples
 x1_sample = resample(x1, Diagonal([1.0; 1.0]), 1.0e-3)
@@ -71,7 +71,7 @@ end
 include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 # Solve
 Z = solve(prob_dpo, copy(z0_dpo),
-	nlp = :ipopt,
+	nlp = :SNOPT7,
 	tol = 1.0e-3, c_tol = 1.0e-3, #max_iter = 1000,
 	time_limit = 180,
 	mapl = 5)

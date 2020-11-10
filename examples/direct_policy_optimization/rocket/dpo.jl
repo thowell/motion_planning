@@ -2,6 +2,10 @@ include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
 include(joinpath(@__DIR__, "rocket_nominal.jl"))
 include(joinpath(@__DIR__, "rocket_slosh.jl"))
 
+t = 1
+propagate_dynamics(model_slosh, rand(model_slosh.n), rand(model_slosh.m), rand(model_slosh.d), 0, t)
+propagate_dynamics_jacobian(model_slosh, rand(model_slosh.n), rand(model_slosh.m), rand(model_slosh.d), 0, t)
+
 # DPO
 N = 2 * model_slosh.n
 D = 2 * model_slosh.d
@@ -12,7 +16,7 @@ D = 2 * model_slosh.d
 # initial samples
 x1_sample = resample(x1_slosh, Diagonal(ones(model_slosh.n)), 1.0e-3)
 
-prob_nom = prob_nominal.prob
+prob_nom = prob_slosh.prob
 
 # mean problem
 prob_mean = trajectory_optimization(
@@ -68,9 +72,6 @@ z0_dpo[prob_dpo.prob.idx.mean] = pack(X̄_slosh, Ū_slosh, prob_slosh)
 for i = 1:N
 	z0_dpo[prob_dpo.prob.idx.sample[i]] = pack(X̄_slosh, Ū_slosh, prob_slosh)
 end
-for j = 1:(N + D)
-	z0_dpo[prob_dpo.prob.idx.slack[j]] = vcat(X̄_slosh[2:end]...)
-end
 for t = 1:T-1
 	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
 end
@@ -81,7 +82,7 @@ include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 Z = solve(prob_dpo, copy(z0_dpo),
 	nlp = :SNOPT7,
 	tol = 1.0e-2, c_tol = 1.0e-2,
-	time_limit = 60 * 60 * 12)
+	time_limit = 60 * 20)
 
 
 

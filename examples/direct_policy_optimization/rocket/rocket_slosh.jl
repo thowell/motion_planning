@@ -11,7 +11,7 @@ function fd(model::RocketSlosh, x⁺, x, u, w, h, t)
 end
 
 # Horizon
-T = 41
+T = 5#41
 
 # Bounds
 ul, uu = control_bounds(model_slosh, T, [-5.0; 0.0; 0.01], [5.0; 100.0; 1.0])
@@ -100,4 +100,4 @@ else
 end
 
 X̄_slosh, Ū_slosh = unpack(Z̄_slosh, prob_slosh)
-@show sum([U[t][end] for t = 1:T-1])
+@show sum([Ū_slosh[t][end] for t = 1:T-1])
