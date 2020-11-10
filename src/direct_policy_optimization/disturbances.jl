@@ -8,7 +8,7 @@ function disturbances(W)
 	d = size(W[1], 1)
 	w = []
 	for t = 1:T
-		_w = sqrt(W[t])
+		_w = Array(sqrt(W[t]))
 		tmp = []
 		for i = 1:d
 			push!(tmp, _w[:, i])

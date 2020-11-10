@@ -4,14 +4,14 @@ include(joinpath(pwd(),"src/constraints/free_time.jl"))
 optimize = true
 
 # Free-time model
-model_nom = free_time_model(additive_noise_model(model_nominal))
+model_nom = free_time_model(model_nominal)
 
 function fd(model::RocketNominal, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
+    midpoint_implicit(model, x⁺, x, u, w, u[end])
 end
 
 # Horizon
-T = 5#41
+T = 41
 
 # Bounds
 ul, uu = control_bounds(model_nom, T, [-5.0; 0.0; 0.01], [5.0; 100.0; 1.0])
@@ -86,8 +86,11 @@ Z0 = pack(X0, U0, prob_nominal)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
+include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+
 if optimize
-    @time Z̄ = solve(prob_nominal, copy(Z0))
+    @time Z̄ = solve(prob_nominal, copy(Z0),
+		nlp = :SNOPT7)
     @save joinpath(@__DIR__, "sol.jld2") Z̄
 else
     println("Loading solution...")

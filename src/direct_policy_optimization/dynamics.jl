@@ -253,6 +253,7 @@ function sample_dynamics_jacobian(model, xt, ut, μ, ν, w, h, t, β)
 	dsdut = spzeros(model.n * M, model.m * N)
 	dsdμ = spzeros(model.n * M, model.n)
 	dsdν = spzeros(model.n * M, model.m)
+
 	xt⁺, s = sample_dynamics(model, xt, ut, μ, ν, w, h, t, β)
 	r(y) = resample_vec(y, model.n, M, β[t + 1])
 	dx⁺ds = real.(FiniteDiff.finite_difference_jacobian(r, s))

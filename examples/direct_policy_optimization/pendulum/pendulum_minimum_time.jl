@@ -4,7 +4,7 @@ include(joinpath(pwd(), "src/constraints/free_time.jl"))
 optimize = true
 
 # Free-time model with additive noise
-model_ft = Pendulum(2, 2, 2, 1.0, 0.1, 0.5, 0.25, 9.81)
+model_ft = free_time_model(additive_noise_model(model))
 
 function fd(model::Pendulum, x⁺, x, u, w, h, t)
     midpoint_implicit(model, x⁺, x, u, w, u[end]) - w

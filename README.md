@@ -46,6 +46,7 @@ motion planning
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests
 - [ ] visualization dependencies
+	- [ ] select default background
 - [ ] nonlinear objective (stage wise)
 - [ ] constraints (stage wise)
 - [ ] embed animations in readme

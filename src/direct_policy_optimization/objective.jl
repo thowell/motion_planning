@@ -39,8 +39,8 @@ function objective_gradient!(∇J, τ_nom, τ_sample, obj::SampleObjective,
         ȳ = state_output(model_nom, view(τ_nom, idx_τ_nom.x[t]))
         y = state_output(model_sample, view(τ_sample, idx_τ_sample.x[t]))
 
-        ∇J[state_output_idx(model_nom, idx_z_nom[idx_τ_nom.x[t]])] -= 2.0 * obj.Q[t] * (y - ȳ)
-        ∇J[state_output_idx(model_sample, idx_z_sample[idx_τ_sample.x[t]])] += 2.0 * obj.Q[t] * (y - ȳ)
+        ∇J[state_output(model_nom, idx_z_nom[idx_τ_nom.x[t]])] -= 2.0 * obj.Q[t] * (y - ȳ)
+        ∇J[state_output(model_sample, idx_z_sample[idx_τ_sample.x[t]])] += 2.0 * obj.Q[t] * (y - ȳ)
 
         t == T && continue
 
