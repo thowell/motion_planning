@@ -77,7 +77,6 @@ function simulate(
         end
     end
     return z_rollout, u_rollout, J / (T_sim - 1), Jx / (T_sim - 1), Ju / (T_sim - 1)
-	nothing
 end
 
 # Nominal trajectories

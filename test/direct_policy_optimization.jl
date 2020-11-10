@@ -32,14 +32,14 @@ end
 @assert norm(vec(∇c) - vec(∇c_fd)) < 1.0e-5
 @assert sum(∇c) - sum(∇c_fd) < 1.0e-5
 
+prob_dpo.con[2]
 # policy
 prob_dpo.con[2]
 model.m * (T - 1) * (N + 1)
-con_policy = policy_constraints(prob_dpo.prob, prob_dpo.N)
+con_policy = prob_dpo.con[2]
 c0 = zeros(con_policy.n)
 _c(c,z) = constraints!(c, z, con_policy, prob_dpo.policy,
     prob_dpo.prob, prob_dpo.idx, prob_dpo.N)
-
 _c(c0,z0)
 # ∇c_fd = zeros(con_policy.n, prob_dpo.num_var)
 # FiniteDiff.finite_difference_jacobian!(∇c_fd, _c, z0)
@@ -75,6 +75,7 @@ end
 
 
 # sample dynamics
+model = model_slosh
 t = 10
 xt = view(z0_dpo, prob_dpo.idx.xt[t])
 ut = view(z0_dpo, prob_dpo.idx.ut[t])
@@ -83,6 +84,10 @@ ut = view(z0_dpo, prob_dpo.idx.ut[t])
 
 propagate_dynamics(model, rand(model.n), rand(model.m), rand(model.d), h, t)
 propagate_dynamics_jacobian(model, rand(model.n), rand(model.m), rand(model.d), h, t)
+
+propagate_dynamics(model, μ, ν, ones(model.d), h, t)
+propagate_dynamics_jacobian(model, μ, ν, ones(model.d), h, t)
+
 
 sample_dynamics(model, xt, ut, μ, ν, prob_dpo.dist.w, h, t,
 	prob_dpo.sample.β)

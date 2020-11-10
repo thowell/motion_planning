@@ -1,4 +1,4 @@
-struct Biped2{T}
+struct BipedPinned{T}
     n::Int
     m::Int
     d::Int
@@ -7,14 +7,14 @@ struct Biped2{T}
     l2::T
 end
 
-function f(model::Biped2, x, u, w)
-    biped_f(x) + biped_g(x) * u
+function f(model::BipedPinned, x, u, w)
+    biped_f(x) + biped_g(x) * view(u, 1:4)
 end
 
 n, m, d = 10, 4, 0
-model = Biped2(n, m, d, 0.2755, 0.288)
+model = BipedPinned(n, m, d, 0.2755, 0.288)
 
-function kinematics(model::Biped2,q)
+function kinematics(model::BipedPinned,q)
 	θ1 = π - (q[1] + q[5])
 	θ2 = π - (q[2] + q[5])
 
@@ -27,7 +27,7 @@ function kinematics(model::Biped2,q)
     return pf
 end
 
-function pe(model::Biped2,q)
+function pe(model::BipedPinned,q)
 	θ1 = π - (q[1] + q[5])
 	θ2 = π - (q[2] + q[5])
 
@@ -37,13 +37,13 @@ function pe(model::Biped2,q)
     return pe
 end
 
-function transformation_to_urdf_left_pinned(model::Biped2, x)
+function transformation_to_urdf_left_pinned(model::BipedPinned, x)
 	robot_world_angle = (x[1] + x[3] + x[5]) - pi / 2
 	robot_position = [robot_world_angle; x[3]; -x[1] + pi / 2; pi / 2 - x[2]; x[4]]
 	return robot_position
 end
 
-function transformation_to_urdf_right_pinned(model::Biped2, x)
+function transformation_to_urdf_right_pinned(model::BipedPinned, x)
 	robot_world_angle = (x[1] + x[3] + x[5]) - pi / 2
 	robot_position = [robot_world_angle; -x[3]; x[1] - pi / 2; x[2] - pi / 2; -x[4]]
 	return robot_position

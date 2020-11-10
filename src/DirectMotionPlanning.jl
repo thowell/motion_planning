@@ -2,6 +2,7 @@ module DirectMotionPlanning
 
 using LinearAlgebra, ForwardDiff, FiniteDiff, StaticArrays, SparseArrays
 using MathOptInterface, Ipopt
+using Distributions, Interpolations
 using JLD2
 
 include("lqr.jl")

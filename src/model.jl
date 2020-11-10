@@ -37,6 +37,8 @@ function propagate_dynamics(model, x, u, w, h, t)
 
     while norm(r, 2) > 1.0e-8 && iter < 10
         ∇r = ForwardDiff.jacobian(d, y)
+		# print(∇r)
+		# print(rank(∇r))
         Δy = -1.0 * ∇r \ r
 
         α = 1.0

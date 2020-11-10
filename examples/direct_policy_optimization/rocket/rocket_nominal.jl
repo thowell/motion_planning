@@ -4,14 +4,14 @@ include(joinpath(pwd(),"src/constraints/free_time.jl"))
 optimize = true
 
 # Free-time model
-model_nom = free_time_model(model_nominal)
+model_nom = free_time_model(additive_noise_model(model_nominal))
 
 function fd(model::RocketNominal, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end])
+    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
 end
 
 # Horizon
-T = 41
+T = 5#41
 
 # Bounds
 ul, uu = control_bounds(model_nom, T, [-5.0; 0.0; 0.01], [5.0; 100.0; 1.0])
@@ -60,7 +60,7 @@ obj = quadratic_time_tracking_objective(
 		: Diagonal([10.0; 100.0; 10.0; 10.0; 100.0; 10.0])) for t = 1:T],
 	[Diagonal([1.0e-1*ones(2); 0.0]) for t = 1:T-1],
     [xT for t = 1:T],
-	[zeros(model_nom.m) for t = 1:T],
+	[zeros(model_nom.m) for t = 1:T-1],
 	1.0)
 
 # Time step constraints

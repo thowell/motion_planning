@@ -1,8 +1,8 @@
 # Direct Motion Planning
 
 ## classic examples
-- [ ] double integrator
-- [ ] acrobot
+- [X] double integrator
+- [X] acrobot
 - [ ] robotic arm
 - [ ] biped
 
@@ -33,14 +33,19 @@ LQR
 motion planning
 - [X] pendulum
 - [X] autonomous car
-- [ ] cart-pole
+- [X] cart-pole
 - [ ] rocket
-- [ ] quadrotor
+- [X] quadrotor
 
 
 ## TODO
 - [X] direct policy optimization implementation
+	- [ ] paper visualizations
+	- [ ] save TO and DPO trajectories
 - [ ] check for SNOPT installation
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests
+- [ ] visualization dependencies
+- [ ] nonlinear objective (stage wise)
+- [ ] constraints (stage wise)
 - [ ] embed animations in readme

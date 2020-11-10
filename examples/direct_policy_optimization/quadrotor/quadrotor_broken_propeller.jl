@@ -4,10 +4,10 @@ include(joinpath(pwd(),"src/constraints/free_time.jl"))
 optimize = true
 
 # Free-time model
-model_ft = free_time_model(model)
+model = free_time_model(additive_noise_model(model))
 
 function fd(model::Quadrotor, x⁺, x, u, w, h, t)
-	midpoint_implicit(model, x⁺, x, u, w, u[end])
+	midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
 end
 
 # Horizon
@@ -18,7 +18,7 @@ tf0 = 5.0
 h0 = tf0 / (T-1)
 
 # ul <= u <= uu
-_uu = 5.0 * ones(model_ft.m)
+_uu = 5.0 * ones(model.m)
 _uu[end] = h0
 
 uu_nom = copy(_uu)
@@ -31,33 +31,33 @@ uu3[3] *= 0.5
 uu4 = copy(_uu)
 uu4[4] *= 0.5
 
-_ul = zeros(model_ft.m)
+_ul = zeros(model.m)
 _ul[end] = 0.0
 ul_nom = copy(_ul)
-@assert sum(_uu) > -1.0 * model_ft.mass * model.g[3]
+@assert sum(_uu) > -1.0 * model.mass * model.g[3]
 
-ul, uu = control_bounds(model_ft, T, _ul, _uu)
+ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-x1 = zeros(model_ft.n)
+x1 = zeros(model.n)
 x1[3] = 1.0
 xT = copy(x1)
 xT[1] = 3.0
 xT[2] = 3.0
 
-_xl = -Inf * ones(model_ft.n)
+_xl = -Inf * ones(model.n)
 _xl[3] = 0.0
 
-_xu = Inf * ones(model_ft.n)
+_xu = Inf * ones(model.n)
 
-xl, xu = state_bounds(model_ft, T, _xl, _xu, x1 = x1, xT = xT)
+xl, xu = state_bounds(model, T, _xl, _xu, x1 = x1, xT = xT)
 
-u_ref = [-1.0 * model_ft.mass * model_ft.g[3] / 4.0 * ones(4); 0.0]
+u_ref = [-1.0 * model.mass * model.g[3] / 4.0 * ones(4); 0.0]
 
 # Objective
 obj = quadratic_time_tracking_objective(
-	[(t < T ? Diagonal(ones(model_ft.n))
-		: Diagonal(1.0 * ones(model_ft.n))) for t = 1:T],
+	[(t < T ? Diagonal(ones(model.n))
+		: Diagonal(1.0 * ones(model.n))) for t = 1:T],
 	[Diagonal([1.0e-1 * ones(4); 0.0]) for t = 1:T-1],
     [copy(xT) for t = 1:T],
 	[copy(u_ref) for t = 1:T-1],
@@ -67,7 +67,7 @@ obj = quadratic_time_tracking_objective(
 con_free_time = free_time_constraints(T)
 
 # Problem
-prob = trajectory_optimization_problem(model_ft,
+prob = trajectory_optimization_problem(model,
 			   obj,
 			   T,
                xl = xl,
