@@ -33,7 +33,7 @@ end
 g = 9.81 # gravity
 m1 = 1.0 # mass of rocket
 l1 = 0.5 # length from COM to thruster
-J = 1.0 / 12.0 * m1 * (2.0 * l1)^2 # inertia of rocket
+J = 1.0 / 12.0 * m1 * (2.0 * l1)^2.0 # inertia of rocket
 
 m2 = 0.1 # mass of pendulum
 l2 = 0.1 # length from COM to pendulum
@@ -126,10 +126,6 @@ end
 
 function state_output(model::RocketSlosh, x)
 	x[collect([1, 2, 3, 5, 6, 7])]
-end
-
-function state_output_idx(mode::RocketSlosh, idx)
-	idx[collect([1, 2, 3, 5, 6, 7])]
 end
 
 function visualize!(vis, model::Rocket, x;

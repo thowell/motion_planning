@@ -76,42 +76,41 @@ end
 
 # sample dynamics
 model = model_slosh
-t = 10
+t = 3
 xt = view(z0_dpo, prob_dpo.idx.xt[t])
 ut = view(z0_dpo, prob_dpo.idx.ut[t])
 μ = view(z0_dpo, prob_dpo.idx.mean[prob_dpo.prob.mean.idx.x[t]])
 ν = view(z0_dpo, prob_dpo.idx.mean[prob_dpo.prob.mean.idx.u[t]])
 
-propagate_dynamics(model, rand(model.n), rand(model.m), rand(model.d), h, t)
-propagate_dynamics_jacobian(model, rand(model.n), rand(model.m), rand(model.d), h, t)
+propagate_dynamics(model, rand(model.n), rand(model.m), rand(model.d), 0.0, t)
+propagate_dynamics_jacobian(model, rand(model.n), rand(model.m), rand(model.d), 0.0, t)
 
-propagate_dynamics(model, μ, ν, ones(model.d), h, t)
-propagate_dynamics_jacobian(model, μ, ν, ones(model.d), h, t)
+propagate_dynamics(model, μ, ν, ones(model.d), 0.0, t)
+propagate_dynamics_jacobian(model, μ, ν, 0.1 * ones(model.d), 0.0, t)
 
-
-sample_dynamics(model, xt, ut, μ, ν, prob_dpo.dist.w, h, t,
+sample_dynamics(model, xt, ut, μ, ν, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)
 
-a1, a2, a3, a4 = sample_dynamics_jacobian(model, xt, ut, μ, ν, prob_dpo.dist.w, h, t,
+a1, a2, a3, a4 = sample_dynamics_jacobian(model, xt, ut, μ, ν, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)
 
-sdx(y) = sample_dynamics(model, y, ut, μ, ν, prob_dpo.dist.w, h, t,
+sdx(y) = sample_dynamics(model, y, ut, μ, ν, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)[1]
 sdx(xt)
 
-sdu(y) = sample_dynamics(model, xt, y, μ, ν, prob_dpo.dist.w, h, t,
+sdu(y) = sample_dynamics(model, xt, y, μ, ν, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)[1]
 sdu(ut)
 
-sdμ(y) = sample_dynamics(model, xt, ut, y, ν, prob_dpo.dist.w, h, t,
+sdμ(y) = sample_dynamics(model, xt, ut, y, ν, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)[1]
 sdμ(μ)
 
-sdν(y) = sample_dynamics(model, xt, ut, μ, y, prob_dpo.dist.w, h, t,
+sdν(y) = sample_dynamics(model, xt, ut, μ, y, prob_dpo.dist.w, 0.0, t,
 	prob_dpo.sample.β)[1]
 sdν(ν)
 
-@assert norm(FiniteDiff.finite_difference_jacobian(sdx, xt) - a1) < 1.0e-5
-@assert norm(FiniteDiff.finite_difference_jacobian(sdu, ut) - a2) < 1.0e-5
-@assert norm(FiniteDiff.finite_difference_jacobian(sdμ, μ) - a3) < 1.0e-5
-@assert norm(FiniteDiff.finite_difference_jacobian(sdν, ν) - a4) < 1.0e-5
+@assert norm(FiniteDiff.finite_difference_jacobian(sdx, xt) - a1, Inf) < 1.0e-3
+@assert norm(FiniteDiff.finite_difference_jacobian(sdu, ut) - a2, Inf) < 1.0e-4
+@assert norm(FiniteDiff.finite_difference_jacobian(sdμ, μ) - a3, Inf) < 1.0e-4
+@assert norm(FiniteDiff.finite_difference_jacobian(sdν, ν) - a4, Inf) < 1.0e-3

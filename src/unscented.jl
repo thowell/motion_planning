@@ -25,7 +25,7 @@ function resample(X, β)
     n = length(X[1])
     μ = sample_mean(X)
     P = sample_covariance(X, β)
-    cols = sqrt(P)
+    cols = Array(sqrt(P))
     Xs = [μ + s * β * cols[:,i] for s in [-1.0, 1.0] for i = 1:n]
     return Xs
 end
@@ -43,7 +43,7 @@ end
 
 function resample(μ, P, β::T) where T
     n = length(μ)
-    cols = sqrt(P)
+    cols = Array(sqrt(P))
     Xs = [μ + s * β * cols[:,i] for s in [-1.0, 1.0] for i = 1:n]
     return Xs
 end

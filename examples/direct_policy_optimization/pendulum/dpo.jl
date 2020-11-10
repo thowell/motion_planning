@@ -1,9 +1,6 @@
 include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
 include(joinpath(@__DIR__, "pendulum_minimum_time.jl"))
 
-# propagate_dynamics(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
-# propagate_dynamics_jacobian(model_ft, rand(model_ft.n), rand(model_ft.m), rand(model_ft.d), h, t)
-
 # Nominal solution
 X̄, Ū = unpack(Z̄, prob)
 prob_nom = prob.prob
@@ -23,6 +20,8 @@ prob_mean = trajectory_optimization(
 				model_ft,
 				EmptyObjective(),
 				T,
+				ul = control_bounds(model_ft, T, [Inf; 0.0], [Inf; 0.0])[1],
+				uu = control_bounds(model_ft, T, [Inf; 0.0], [Inf; 0.0])[2],
 				dynamics = false
 				)
 
@@ -36,6 +35,7 @@ prob_sample = [trajectory_optimization(
 				ul = ul,
 				uu = uu,
 				dynamics = false,
+				con = con_free_time,
 				) for i = 1:N]
 
 # sample objective

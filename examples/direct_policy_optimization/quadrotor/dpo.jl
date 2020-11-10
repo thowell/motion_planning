@@ -79,7 +79,7 @@ for i = 1:N
 	z0_dpo[prob_dpo.prob.idx.sample[i]] = pack(X̄, Ū, prob_nom) + 0.001 * rand(prob_nom.num_var)
 end
 for t = 1:T-1
-	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
+	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t])) + 0.001 * rand(length(vec(K[t])))
 end
 
 # Solve
