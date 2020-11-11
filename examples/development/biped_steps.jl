@@ -1,6 +1,6 @@
 include(joinpath(pwd(), "src/models/biped.jl"))
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/acceleration.jl"))
+include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Visualize
@@ -26,10 +26,10 @@ open(vis)
 # q1[5] -= pi / 10.0
 q1, qT = loop_configurations(model, θ)
 qT[1] += 1.0
-visualize!(vis, model, [qT])
+visualize!(vis, model, [q1])
 
 # Horizon
-T = 11
+T = 21
 
 # Time step
 tf = 1.0
@@ -47,49 +47,75 @@ _ul = zeros(model.m)
 _ul[model.idx_u] .= -100.0
 ul, uu = control_bounds(model, T, _ul, _uu)
 
-xl, xu = state_bounds(model, T, x1 = [q1; q1])
+xl, xu = state_bounds(model, T)#, x1 = [q1; q1])
 
 # Objective
 q_ref = linear_interp(q1, qT, T)
 X0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
-obj_penalty = PenaltyObjective(1.0e3, model.m)
-
-Qq = 1.0 * Diagonal(ones(model.nq)) # configuration penalty
-Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2)) # state penalty
-QT = cat(0.5 * Qq, 100.0 * Diagonal(ones(model.nq)), dims = (1, 2))
-R = Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...]) # no penalty on "contact" controls
+obj_penalty = PenaltyObjective(100.0, model.m)
 
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
-obj_tracking = quadratic_tracking_objective(
-    [t < T ? Q : QT for t = 1:T],
-    [R for t = 1:T-1],
-    [X0[t] for t = 1:T],
+obj_control = quadratic_tracking_objective(
+    [zeros(model.n, model.n) for t = 1:T],
+    [Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
+    [zeros(model.n) for t = 1:T],
     [zeros(model.m) for t = 1:T]
     )
+
 # quadratic velocity penalty
 # Σ v' Q v
 obj_velocity = velocity_objective(
     [Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
     model.nq,
-    h = h)
-# quadratic acceleration penalty
-# Σ a' Q a
-# obj_acceleration = acceleration_objective(
-#     [Diagonal(1.0e-1 * ones(model.nq)) for t = 1:T-1],
-#     model.nq,
-#     h = h)
-obj = MultiObjective([obj_tracking,
-                      obj_penalty,
-                      obj_velocity])#,
-                      # obj_acceleration])
+    h = h,
+    idx_angle = collect([3, 4, 5, 6, 7]))
+kinematics_1(model, q1, body = :torso, mode = :com)[2]
+# torso height
+l_stage_torso_h(x, u, t) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - 0.9)^2.0
+l_terminal_torso_h(x) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - 0.9)^2.0
+obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
+
+# torso lateral
+l_stage_torso_lat(x, u, t) = (1.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
+l_terminal_torso_lat(x) = (1.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
+obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
+
+# foot 1 height
+l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh1(x) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2])^2.0
+obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
+
+# foot 2 height
+l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh2(x) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2])^2.0
+obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
+
+# initial configuration
+function l_stage_init(x, u, t)
+    if t == 1
+        return (x - [q1; q1])' * Diagonal(1000.0 * ones(model.n)) * (x - [q1; q1])
+    else
+        return 0.0
+    end
+end
+l_terminal_init(x) = 0.0
+obj_init = nonlinear_stage_objective(l_stage_init, l_terminal_init)
+
+obj = MultiObjective([obj_penalty,
+                      obj_control,
+                      obj_velocity,
+                      obj_torso_h,
+                      obj_torso_lat,
+                      obj_fh1,
+                      obj_fh2,
+                      obj_init])
 
 # Constraints
 con_contact = contact_constraints(model, T)
-# con_pinned = pinned_foot_constraint(model, q1, T)
-con = multiple_constraints([con_contact])#, con_pinned])
+con = multiple_constraints([con_contact])
 
 # Problem
 prob = trajectory_optimization_problem(model,
@@ -111,15 +137,17 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
+include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+
 @time Z̄ = solve(prob, copy(Z0),
-    nlp = :ipopt,
+    nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3)#, mapl = 5)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
 
-# using Plots
-# plot(hcat(Ū...)[1:model.nu,:]', linetype = :steppost)
-
 # Visualize
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
+
+using Plots
+plot(hcat(Ū...)[1:4,:]', label= "", linetype = :steppost)

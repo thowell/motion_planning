@@ -69,6 +69,7 @@ for t = 1:T-1
 end
 
 include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+
 # Solve
 Z = solve(prob_dpo, copy(z0_dpo),
 	nlp = :SNOPT7,

@@ -86,7 +86,8 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
     else
-        solver = SNOPT7.Optimizer(Major_feasibility_tolerance = c_tol,
+        solver = SNOPT7.Optimizer(
+                                  Major_feasibility_tolerance = c_tol,
                                   Minor_feasibility_tolerance = tol,
                                   Major_optimality_tolerance = tol,
                                   Time_limit = time_limit,

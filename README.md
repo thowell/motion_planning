@@ -4,7 +4,7 @@
 - [X] double integrator
 - [X] acrobot
 - [ ] robotic arm
-- [ ] biped
+- [X] biped
 
 ## contact-implicit trajectory optimization examples
 - [X] particle
@@ -25,7 +25,7 @@
 - [ ] quadruped
 - [ ] atlas
 
-## direct policy optimization examples
+## [direct policy optimization](https://arxiv.org/abs/2010.08506) examples
 LQR
 - [X] double integrator
 - [ ] planar quadrotor
@@ -34,7 +34,7 @@ motion planning
 - [X] pendulum
 - [X] autonomous car
 - [X] cart-pole
-- [ ] rocket
+- [X] rocket
 - [X] quadrotor
 
 

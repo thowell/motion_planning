@@ -5,6 +5,15 @@ using MathOptInterface, Ipopt
 using Distributions, Interpolations
 using JLD2
 
+using Colors
+using CoordinateTransformations
+using FileIO
+using GeometryTypes
+using MeshCat, MeshCatMechanisms
+using MeshIO
+using Rotations
+using RigidBodyDynamics
+
 include("lqr.jl")
 include("unscented.jl")
 include("indices.jl")

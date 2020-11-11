@@ -37,6 +37,25 @@ function pe(model::BipedPinned,q)
     return pe
 end
 
+# visualization
+function visualize!(mvis, model::BipedPinned, x;
+        Δt = 0.1)
+
+    anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
+
+	T = length(x)
+    for t = 1:T
+        MeshCat.atframe(anim,t) do
+			set_configuration!(mvis, transformation_to_urdf_left_pinned(model, x[t]))
+        end
+    end
+
+    # settransform!(vis["/Cameras/default"],
+    #    compose(Translation(0.0 , 0.0 , 0.0), LinearMap(RotZ(pi / 2.0))))
+
+    MeshCat.setanimation!(vis, anim)
+end
+
 function transformation_to_urdf_left_pinned(model::BipedPinned, x)
 	robot_world_angle = (x[1] + x[3] + x[5]) - pi / 2
 	robot_position = [robot_world_angle; x[3]; -x[1] + pi / 2; pi / 2 - x[2]; x[4]]
