@@ -46,14 +46,16 @@ U0 = [0.1 * ones(model.m) for t = 1:T-1] # random controls
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
 
+# Solve for nominal trajectory
 Z̄ = solve(prob, copy(Z0))
 X̄, Ū = unpack(Z̄, prob)
 
-using Plots
-plot(hcat(X̄...)')
-plot(hcat(Ū...)', linetype = :steppost)
+# using Plots
+# plot(hcat(X̄...)')
+# plot(hcat(Ū...)', linetype = :steppost)
 
 # DPO
+
 # Linear model
 A, B = jacobians(model, X̄, Ū, h)
 
@@ -121,7 +123,7 @@ z0 = ones(prob_dpo.num_var)
 # Solve
 include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
 
-z_sol = solve(prob_dpo, copy(z0),
+Z = solve(prob_dpo, copy(z0),
 	nlp = :SNOPT7,
 	tol = 1.0e-7, c_tol = 1.0e-7,
 	time_limit = 60 * 20)
@@ -130,7 +132,7 @@ z_sol = solve(prob_dpo, copy(z0),
 K = tvlqr(A, B, Q, R)
 
 # DPO policy
-θ = [reshape(z_sol[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
+θ = [reshape(Z[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
 	model.m, model.n) for t = 1:T-1]
 
 # Policy difference

@@ -27,7 +27,7 @@ open(vis)
 # q1, qT = loop_configurations(model, θ)
 # qT[1] += 1.0
 
-θ = 0.0 #pi / 7.5
+θ = pi / 7.5
 q1 = zeros(model.nq)
 q1[3] = pi
 q1[4] = θ #+ pi / 20.0
@@ -77,7 +77,7 @@ obj_penalty = PenaltyObjective(1.0e5, model.m)
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 obj_control = quadratic_tracking_objective(
     [zeros(model.n, model.n) for t = 1:T],
-    [Diagonal([1.0 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
+    [Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
     [zeros(model.n) for t = 1:T],
     [zeros(model.m) for t = 1:T]
     )
@@ -85,7 +85,7 @@ obj_control = quadratic_tracking_objective(
 # quadratic velocity penalty
 # Σ v' Q v
 obj_velocity = velocity_objective(
-    [Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
+    [Diagonal(10.0 * ones(model.nq)) for t = 1:T-1],
     model.nq,
     h = h,
     idx_angle = collect([3, 4, 5, 6, 7]))
@@ -97,8 +97,8 @@ l_terminal_torso_h(x) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :tor
 obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
-l_stage_torso_lat(x, u, t) = (100.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
-l_terminal_torso_lat(x) = (100.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
+l_stage_torso_lat(x, u, t) = (10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
+l_terminal_torso_lat(x) = (10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(X0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
 obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
@@ -148,7 +148,7 @@ prob = trajectory_optimization_problem(model,
                )
 
 # trajectory initialization
-U0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+U0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
