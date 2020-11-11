@@ -28,7 +28,7 @@
 ## [direct policy optimization](https://arxiv.org/abs/2010.08506) examples
 LQR
 - [X] double integrator
-- [ ] planar quadrotor
+- [X] planar quadrotor
 
 motion planning
 - [X] pendulum
@@ -36,7 +36,7 @@ motion planning
 - [X] cart-pole
 - [X] rocket
 - [X] quadrotor
-
+- [X] biped
 
 ## TODO
 - [X] direct policy optimization implementation

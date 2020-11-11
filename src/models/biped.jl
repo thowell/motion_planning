@@ -72,22 +72,21 @@ ns = 1
 g = 9.81     # gravity
 
 # Model parameters
-	# from Robust sliding-mode control applied to a 5-link biped robot
-m_torso = 14.79
-m_thigh = 5.28
-m_leg = 2.23
+m_torso = 0.5 + 0.48 * 2.0
+m_thigh = 0.8112
+m_leg = 0.3037
 
-J_torso = 3.30e-2
-J_thigh = 3.30e-2
-J_leg = 3.30e-2
+J_torso = 0.0029
+J_thigh = 0.00709
+J_leg = 0.00398
 
-l_torso = 0.486
-l_thigh = 0.302
-l_leg = 0.332
+l_torso = 0.15 + 0.15
+l_thigh = 0.2755
+l_leg = 0.308
 
-d_torso = 0.282
-d_thigh = 0.236
-d_leg = 0.189
+d_torso = 0.0342
+d_thigh = 0.2176
+d_leg = 0.1445
 
 n = 2 * nq
 m = nu + nc + nb + nc + nb + ns
@@ -103,8 +102,8 @@ idx_s = nu + nc + nb + nc + nb .+ (1:ns)
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
 
-uL = -Inf * ones(nu)
-uU = Inf * ones(nu)
+uL = -8.0 * ones(nu) # -16.0 * ones(nu)
+uU = 8.0 * ones(nu) # 16.0 * ones(nu)
 
 function kinematics_1(model::Biped, q; body = :torso, mode = :ee)
 	x = q[1]
@@ -229,7 +228,7 @@ function jacobian_2(model::Biped, q; body = :leg_1, mode = :ee)
 	return jac
 end
 
-# # test kinematics
+# test kinematics
 # q = rand(nq)
 #
 # norm(kinematics_1(model, q, body = :torso, mode = :ee) - [q[1] + model.l1 * sin(q[3]); q[2] - model.l1 * cos(q[3])])
@@ -401,8 +400,8 @@ function N_func(model::Biped, q)
 	J_leg_1 = jacobian_2(model, q, body = :leg_1, mode = :ee)
 	J_leg_2 = jacobian_2(model, q, body = :leg_2, mode = :ee)
 
-	return [J_leg_1[2:2,:];
-			J_leg_2[2:2,:]]
+	return [view(J_leg_1, 2:2, :);
+			view(J_leg_2, 2:2, :)]
 end
 
 function P_func(model::Biped, q)
@@ -410,23 +409,23 @@ function P_func(model::Biped, q)
 	J_leg_2 = jacobian_2(model, q, body = :leg_2, mode = :ee)
 	map = [1.0; -1.0]
 
-	return [map * J_leg_1[1:1, :];
-			map * J_leg_2[1:1, :]]
+	return [map * view(J_leg_1, 1:1, :);
+			map * view(J_leg_2, 1:1, :)]
 end
 
 function friction_cone(model::Biped, u)
-	λ = u[model.idx_λ]
-	b = u[model.idx_b]
-	return @SVector [model.μ * λ[1] - sum(b[1:2]),
-					 model.μ * λ[2] - sum(b[3:4])]
+	λ = view(u, model.idx_λ)
+	b = view(u, model.idx_b)
+	return @SVector [model.μ * λ[1] - sum(view(b, 1:2)),
+					 model.μ * λ[2] - sum(view(b, 3:4))]
 end
 
 function maximum_dissipation(model::Biped, x⁺, u, h)
-	q3 = x⁺[model.nq .+ (1:model.nq)]
-	q2 = x⁺[1:model.nq]
-	ψ = u[model.idx_ψ]
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	ψ = view(u, model.idx_ψ)
 	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2)]
-	η = u[model.idx_η]
+	η = view(u, model.idx_η)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
@@ -534,8 +533,6 @@ function visualize!(vis, model::Biped, q;
 	setobject!(vis["leg2"], leg_2,
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
-
-
 	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
 	T = length(q)
@@ -568,3 +565,27 @@ function visualize!(vis, model::Biped, q;
 
 	MeshCat.setanimation!(vis, anim)
 end
+
+# urdf = joinpath(pwd(), "src/models/biped/urdf/biped_float.urdf")
+# mechanism = parse_urdf(urdf, floating=false)
+# state = MechanismState(mechanism)
+# state_cache = StateCache(mechanism)
+# result = DynamicsResult(mechanism)
+# result_cache = DynamicsResultCache(mechanism)
+#
+# q = zeros(model.nq)
+# q_f = copy(q)
+# q_f[3] = - pi
+# q_f[4] = - pi / 2.0
+# q_f[5] = - pi / 2.0
+# set_configuration!(state, q)
+# mass_matrix(state)
+# M_func(model, q)
+#
+# # vis = Visualizer()
+# mechanism_visuals = MeshCatMechanisms.URDFVisuals(urdf)
+# mvis = MechanismVisualizer(mechanism, mechanism_visuals, vis[:base])
+# # open(mvis)
+#
+# set_configuration!(mvis, q_f)
+#
