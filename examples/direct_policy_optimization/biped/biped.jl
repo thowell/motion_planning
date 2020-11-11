@@ -4,10 +4,10 @@ include(joinpath(pwd(), "src/constraints/loop_delta.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
 include(joinpath(pwd(), "src/constraints/stage.jl"))
 
-model = free_time_model(model)
+model = free_time_model(additive_noise_model(model))
 
 function fd(model::BipedPinned, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end])
+    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
 end
 
 # Visualize
@@ -43,13 +43,13 @@ set_configuration!(mvis, qT)
 # Horizon
 T = 21
 
-tf0 = 1.0
+tf0 = 2.0
 h0 = tf0 / (T-1)
 
 # Bounds
 ul, uu = control_bounds(model, T,
-	[-20.0 * ones(model.m - 1); 0.1 * h0],
-	[20.0 * ones(model.m - 1); h0])
+	[-10.0 * ones(model.m - 1); 0.0 * h0],
+	[10.0 * ones(model.m - 1); h0])
 
 # _xl = x1 .- pi / 10.0
 # # _xl[1] = pi - pi / 50.0
@@ -100,7 +100,7 @@ prob = trajectory_optimization_problem(model,
 
 # Trajectory initialization
 X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = random_controls(model, T, 0.001) # random controls
+U0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
@@ -117,3 +117,5 @@ tf = sum([Ū[t][end] for t = 1:T-1])
 t = range(0, stop = tf, length = T)
 
 visualize!(mvis, model, X̄, Δt = Ū[1][end])
+
+plot(hcat(Ū...)[1:4, :]', linetype = :steppost, label = "")
