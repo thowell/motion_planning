@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/models/car.jl"))
-include(joinpath(pwd(), "src/constraints/obstacles.jl"))
+include(joinpath(pwd(), "src/constraints/stage.jl"))
 
 optimize = true
 
@@ -33,7 +33,11 @@ circles = [(0.85, 0.3, 0.1),
            (0.75, 0.8, 0.1)]
 
 # Constraints
-function obstacles!(c, x)
+function circle_obs(x, y, xc, yc, r)
+    (x - xc)^2.0 + (y - yc)^2.0 - r^2.0
+end
+
+function obstacles!(c, x, u)
     c[1] = circle_obs(x[1], x[2], circles[1][1], circles[1][2], circles[1][3])
     c[2] = circle_obs(x[1], x[2], circles[2][1], circles[2][2], circles[2][3])
     c[3] = circle_obs(x[1], x[2], circles[3][1], circles[3][2], circles[3][3])
@@ -42,8 +46,9 @@ function obstacles!(c, x)
 end
 
 n_stage = 4
-n_con = n_stage * T
-con_obstacles = ObstacleConstraints(n_con, (1:n_con), n_stage)
+n_con = n_stage * (T - 1)
+t_idx = [t for t = 1:T-1]
+con_obstacles = stage_constraints(obstacles!, n_stage, (1:n_stage), t_idx)
 
 # Problem
 prob = trajectory_optimization_problem(model,
