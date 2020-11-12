@@ -2,14 +2,14 @@ include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
 include(joinpath(@__DIR__, "car_obstacles.jl"))
 
 # Additive noise model
-model = Car(3, 2, 3)
+model = additive_noise_model(model)
 
 function fd(model::Car, x⁺, x, u, w, h, t)
     midpoint_implicit(model, x⁺, x, u, w, h) - w
 end
 
 # Nominal solution
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 prob_nom = prob.prob
 
 # DPO
@@ -19,19 +19,18 @@ D = 2 * model.d
 β = 1.0
 δ = 1.0e-3
 
-# initial samples
+# Initial samples
 x1_sample = resample(x1, Diagonal([1.0; 1.0; 0.1]), 1.0e-1)
 
-# mean problem
+# Mean problem
 prob_mean = trajectory_optimization(
 				model,
 				EmptyObjective(),
 				T,
 				h = h,
-				dynamics = false
-				)
+				dynamics = false)
 
-# sample problems
+# Sample problems
 prob_sample = [trajectory_optimization(
 				model,
 				EmptyObjective(),
@@ -42,10 +41,9 @@ prob_sample = [trajectory_optimization(
 				ul = ul,
 				uu = uu,
 				dynamics = false,
-				con = con_obstacles
-				) for i = 1:N]
+				con = con_obstacles) for i = 1:N]
 
-# sample objective
+# Sample objective
 Q = [(t < T ? Diagonal([10.0; 10.0; 1.0])
 	: Diagonal(100.0 * ones(model.n))) for t = 1:T]
 R = [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
@@ -63,19 +61,21 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K = tvlqr(model, X̄, Ū, Q, R, h)
+K = tvlqr(model, x̄, ū, Q, R, h)
 
-z0_dpo = zeros(prob_dpo.num_var)
-z0_dpo[prob_dpo.prob.idx.nom] = pack(X̄, Ū, prob_nom)
-z0_dpo[prob_dpo.prob.idx.mean] = pack(X̄, Ū, prob_nom)
-for i = 1:N
-	z0_dpo[prob_dpo.prob.idx.sample[i]] = pack(X̄, Ū, prob_nom)
-end
-for t = 1:T-1
-	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
-end
+z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-Z = solve(prob_dpo, copy(z0_dpo),
-	tol = 1.0e-3, c_tol = 1.0e-3,
-	max_iter = 1000)
+optimize = true
+
+if optimize
+	include_snopt()
+	z = solve(prob_dpo, copy(z0),
+		nlp = :SNOPT7,
+		tol = 1.0e-3, c_tol = 1.0e-3,
+		time_limit = 60 * 10)
+	@save joinpath(@__DIR__, "sol_dpo.jld2") z
+else
+	println("Loading solution...")
+	@load joinpath(@__DIR__, "sol_dpo.jld2") z
+end

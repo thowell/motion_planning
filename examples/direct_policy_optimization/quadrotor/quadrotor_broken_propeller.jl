@@ -1,8 +1,6 @@
 include(joinpath(pwd(),"src/models/quadrotor.jl"))
 include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
-optimize = true
-
 # Free-time model
 model = free_time_model(additive_noise_model(model))
 
@@ -74,22 +72,22 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_free_time
-               )
+               con = con_free_time)
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = [[copy(u_ref[1:4]); h0] for t = 1:T-1] # random controls
+x0 = linear_interp(x1, xT, T) # linear interpolation on state
+u0 = [[copy(u_ref[1:4]); h0] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
+# Solve
+optimize = true
+
 if optimize
-    @time Z̄ = solve(prob, copy(Z0))
-    @save joinpath(@__DIR__, "sol.jld2") Z̄
+    @time z̄ = solve(prob, copy(z0))
+    @save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄
+    @load joinpath(@__DIR__, "sol_to.jld2") z̄
 end

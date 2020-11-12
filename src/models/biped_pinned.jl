@@ -14,7 +14,7 @@ end
 n, m, d = 10, 4, 0
 model = BipedPinned(n, m, d, 0.2755, 0.288)
 
-function kinematics(model::BipedPinned,q)
+function kinematics(model::BipedPinned, q)
 	θ1 = π - (q[1] + q[5])
 	θ2 = π - (q[2] + q[5])
 

@@ -9,22 +9,25 @@ D = 2 * model_sl.d
 β = 1.0
 δ = 1.0e-3
 
-# initial samples
+# Initial samples
 x1_sample = resample(x1_slosh, Diagonal(ones(model_sl.n)), 1.0e-3)
 
 prob_nom = prob_nominal.prob
 
-# mean problem
+# Mean problem
 prob_mean = trajectory_optimization(
 				model_sl,
 				EmptyObjective(),
 				T,
 				dynamics = false,
-				ul = control_bounds(model, T, [Inf * ones(2); 0.0], [Inf * ones(2); 0.0])[1],
-				uu = control_bounds(model, T, [Inf * ones(2); 0.0], [Inf * ones(2); 0.0])[2],
-				)
+				ul = control_bounds(model, T,
+					[Inf * ones(2); 0.0],
+					[Inf * ones(2); 0.0])[1],
+				uu = control_bounds(model, T,
+					[Inf * ones(2); 0.0],
+					[Inf * ones(2); 0.0])[2])
 
-# sample problems
+# Sample problems
 prob_sample = [trajectory_optimization(
 				model_sl,
 				EmptyObjective(),
@@ -37,7 +40,7 @@ prob_sample = [trajectory_optimization(
 				con = con_free_time
 				) for i = 1:N]
 
-# sample objective
+# Sample objective
 Q = [(t < T ? Diagonal(100.0 * ones(model_nom.n))
 	: Diagonal(1000.0 * ones(model_nom.n))) for t = 1:T]
 R = [Diagonal([1.0; 1.0; 100.0]) for t = 1:T-1]
@@ -58,24 +61,31 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-X̄_nom, Ū_nom = unpack(Z̄, prob_nominal)
-X̄_slosh, Ū_slosh = unpack(Z̄_slosh, prob_slosh)
-K = tvlqr(model_nom, X̄_nom, Ū_nom, Q, R, 0.0)
+x̄_nom, ū_nom = unpack(z̄_nom, prob_nominal)
+K = tvlqr(model_nom, x̄_nom, ū_nom, Q, R, 0.0)
 
-z0_dpo = zeros(prob_dpo.num_var)
-z0_dpo[prob_dpo.prob.idx.nom] = copy(Z̄) #+ 0.001 * rand(prob_nominal.num_var)
-z0_dpo[prob_dpo.prob.idx.mean] = copy(Z̄_slosh) # + 0.001 * rand(prob_slosh.num_var)
+# Pack
+z0 = zeros(prob_dpo.num_var)
+z0[prob_dpo.prob.idx.nom] = copy(z̄_nom)
+z0[prob_dpo.prob.idx.mean] = copy(z̄_slosh)
 for i = 1:N
-	z0_dpo[prob_dpo.prob.idx.sample[i]] = copy(Z̄_slosh) #+ 0.001 * rand(prob_slosh.num_var)
+	z0[prob_dpo.prob.idx.sample[i]] = copy(z̄_slosh)
 end
 for t = 1:T-1
-	z0_dpo[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))# + 0.001 * rand(length(vec(K[t])))
+	z0[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]] = vec(copy(K[t]))
 end
 
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
-
 # Solve
-Z = solve(prob_dpo, copy(z0_dpo),
-	nlp = :SNOPT7,
-	tol = 5.0e-2, c_tol = 5.0e-2,
-	time_limit = 60 * 60)
+optimize = true
+
+if optimize
+	include_snopt()
+	z = solve(prob_dpo, copy(z0),
+		nlp = :SNOPT7,
+		tol = 5.0e-2, c_tol = 5.0e-2,
+		time_limit = 60 * 60)
+	@save joinpath(@__DIR__, "sol_dpo.jld2") z
+else
+	println("Loading solution...")
+    @load joinpath(@__DIR__, "sol_dpo.jld2") z
+end

@@ -1,8 +1,6 @@
 include(joinpath(pwd(),"src/models/cartpole.jl"))
 include(joinpath(pwd(),"src/constraints/friction.jl"))
 
-optimize = true
-
 # Model
 μ0 = 0.1 # coefficient of friction
 
@@ -69,19 +67,22 @@ prob_friction = trajectory_optimization_problem(model_friction,
                     con = con_friction)
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = [ones(model_nominal.m) for t = 1:T-1] # random controls
+x0 = linear_interp(x1, xT, T) # linear interpolation on stateF
+u0 = [ones(model_nominal.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob_nominal)
+z0 = pack(x0, u0, prob_nominal)
 
 # Solve nominal problem
-if optimize
-    @time Z̄_nominal = solve(prob_nominal, copy(Z0), tol = 1.0e-5, c_tol = 1.0e-5)
-    @time Z̄_friction = solve(prob_friction, copy(Z0), tol = 1.0e-5, c_tol = 1.0e-5)
+optimize = true
 
-    @save joinpath(@__DIR__, "sol.jld2") Z̄_nominal Z̄_friction
+if optimize
+    @time z̄_nominal = solve(prob_nominal, copy(z0),
+        tol = 1.0e-5, c_tol = 1.0e-5)
+    @time z̄_friction = solve(prob_friction, copy(z0),
+        tol = 1.0e-5, c_tol = 1.0e-5)
+    @save joinpath(@__DIR__, "sol_to.jld2") z̄_nominal z̄_friction
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄_nominal Z̄_friction
+    @load joinpath(@__DIR__, "sol_to.jld2") z̄_nominal z̄_friction
 end
