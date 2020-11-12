@@ -1,10 +1,8 @@
 include(joinpath(pwd(), "src/models/pendulum.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
 
-optimize = true
-
 # Free-time model with additive noise
-model_ft = free_time_model(additive_noise_model(model))
+model = free_time_model(additive_noise_model(model))
 
 function fd(model::Pendulum, x⁺, x, u, w, h, t)
     midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
@@ -17,22 +15,22 @@ T = 51
 tf = 2.0
 h0 = tf / (T-1) # timestep
 
-ul, uu = control_bounds(model_ft, T, [-3.0; 0.0], [3.0; h0])
+ul, uu = control_bounds(model, T, [-3.0; 0.0], [3.0; h0])
 
 # Initial and final states
 x1 = [0.0; 0.0]
 xT = [π; 0.0]
 
-xl, xu = state_bounds(model_ft, T, x1 = x1, xT = xT)
+xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 
 # Objective (minimum time)
-obj = PenaltyObjective(1.0, model_ft.m)
+obj = PenaltyObjective(1.0, model.m)
 
 # Time step constraints
 con_free_time = free_time_constraints(T)
 
 # Problem
-prob = trajectory_optimization_problem(model_ft,
+prob = trajectory_optimization_problem(model,
 			   obj,
 			   T,
                xl = xl,
@@ -43,18 +41,19 @@ prob = trajectory_optimization_problem(model_ft,
                )
 
 # Initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation for states
-U0 = [ones(model_ft.m) for t = 1:T-1]
+x0 = linear_interp(x1, xT, T) # linear interpolation for states
+u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
+# Solve
+optimize = true
+
 if optimize
-    @time Z̄ = solve(prob, copy(Z0))
-    @save joinpath(@__DIR__, "sol.jld2") Z̄
+    @time z̄ = solve(prob, copy(z0))
+    @save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄
+    @load joinpath(@__DIR__, "sol_to.jld2") z̄
 end

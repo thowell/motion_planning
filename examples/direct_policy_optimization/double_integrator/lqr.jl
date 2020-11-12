@@ -1,7 +1,7 @@
 include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
 include(joinpath(pwd(), "src/models/double_integrator.jl"))
 
-# horizon
+# Horizon
 T = 51
 
 # Bounds
@@ -33,26 +33,23 @@ D = 2 * model.d
 
 x1 = resample(ones(model.n), Diagonal(ones(model.n)), β)
 
-
-# mean problem
+# Mean problem
 prob_mean = trajectory_optimization(
 				model,
 				EmptyObjective(),
 				T,
-				dynamics = false
-				)
+				dynamics = false)
 
-# sample problems
+# Sample problems
 prob_sample = [trajectory_optimization(
 				model,
 				EmptyObjective(),
 				T,
 				dynamics = false,
 				xl = state_bounds(model, T, x1 = x1[i])[1],
-				xu = state_bounds(model, T, x1 = x1[i])[2]
-				) for i = 1:N]
+				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:N]
 
-# sample objective
+# Sample objective
 Q = [Diagonal(ones(model.n)) for t = 1:T]
 R = [Diagonal(ones(model.m)) for t = 1:T-1]
 
@@ -71,9 +68,16 @@ prob_dpo = dpo_problem(
 z0 = ones(prob_dpo.num_var)
 
 # Solve
-z_sol = solve(prob_dpo, copy(z0),
-	tol = 1.0e-8, c_tol = 1.0e-8,
-	mapl = 0)
+optimize = true
+
+if optimize
+	z = solve(prob_dpo, copy(z0),
+		tol = 1.0e-8, c_tol = 1.0e-8)
+	@save joinpath(@__DIR__, "sol_dpo.jld2") z
+else
+	println("Loading solution...")
+	@load joinpath(@__DIR__, "sol_dpo.jld2") z
+end
 
 # TVLQR policy
 A, B = get_dynamics(model)
@@ -83,8 +87,7 @@ K = tvlqr(
 	Q, R)
 
 # DPO policy
-θ = [reshape(z_sol[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
-	model.m, model.n) for t = 1:T-1]
+θ = get_policy(z, prob_dpo)
 
 # Policy difference
 policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]

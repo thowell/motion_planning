@@ -1,5 +1,3 @@
-using Distributions, Interpolations
-
 function simulate(
 		model::CartpoleFriction,
 		policy,
@@ -80,21 +78,21 @@ function simulate(
 end
 
 # Nominal trajectories
-X̄_nominal, Ū_nominal = unpack(Z̄_nominal, prob_nominal)
-X̄_friction, Ū_friction = unpack(Z̄_friction, prob_friction)
-X̄_dpo, Ū_dpo = unpack(Z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
+x̄_nominal, ū_nominal = unpack(z̄_nominal, prob_nominal)
+x̄_friction, ū_friction = unpack(z̄_friction, prob_friction)
+x̄_dpo, ū_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
 
 # Policies
-K_nominal = tvlqr(model, X̄_nominal, [Ū_nominal[t][1:1] for t = 1:T-1],
+K_nominal = tvlqr(model,
+	x̄_nominal, [ū_nominal[t][1:1] for t = 1:T-1],
  	Q, [R[t][1:1, 1:1] for t = 1:T-1], h)
-K_friction = tvlqr(model, X̄_friction, [Ū_friction[t][1:1] for t = 1:T-1],
- 	Q, [R[t][1:1, 1:1] for t = 1:T-1], h)
-θ = [reshape(Z[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
-		1, model.n) for t = 1:T-1]
+K_friction = tvlqr(model, x̄_friction, [ū_friction[t][1:1] for t = 1:T-1],
+ 	Q, [R[t][1:1, 1:1] for t = 1:T-1],
+	h)
+θ = get_policy(z, prob_dpo)
 
 # Simulation
-T_sim = 10T
-Δt = h
+T_sim = 10 * T
 dt_sim = tf / (T_sim - 1)
 
 W = Distributions.MvNormal(zeros(model.n), Diagonal(1.0e-5 * ones(model.n)))
@@ -111,7 +109,7 @@ t_sim = range(0, stop = tf, length = T_sim)
 z_lqr, u_lqr, J_lqr, Jx_lqr, Ju_lqr = simulate(model_sim,
 	policy,
 	K_nominal,
-    X̄_nominal, Ū_nominal,
+    x̄_nominal, ū_nominal,
 	Q, R,
 	T_sim, h,
 	x1 + vec(w0),
@@ -123,7 +121,7 @@ z_lqr, u_lqr, J_lqr, Jx_lqr, Ju_lqr = simulate(model_sim,
 z_lqr_fr, u_lqr_fr, J_lqr_fr, Jx_lqr_fr, Ju_lqr_fr = simulate(model_sim,
 	policy,
 	K_friction,
-    X̄_friction, Ū_friction,
+    x̄_friction, ū_friction,
 	Q, R,
 	T_sim, h,
 	x1 + vec(w0),
@@ -135,7 +133,7 @@ z_lqr_fr, u_lqr_fr, J_lqr_fr, Jx_lqr_fr, Ju_lqr_fr = simulate(model_sim,
 z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = simulate(model_sim,
 	policy,
 	θ,
-    X̄_dpo, Ū_dpo,
+    x̄_dpo, ū_dpo,
 	Q, R,
 	T_sim, h,
 	x1 + vec(w0),

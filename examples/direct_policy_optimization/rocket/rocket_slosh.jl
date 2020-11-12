@@ -1,8 +1,6 @@
 include(joinpath(pwd(),"src/models/rocket.jl"))
 include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
-optimize = true
-
 # Free-time model
 model_sl = free_time_model(additive_noise_model(model_slosh))
 
@@ -79,29 +77,28 @@ prob_slosh = trajectory_optimization_problem(model_sl,
                     xu = xu_slosh,
                     ul = ul,
                     uu = uu,
-                    con = con_free_time
-                    )
+                    con = con_free_time)
 
 # Trajectory initialization
-X0_slosh = linear_interp(x1_slosh, xT_slosh, T) # linear interpolation on state
-U0 = [ones(model_sl.m) for t = 1:T-1] # random controls
+x0_slosh = linear_interp(x1_slosh, xT_slosh, T) # linear interpolation on state
+u0 = [ones(model_sl.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0_slosh = pack(X0_slosh, U0, prob_slosh)
+z0_slosh = pack(x0_slosh, u0, prob_slosh)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+# Solve
+optimize = true
 
 if optimize
-    @time Z̄_slosh = solve(prob_slosh, copy(Z0_slosh),
-		nlp = :SNOPT7)
-    @save joinpath(@__DIR__, "sol_slosh.jld2") Z̄_slosh
+	include_snopt()
+    @time z̄_slosh = solve(prob_slosh, copy(z0_slosh),
+		nlp = :SNOPT7,
+		time_limit = 60 * 10)
+    @save joinpath(@__DIR__, "sol_slosh.jld2") z̄_slosh
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol_slosh.jld2") Z̄_slosh
+    @load joinpath(@__DIR__, "sol_slosh.jld2") z̄_slosh
 end
 
-X̄_slosh, Ū_slosh = unpack(Z̄_slosh, prob_slosh)
-@show sum([Ū_slosh[t][end] for t = 1:T-1])
-Ū_slosh[1][end]
+x̄_slosh, ū_slosh = unpack(z̄_slosh, prob_slosh)
+@show sum([ū_slosh[t][end] for t = 1:T-1]) # ~2.74

@@ -25,7 +25,9 @@
 - [ ] quadruped
 - [ ] atlas
 
-## [direct policy optimization](https://arxiv.org/abs/2010.08506) examples
+## direct policy optimization examples
+We provide the [examples](src/examples/direct_policy_optimization) from [Direct Policy Optimization using Deterministic Sampling and Collocation](https://arxiv.org/abs/2010.08506). Optimizing the trajectories requires [SNOPT](https://en.wikipedia.org/wiki/SNOPT) and resources for its installation are available [here](src/solvers/snopt.jl). These trajectories have been saved and can be loaded in order to run the policy simulations and visualizations.
+
 LQR
 - [X] double integrator
 - [X] planar quadrotor
@@ -41,12 +43,12 @@ motion planning
 ## TODO
 - [X] direct policy optimization implementation
 	- [ ] paper visualizations
-	- [ ] save TO and DPO trajectories
+	- [X] save TO and DPO trajectories
 - [ ] check for SNOPT installation
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests
 - [ ] visualization dependencies
 	- [ ] select default background
-- [ ] nonlinear objective (stage wise)
-- [ ] constraints (stage wise)
-- [ ] embed animations in readme
+- [X] nonlinear objective (stage wise)
+- [X] constraints (stage wise)
+- [ ] embed animations in README

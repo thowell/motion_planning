@@ -1,8 +1,6 @@
 include(joinpath(pwd(), "src/models/biped.jl"))
-
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/acceleration.jl"))
-
+include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/pinned_foot.jl"))
 
@@ -27,12 +25,12 @@ h = tf / (T-1)
 
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
-_uu[model.idx_u] .= 10.0
+_uu[model.idx_u] .= model.uU
 _ul = zeros(model.m)
-_ul[model.idx_u] .= -10.0
+_ul[model.idx_u] .= model.uL
 ul, uu = control_bounds(model, T, _ul, _uu)
 
-xl, xu = state_bounds(model, T, x1 = [q1; q1], xT = [Inf * ones(model.nq); qT])
+xl, xu = state_bounds(model, T, x1 = [q1; Inf * ones(model.nq)], xT = [Inf * ones(model.nq); qT])
 
 # Objective
 q_ref = linear_interp(q1, qT, T)
@@ -54,10 +52,12 @@ obj_tracking = quadratic_tracking_objective(
 obj_velocity = velocity_objective(
     [Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
     model.nq)
-obj_acceleration = acceleration_objective(
-    [Diagonal(1.0e-1 * ones(model.nq)) for t = 1:T-1],
-    model.nq)
-obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity, obj_acceleration])
+
+l_stage_fh(x, u, t) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
+l_terminal_fh(x) = 0.0
+obj_fh = nonlinear_stage_objective(l_stage_fh, l_terminal_fh)
+l_stage_fh(rand(model.n), rand(model.m), 1)
+obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity])#, obj_fh])
 
 # Constraints
 con_contact = contact_constraints(model, T)
@@ -87,14 +87,13 @@ Z0 = pack(X0, U0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
+@time Z̄ = solve(prob, copy(Z0),
+    nlp = :ipopt,
+    tol = 1.0e-3, c_tol = 1.0e-3)
 
 check_slack(Z̄, prob)
 
 X̄, Ū = unpack(Z̄, prob)
 
 # Visualize
-
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
-
-plot(hcat(Ū...)[1:model.nu,:]', linetype = :steppost)

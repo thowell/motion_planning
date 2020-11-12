@@ -1,8 +1,6 @@
 include(joinpath(pwd(),"src/models/rocket.jl"))
 include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
-optimize = true
-
 # Free-time model
 model_nom = free_time_model(model_nominal)
 
@@ -74,28 +72,29 @@ prob_nominal = trajectory_optimization_problem(model_nom,
                     xu = xu,
                     ul = ul,
                     uu = uu,
-                    con = con_free_time
-                    )
+                    con = con_free_time)
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = [ones(model_nom.m) for t = 1:T-1] # random controls
+x0 = linear_interp(x1, xT, T) # linear interpolation on state
+u0 = [ones(model_nom.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob_nominal)
+z0 = pack(x0, u0, prob_nominal)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+
+# Solve
+optimize = true
 
 if optimize
-    @time Z̄ = solve(prob_nominal, copy(Z0),
-		nlp = :SNOPT7)
-    @save joinpath(@__DIR__, "sol.jld2") Z̄
+	include_snopt()
+    @time z̄_nom = solve(prob_nominal, copy(z0),
+		nlp = :SNOPT7,
+		time_limit = 60 * 10)
+    @save joinpath(@__DIR__, "sol_nom.jld2") z̄_nom
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄
+    @load joinpath(@__DIR__, "sol_nom.jld2") z̄_nom
 end
 
-X, U = unpack(Z̄, prob_nominal.prob)
-@show sum([U[t][end] for t = 1:T-1])
+x̄_nom, ū_nom = unpack(z̄_nom, prob_nominal.prob)
+@show sum([ū_nom[t][end] for t = 1:T-1]) # ~2.72

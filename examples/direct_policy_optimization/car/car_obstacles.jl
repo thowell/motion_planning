@@ -1,8 +1,6 @@
 include(joinpath(pwd(), "src/models/car.jl"))
 include(joinpath(pwd(), "src/constraints/stage.jl"))
 
-optimize = true
-
 # Horizon
 T = 51
 
@@ -22,7 +20,8 @@ xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 
 # Objective
 obj = quadratic_tracking_objective(
-        [t < T ? Diagonal(ones(model.n)) : Diagonal(10.0 * ones(model.n)) for t = 1:T],
+        [(t < T ? Diagonal(ones(model.n))
+            : Diagonal(10.0 * ones(model.n))) for t = 1:T],
         [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1],
         [xT for t = 1:T], [zeros(model.m) for t = 1:T])
 
@@ -32,7 +31,6 @@ circles = [(0.85, 0.3, 0.1),
            (0.25, 0.2, 0.1),
            (0.75, 0.8, 0.1)]
 
-# Constraints
 function circle_obs(x, y, xc, yc, r)
     (x - xc)^2.0 + (y - yc)^2.0 - r^2.0
 end
@@ -51,7 +49,8 @@ t_idx = [t for t = 1:T-1]
 con_obstacles = stage_constraints(obstacles!, n_stage, (1:n_stage), t_idx)
 
 # Problem
-prob = trajectory_optimization_problem(model,
+prob = trajectory_optimization_problem(
+           model,
            obj,
            T,
            h = h,
@@ -59,22 +58,22 @@ prob = trajectory_optimization_problem(model,
            xu = xu,
            ul = ul,
            uu = uu,
-           con = con_obstacles
-           )
+           con = con_obstacles)
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = random_controls(model, T, 0.001) # random controls
+x0 = linear_interp(x1, xT, T) # linear interpolation on state
+u0 = random_controls(model, T, 0.001) # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
-#NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
+optimize = true
+
 if optimize
-    @time Z̄ = solve(prob, copy(Z0))
-    @save joinpath(@__DIR__, "sol.jld2") Z̄
+    @time z̄ = solve(prob, copy(z0))
+    @save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
     println("Loading solution...")
-    @load joinpath(@__DIR__, "sol.jld2") Z̄
+    @load joinpath(@__DIR__, "sol_to.jld2") z̄
 end

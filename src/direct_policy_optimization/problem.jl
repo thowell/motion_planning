@@ -310,3 +310,34 @@ function sparsity_jacobian(dpo::DirectPolicyOptimizationProblem)
 
 	return spar
 end
+
+"""
+	pack nominal trajectory and policy parameters into DPO vector
+"""
+function pack(z, K, prob::DirectPolicyOptimizationProblem)
+	z0 = zeros(prob.num_var)
+	z0[prob.idx.nom] = z
+	z0[prob.idx.mean] = z
+
+	for i = 1:prob.N
+		z0[prob.idx.sample[i]] = z
+	end
+
+	for t = 1:prob.prob.nom.T-1
+		z0[prob.idx.policy[prob.idx.θ[t]]] = vec(copy(K[t]))
+	end
+
+	return z0
+end
+
+pack(z, K, prob::MOIProblem) = pack(z, K, prob.prob)
+
+"""
+	get policy parameters from DPO vector
+"""
+function get_policy(z, prob::DirectPolicyOptimizationProblem)
+	return [reshape(z[prob.idx.policy[prob.idx.θ[t]]],
+			prob.policy.output, prob.policy.input) for t = 1:prob.prob.nom.T-1]
+end
+
+get_policy(z, prob::MOIProblem) = get_policy(z, prob.prob)
