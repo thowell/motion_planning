@@ -2,10 +2,9 @@ include(joinpath(@__DIR__, "dpo.jl"))
 include(joinpath(pwd(), "examples/direct_policy_optimization/simulate.jl"))
 
 # Unpack trajectories
-X̄, Ū = unpack(Z̄, prob_nominal)
-X, U = unpack(Z, prob_nominal)
-Θ = [reshape(Z[prob_dpo.prob.idx.policy[prob_dpo.prob.idx.θ[t]]],
-	model_sl.m - 1, model_sl.n - 2) for t = 1:T-1]
+x̄, ū = unpack(z̄_nom, prob_nominal)
+x, u = unpack(z, prob_dpo.prob.prob.nom)
+Θ = get_policy(z, prob_dpo)
 
 # Simulation setup
 model_sim = model_sl
@@ -22,11 +21,11 @@ w0 = rand(W0, 1)
 
 z0_sim = vec(copy(x1_sim) + w0)
 
-tf_nom = sum([Ū[t][end] for t = 1:T-1])
+tf_nom = sum([ū[t][end] for t = 1:T-1])
 t_nom = range(0, stop = tf_nom, length = T)
 t_sim_nom = range(0, stop = tf_nom, length = T_sim)
 
-tf_dpo = sum([U[t][end] for t = 1:T-1])
+tf_dpo = sum([u[t][end] for t = 1:T-1])
 t_dpo = range(0, stop = tf_dpo, length = T)
 t_sim_dpo = range(0, stop = tf_dpo, length = T_sim)
 
@@ -37,9 +36,9 @@ dt_sim_dpo = tf_dpo / (T_sim - 1)
 z_tvlqr, u_tvlqr, J_tvlqr, Jx_tvlqr, Ju_tvlqr = _simulate(
 	model_sim,
 	policy, K,
-    X̄, Ū,
+    x̄, ū,
 	Q, R,
-	T_sim, Ū[1][end],
+	T_sim, ū[1][end],
 	z0_sim,
 	w,
 	_norm = 2,
@@ -49,9 +48,9 @@ z_tvlqr, u_tvlqr, J_tvlqr, Jx_tvlqr, Ju_tvlqr = _simulate(
 z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = _simulate(
 	model_sim,
 	policy, Θ,
-    X, U,
+    x, u,
 	Q, R,
-	T_sim, U[1][end],
+	T_sim, u[1][end],
 	z0_sim, w,
 	_norm = 2,
 	ul = ul[1], uu = uu[1],

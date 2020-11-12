@@ -44,6 +44,7 @@ motion planning
 - [X] direct policy optimization implementation
 	- [ ] paper visualizations
 	- [X] save TO and DPO trajectories
+	- [ ] solve DPO to tighter tolerances
 - [ ] check for SNOPT installation
 - [ ] parallelize objective + constraint evalutations
 - [ ] tests

@@ -79,9 +79,9 @@ function propagate_dynamics(model, x, u, w, h, t)
 		iter += 1
 
 		norm(α * Δy, Inf) < 1.0e-6 && (return y)
-		norm(r, Inf) < 1.0e-6 && (return y)
+		norm(r, Inf) < 1.0e-8 && (return y)
 	end
-	
+
 	@warn "gauss-newton failed"
 	return y
 end

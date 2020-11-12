@@ -99,23 +99,28 @@ prob = trajectory_optimization_problem(model,
            )
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = [ones(model.m) for t = 1:T-1]
+x0 = linear_interp(x1, xT, T) # linear interpolation on state
+u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 # Solve
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+optimize = true
 
-@time Z̄ = solve(prob, copy(Z0),
-	nlp = :SNOPT7)
+if optimize
+	include_snopt()
+	@time z̄ = solve(prob, copy(z0),
+		nlp = :SNOPT7,
+		time_limit = 60 * 10)
+	@save joinpath(@__DIR__, "sol_to.jld2") z̄
+else
+	println("Loading solution...")
+	@load joinpath(@__DIR__, "sol_to.jld2") z̄
+end
+
 
 # Unpack solutions
-X̄, Ū = unpack(Z̄, prob)
-tf = sum([Ū[t][end] for t = 1:T-1])
-t = range(0, stop = tf, length = T)
-
-visualize!(mvis, model, X̄, Δt = Ū[1][end])
-
-plot(hcat(Ū...)[1:4, :]', linetype = :steppost, label = "")
+x̄, ū = unpack(z̄, prob)
+@show tf = sum([ū[t][end] for t = 1:T-1])
+visualize!(mvis, model, x̄, Δt = ū[1][end])
