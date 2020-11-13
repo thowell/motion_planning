@@ -85,14 +85,27 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["max_iter"] = max_iter
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
+    elseif nlp == :SNOPT7
+        # solver = SNOPT7.Optimizer(
+        #                           Major_feasibility_tolerance = c_tol,
+        #                           Minor_feasibility_tolerance = tol,
+        #                           Major_optimality_tolerance = tol,
+        #                           Time_limit = time_limit,
+        #                           Major_print_level = mapl,
+        #                           Minor_print_level = mipl)
+
+    solver = SNOPT7.Optimizer(MOI.MIN_SENSE,
+        nothing, [], [], nothing,
+        0, 0, 0,
+        nothing,
+        Dict("Major_feasibility_tolerance" => c_tol,
+             "Minor_feasibility_tolerance" => tol,
+             "Major_optimality_tolerance" => tol,
+             "Time_limit" => time_limit,
+             "Major_print_level" => mapl,
+             "Minor_print_level" => mipl))
     else
-        solver = SNOPT7.Optimizer(
-                                  Major_feasibility_tolerance = c_tol,
-                                  Minor_feasibility_tolerance = tol,
-                                  Major_optimality_tolerance = tol,
-                                  Time_limit = time_limit,
-                                  Major_print_level = mapl,
-                                  Minor_print_level = mipl)
+        @error "nlp not setup"
     end
 
     x = MOI.add_variables(solver, prob.num_var)

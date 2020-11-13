@@ -10,15 +10,15 @@ function fd(model::BipedPinned, x⁺, x, u, w, h, t)
     midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
 end
 
-# Visualize
-include(joinpath(pwd(), "src/models/visualize.jl"))
-vis = Visualizer()
-open(vis)
-
-urdf = joinpath(pwd(), "src/models/biped/urdf/biped_left_pinned.urdf")
-mechanism = parse_urdf(urdf, floating=false)
-mvis = MechanismVisualizer(mechanism,
-    URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)
+# # Visualize
+# include(joinpath(pwd(), "src/models/visualize.jl"))
+# vis = Visualizer()
+# open(vis)
+#
+# urdf = joinpath(pwd(), "src/models/biped/urdf/biped_left_pinned.urdf")
+# mechanism = parse_urdf(urdf, floating=false)
+# mvis = MechanismVisualizer(mechanism,
+#     URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)
 
 ϵ = 1.0e-8
 θ = 12.5 * pi / 180
@@ -34,11 +34,10 @@ kinematics(model, x1)[2]
 kinematics(model, xT)[2]
 
 q1 = transformation_to_urdf_left_pinned(model, x1[1:5])
-
-set_configuration!(mvis, q1)
+# set_configuration!(mvis, q1)
 
 qT = transformation_to_urdf_left_pinned(model, xT[1:5])
-set_configuration!(mvis, qT)
+# set_configuration!(mvis, qT)
 
 # Horizon
 T = 21
@@ -51,10 +50,6 @@ ul, uu = control_bounds(model, T,
 	[-10.0 * ones(model.m - 1); 0.0 * h0],
 	[10.0 * ones(model.m - 1); h0])
 
-# _xl = x1 .- pi / 10.0
-# # _xl[1] = pi - pi / 50.0
-# _xu = x1 .+ pi/ 10.0
-# # _xu[1] = pi + pi / 50.0
 xl, xu = state_bounds(model, T, x1 = [x1[1:5]; Inf * ones(5)])
 
 # Objective
@@ -79,11 +74,6 @@ obj_multi = MultiObjective([obj_track, obj_fh])
 con_loop = loop_delta_constraints(model, (1:model.n), 1, T)
 con_free_time = free_time_constraints(T)
 
-# function pinned_foot!(c, x, u)
-# 	c[1:2] = kinematics(model, x) - kinematics(model, x1)
-# 	return nothing
-# end
-# con_pinned_foot = stage_constraints(pinned_foot!, 2, (1:0), [1])
 con = multiple_constraints([con_loop, con_free_time])#, con_pinned_foot])
 
 # Problem
@@ -123,4 +113,4 @@ end
 # Unpack solutions
 x̄, ū = unpack(z̄, prob)
 @show tf = sum([ū[t][end] for t = 1:T-1])
-visualize!(mvis, model, x̄, Δt = ū[1][end])
+# visualize!(mvis, model, x̄, Δt = ū[1][end])

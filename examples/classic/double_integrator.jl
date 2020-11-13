@@ -35,7 +35,8 @@ U0 = [ones(model.m) for t = 1:T-1]
 Z0 = pack(X0, U0, prob)
 
 # Solve
-@time Z̄ = solve(prob, copy(Z0))
+include_snopt()
+@time Z̄ = solve(prob, copy(Z0), nlp = :SNOPT7)
 
 # Visualize
 using Plots

@@ -10,10 +10,10 @@ N = 2 * model.n
 D = 2 * model.d
 
 β = 1.0
-δ = 1.0e-3
+δ = 1.0e-4
 
 # initial samples
-x1_sample = resample(x1, Diagonal(ones(model.n)), 1.0e-3)
+x1_sample = resample(x1, Diagonal(ones(model.n)), 1.0e-4)
 
 # mean problem
 prob_mean = trajectory_optimization(
@@ -66,8 +66,8 @@ if optimize
 	include_snopt()
 	z = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
-		tol = 5.0e-2, c_tol = 5.0e-2,
-		time_limit = 60 * 10)
+		tol = 1.0e-2, c_tol = 1.0e-2,
+		time_limit = 60 * 90)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")

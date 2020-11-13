@@ -113,10 +113,10 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+include_snopt()
 
 @time Z̄ = solve(prob, copy(Z0),
-	nlp = :ipopt,
+	nlp = :SNOPT7,
 	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 X̄, Ū = unpack(Z̄, prob)
@@ -129,5 +129,5 @@ plot(hcat(Ū...)[end,:], linetype=:steppost)
 
 include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+IJuliaCell(vis)
 visualize!(vis, model_ft, state_to_configuration(X̄), Δt = Ū[1][end])
