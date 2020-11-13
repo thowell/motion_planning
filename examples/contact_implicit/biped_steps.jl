@@ -7,7 +7,7 @@ include(joinpath(pwd(), "src/constraints/contact.jl"))
 # - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 
 # Configurations
 # 1: x pos
@@ -36,7 +36,7 @@ q1[6] = θ #- pi / 20.0
 q1[7] = -2.0 * θ
 q1[2] = model.l2 * cos(θ) + model.l3 * cos(θ)
 qT = copy(q1)
-qT[1] = 1.0
+qT[1] = 2.5
 # qT[2] = 1.0
 kinematics_2(model, q1, body = :leg_1, mode = :ee)[2]
 kinematics_2(model, q1, body = :leg_2, mode = :ee)[2]
@@ -102,12 +102,12 @@ l_terminal_torso_lat(x) = (10.0 * (kinematics_1(model, view(x, 8:14), body = :to
 obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
-l_stage_fh1(x, u, t) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.025)^2.0
+l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.025)^2.0
 l_terminal_fh1(x) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2])^2.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
+l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
 l_terminal_fh2(x) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2])^2.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
@@ -148,24 +148,21 @@ prob = trajectory_optimization_problem(model,
                )
 
 # trajectory initialization
-U0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
+U0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
 
-#NOTE: may need to run examples multiple times to get good trajectories
-# Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
+# Solve
+include_snopt()
 
 @time Z̄ = solve(prob, copy(Z0),
     nlp = :SNOPT7,
-    tol = 1.0e-3, c_tol = 1.0e-3)#, mapl = 5)
+    tol = 1.0e-3, c_tol = 1.0e-3,
+    time_limit = 60 * 3)#, mapl = 5)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
 
 # Visualize
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
-
-# using Plots
-# plot(hcat(Ū...)[1:4,:]', label= "", linetype = :steppost)
