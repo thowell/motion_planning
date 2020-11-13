@@ -82,7 +82,7 @@ if optimize
 	include_snopt()
 	z = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
-		tol = 5.0e-2, c_tol = 5.0e-2,
+		tol = 1.0e-2, c_tol = 1.0e-2,
 		time_limit = 60 * 60)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else

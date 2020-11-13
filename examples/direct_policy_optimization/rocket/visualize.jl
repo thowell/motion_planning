@@ -1,39 +1,38 @@
 using Plots
 include(joinpath(pwd(), "src/models/visualize.jl"))
-
-X̄, Ū = unpack(Z̄, prob_nominal)
-
-t_nominal = range(0, stop = sum([Ū[t][end] for t = 1:T-1]), length = T)
-plot(t_nominal[1:end-1], hcat(Ū...)[1:end-1, :]', linetype=:steppost)
-@show sum([Ū[t][end] for t = 1:T-1]) # works when 2.72
-
 vis = Visualizer()
-open(vis)
-visualize!(vis, model_nom, X̄, Δt = Ū[1][end])
+render(vis)
+
+x̄, ū = unpack(z̄_nom, prob_nominal)
+
+t_nominal = range(0, stop = sum([ū[t][end] for t = 1:T-1]), length = T)
+plot(t_nominal[1:end-1], hcat(ū...)[1:end-1, :]', linetype=:steppost)
+@show sum([ū[t][end] for t = 1:T-1]) # works when 2.72
+
+visualize!(vis, model_nom, x̄, Δt = ū[1][end])
 
 # COM traj
-xx_nom = [X̄[t][1] for t = 1:T]
-zz_nom = [X̄[t][2] for t = 1:T]
+xx_nom = [x̄[t][1] for t = 1:T]
+zz_nom = [x̄[t][2] for t = 1:T]
+x̄_dpo, ū_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
+t_dpo = range(0, stop = sum([ū_dpo[t][end] for t = 1:T-1]), length = T)
 
-X̄_dpo, Ū_dpo = unpack(Z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
-t_dpo = range(0, stop = sum([Ū_dpo[t][end] for t = 1:T-1]), length = T)
-
-xx = [X̄_dpo[t][1] for t = 1:T]
-zz = [X̄_dpo[t][2] for t = 1:T]
+xx = [x̄_dpo[t][1] for t = 1:T]
+zz = [x̄_dpo[t][2] for t = 1:T]
 
 plot(xx_nom, zz_nom, color = :purple)
 plot!(xx, zz, color = :orange)
 
-plot(hcat(Ū_dpo...)[3:3,:]')
-Ū_dpo[1][end]
+plot(hcat(ū_dpo...)[3:3,:]')
+ū_dpo[1][end]
 
 
-plot(t_nominal, hcat(X̄...)', color = :purple)
-plot!(t_dpo, hcat(X̄_dpo...)', color = :orange)
+plot(t_nominal, hcat(x̄...)', color = :purple)
+plot!(t_dpo, hcat(x̄_dpo...)', color = :orange)
 
 
 # orientation tracking
-plt_x = plot(t_nom,hcat(X̄...)[3,:],legend=:topright,color=:red,
+plt_x = plot(t_nominal, hcat(x̄...)[3,:],legend=:topright,color=:red,
     label="",width=2.0,xlabel="time (s)",
     title="Rocket",ylabel="state")
 plt_x = plot!(t_sim_nom,hcat(z_tvlqr...)[3,:],color=:black,label="",

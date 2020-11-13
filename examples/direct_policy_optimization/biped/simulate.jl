@@ -1,3 +1,4 @@
+using Plots
 include(joinpath(@__DIR__, "dpo.jl"))
 include(joinpath(pwd(), "examples/direct_policy_optimization/simulate.jl"))
 

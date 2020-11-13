@@ -7,6 +7,6 @@
 
     SNOPT license is required.
 """
-function include_snopt(path = joinpath(dirname(pwd()),"SNOPT7/src/SNOPT7.jl"))
+function include_snopt(path = joinpath(dirname(pwd()),"SNOPT7.jl/src/SNOPT7.jl"))
     include(path)
 end
