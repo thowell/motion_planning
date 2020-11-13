@@ -75,3 +75,16 @@ plot!(t_sim_nom[1:end-1], hcat(u_tvlqr...)', label = "", color = :black)
 plot(t_nom_dpo[1:end-1], hcat(u...)[1:4,:]', label = "",
 	color = :orange, width = 2.0)
 plot!(t_sim_nom_dpo[1:end-1], hcat(u_dpo...)[1:4,:]', label = "", color = :black)
+
+
+# Visualize
+include(joinpath(pwd(), "src/models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+
+urdf = joinpath(pwd(), "src/models/biped/urdf/biped_left_pinned.urdf")
+mechanism = parse_urdf(urdf, floating=false)
+mvis = MechanismVisualizer(mechanism,
+    URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)
+
+using RigidBodyDynamics, MeshCatMechanisms

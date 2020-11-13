@@ -9,8 +9,9 @@ using Colors
 using CoordinateTransformations
 using FileIO
 using GeometryTypes
-using MeshCat, MeshIO
+using MeshCat, MeshIO, MeshCatMechanisms
 using Rotations
+using RigidBodyDynamics
 
 include("lqr.jl")
 include("unscented.jl")
