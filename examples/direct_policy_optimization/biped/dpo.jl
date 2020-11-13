@@ -60,7 +60,7 @@ K = tvlqr(model, x̄, ū, Q, R, 0.0)
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-optimize = true
+optimize = false
 
 if optimize
 	include_snopt()

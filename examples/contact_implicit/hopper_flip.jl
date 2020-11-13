@@ -52,10 +52,10 @@ ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
 # Initial and final states
 q1 = [0.0, 0.25 , 0.0, 0.25]
-q_right = [0.0, 0.5 + 0.25, pi / 2.0, 0.25]
-q_top = [0.0, 0.5 + 0.5, pi, 0.25]
-q_left = [0.0, 0.5 + 0.25, 3.0 * pi / 2.0, 0.25]
-qT = [0.0, 0.5,  2.0 * pi, 0.5]
+q_right = [-0.25, 0.5 + 0.25, pi / 2.0, 0.25]
+q_top = [-0.5, 0.5 + 0.5, pi, 0.25]
+q_left = [-0.75, 0.5 + 0.25, 3.0 * pi / 2.0, 0.25]
+qT = [-1.0, 0.5,  2.0 * pi, 0.5]
 
 xl, xu = state_bounds(model_ft, T,
 		[model_ft.qL; model_ft.qL],
@@ -129,5 +129,5 @@ plot(hcat(Ū...)[end,:], linetype=:steppost)
 
 include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
-IJuliaCell(vis)
+render(vis)
 visualize!(vis, model_ft, state_to_configuration(X̄), Δt = Ū[1][end])

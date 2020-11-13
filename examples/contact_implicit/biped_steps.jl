@@ -159,7 +159,7 @@ include_snopt()
 @time Z̄ = solve(prob, copy(Z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3,
-    time_limit = 60 * 3)#, mapl = 5)
+    time_limit = 60 * 3, mapl = 0)
 
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
