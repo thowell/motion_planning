@@ -47,15 +47,15 @@ h0 = tf0 / (T-1)
 
 # Bounds
 ul, uu = control_bounds(model, T,
-	[-10.0 * ones(model.m - 1); 0.0 * h0],
-	[10.0 * ones(model.m - 1); h0])
+	[-5.0 * ones(model.m - 1); 0.0 * h0],
+	[5.0 * ones(model.m - 1); h0])
 
 xl, xu = state_bounds(model, T, x1 = [x1[1:5]; Inf * ones(5)])
 
 # Objective
 qq = 1.0 * [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 Q = [Diagonal(qq) for t = 1:T]
-R = [Diagonal([1.0e-1 * ones(model.m - 1); h0]) for t = 1:T-1]
+R = [Diagonal([1.0e-3 * ones(model.m - 1); h0]) for t = 1:T-1]
 
 obj_track = quadratic_time_tracking_objective(
 		Q,
