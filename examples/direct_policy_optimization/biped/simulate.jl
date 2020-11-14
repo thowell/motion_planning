@@ -1,5 +1,5 @@
 using Plots
-include(joinpath(@__DIR__, "dpo.jl"))
+# include(joinpath(@__DIR__, "dpo.jl"))
 include(joinpath(pwd(), "examples/direct_policy_optimization/simulate.jl"))
 
 # Unpack trajectories
@@ -13,11 +13,11 @@ x1_sim = copy(x1)
 T_sim = 10 * T
 
 W = Distributions.MvNormal(zeros(model_sim.n),
-	Diagonal(1.0e-5 * ones(model_sim.n)))
+	Diagonal(1.0e-2 * ones(model_sim.n)))
 w = rand(W, T_sim)
 
 W0 = Distributions.MvNormal(zeros(model_sim.n),
-	Diagonal(1.0e-5 * ones(model_sim.n)))
+	Diagonal(1.0e-2 * ones(model_sim.n)))
 w0 = rand(W0, 1)
 
 z0_sim = vec(copy(x1_sim) + w0)
@@ -40,7 +40,7 @@ z_tvlqr, u_tvlqr, J_tvlqr, Jx_tvlqr, Ju_tvlqr = _simulate(
     x̄, ū,
 	Q, R,
 	T_sim, ū[1][end],
-	z0_sim, w,
+	vec(x̄[1] + w0), w,
 	_norm = 2,
 	ul = ul[1], uu = uu[1],
 	u_idx = (1:model.m - 1))
@@ -51,7 +51,7 @@ z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = _simulate(
     x, u,
 	Q, R,
 	T_sim, u[1][end],
-	z0_sim, w,
+	vec(x[1] + w0), w,
 	_norm = 2,
 	ul = ul[1], uu = uu[1],
 	u_idx = (1:model.m - 1))
@@ -87,4 +87,4 @@ mechanism = parse_urdf(urdf, floating=false)
 mvis = MechanismVisualizer(mechanism,
     URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)
 
-using RigidBodyDynamics, MeshCatMechanisms
+visualize!(mvis, model, z_dpo, Δt = dt_sim_dpo)#u[1][end])
