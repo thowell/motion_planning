@@ -10,10 +10,10 @@ N = 2 * model.n
 D = 2 * model.d
 
 β = 1.0
-δ = 1.0e-4
+δ = 1.0e-2
 
 # initial samples
-x1_sample = resample(x1, Diagonal(ones(model.n)), 1.0e-4)
+x1_sample = resample(x1, Diagonal(ones(model.n)), 1.0e-2)
 
 # mean problem
 prob_mean = trajectory_optimization(
@@ -39,7 +39,7 @@ prob_sample = [trajectory_optimization(
 # sample objective
 Q = [(t < T ? Diagonal(10.0 * ones(model.n))
 	: Diagonal(100.0 * ones(model.n))) for t = 1:T]
-R = [Diagonal(1.0e-1 * [ones(4); 10.0]) for t = 1:T-1]
+R = [Diagonal(1.0 * [ones(4); 10.0]) for t = 1:T-1]
 
 obj_sample = sample_objective(Q, R)
 policy = linear_feedback(model.n, model.m - 1)
@@ -60,7 +60,7 @@ K = tvlqr(model, x̄, ū, Q, R, 0.0)
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-optimize = false
+optimize = true
 
 if optimize
 	include_snopt()
