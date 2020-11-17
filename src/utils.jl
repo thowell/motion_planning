@@ -115,3 +115,12 @@ function additive_noise_model(model::T) where T
 	 	for f in fieldnames(typeof(model))]...)
 	return model_ft
 end
+
+function get_time(u; idx = size(u[1], 1))
+	T = length(u)
+	h = [u[t][idx] for t = 1:T]
+	tf = sum(h)
+	t = range(0.0, stop = tf, length = T+1)
+
+	return tf, t, h
+end
