@@ -21,7 +21,7 @@
 - [X] miniature golf
 - [ ] ball-in-cup robot arm
 - [ ] ball-in-cup quadrotor
-- [ ] biped
+- [X] biped
 - [ ] quadruped
 - [ ] atlas
 
@@ -39,6 +39,32 @@ motion planning
 - [X] rocket
 - [X] quadrotor
 - [X] biped
+
+## Installation
+First, clone this repository
+```
+$ git clone https://github.com/thowell/DirectMotionPlanning
+```
+
+Next, change directories
+```
+$ cd DirectMotionPlanning
+```
+
+Now, start Julia
+```
+$ julia
+```
+
+Using the package manager, activate the package
+```pkg
+activate .
+```
+
+Finally, instantiate the package to install all dependencies
+```pkg
+instantiate
+```
 
 ## TODO
 - [X] direct policy optimization implementation
