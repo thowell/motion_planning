@@ -1,5 +1,4 @@
-include(joinpath(pwd(), "src/models/hopper.jl"))
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
+include(joinpath(pwd(), "src/models/hopper_2wall.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/loop.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
@@ -45,15 +44,14 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-_uu[model_ft.idx_u] .= 25.0
 _uu[end] = 5.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] .= -25.0
-_ul[end] = 0.1 * h
+_ul[model_ft.idx_u] .= -Inf
+_ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
 # Initial and final states
-q1 = [0.0, 0.5 , 0.0, 0.5]
+q1 = [0.0, 0.25 , 0.0, 0.25]
 q_right = [-0.25, 0.5 + 0.25, pi / 2.0, 0.25]
 q_top = [-0.5, 0.5 + 0.5, pi, 0.25]
 q_left = [-0.75, 0.5 + 0.25, 3.0 * pi / 2.0, 0.25]
@@ -62,7 +60,7 @@ qT = [-1.0, 0.5,  2.0 * pi, 0.5]
 xl, xu = state_bounds(model_ft, T,
 		[model_ft.qL; model_ft.qL],
 		[model_ft.qU; model_ft.qU],
-        x1 = [q1; q1],
+        x1 = [q1; Inf * ones(model_ft.nq)],
 		xT = [Inf * ones(model_ft.nq); qT])
 
 q_ref = [linear_interp(q1, q_right, 6)...,
@@ -73,17 +71,21 @@ q_ref = [linear_interp(q1, q_right, 6)...,
 x_ref = configuration_to_state(q_ref)
 
 # Objective
+Qq = 1.0 * Diagonal([1.0, 1.0, 1.0, 1.0])
+Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
+# QT = cat(0.5 * Qq, 100.0 * Diagonal(ones(model_ft.nq)), dims = (1, 2))
+R = Diagonal([1.0e-1, 1.0e-3, zeros(model_ft.m - model_ft.nu)...])
+
 obj_tracking = quadratic_time_tracking_objective(
-    [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
-    [zeros(model_ft.n) for t = 1:T],
-    [zeros(model_ft.m) for t = 1:T-1],
+    [Q for t = 1:T],
+    [R for t = 1:T-1],
+    [x_ref[t] for t = 1:T],
+    [zeros(model_ft.m) for t = 1:T],
     1.0)
 
-obj_contact_penalty = PenaltyObjective(1.0e3, model_ft.m - 1)
-obj_velocity = velocity_objective([Diagonal(ones(model_ft.nq)) for t = 1:T],
-	model_ft.nq)
-obj = MultiObjective([obj_tracking, obj_velocity, obj_contact_penalty])
+obj_contact_penalty = PenaltyObjective(1.0e5, model_ft.m - 1)
+
+obj = MultiObjective([obj_tracking, obj_contact_penalty])
 
 # Constraints
 con_free_time = free_time_constraints(T)
@@ -104,7 +106,7 @@ prob = trajectory_optimization_problem(model_ft,
 
 # Trajectory initialization
 X0 = deepcopy(x_ref) # linear interpolation on state
-U0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+U0 = [[1.0e-5 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 Z0 = pack(X0, U0, prob)
@@ -123,14 +125,9 @@ X̄, Ū = unpack(Z̄, prob)
 @show check_slack(Z̄, prob)
 
 using Plots
-tf, t, h = get_time(Ū)
-plot(t[1:end-1], hcat(Ū...)[1:2,:]', linetype=:steppost,
-	xlabel="time (s)", ylabel = "control",
-	label = ["angle" "length"],
-	width = 2.0, legend = :top)
-plot(t[1:end-1], h, linetype=:steppost)
+plot(hcat(Ū...)[end,:], linetype=:steppost)
 
 include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
-open(vis)
-visualize!(vis, model_ft, state_to_configuration(X̄), Δt = h[1])
+render(vis)
+visualize!(vis, model_ft, state_to_configuration(X̄), Δt = Ū[1][end])
