@@ -57,13 +57,13 @@ $ julia
 ```
 
 Using the package manager, activate the package
-```pkg
-activate .
+```julia
+] activate .
 ```
 
 Finally, instantiate the package to install all dependencies
-```pkg
-instantiate
+```julia
+] instantiate
 ```
 
 ## TODO
