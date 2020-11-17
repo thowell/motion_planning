@@ -58,12 +58,12 @@ $ julia
 
 Using the package manager, activate the package
 ```julia
-] activate .
+pkg> activate .
 ```
 
 Finally, instantiate the package to install all dependencies
 ```julia
-] instantiate
+pkg> instantiate
 ```
 
 ## TODO
