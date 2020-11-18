@@ -1,4 +1,5 @@
-include(joinpath(pwd(), "models/acrobot.jl"))
+# Model
+include_model("acrobot")
 
 # Horizon
 T = 101
