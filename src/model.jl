@@ -159,3 +159,43 @@ function propagate_dynamics_jacobian(model, x, u, w, h, t)
 
 	return y, A, B
 end
+
+# Model conversions
+
+"""
+	free final time model
+"""
+function free_time_model(model)
+	model_ft = typeof(model)([f == :m ? getfield(model,f) + 1 : getfield(model,f)
+	 	for f in fieldnames(typeof(model))]...)
+	return model_ft
+end
+
+"""
+	no slip model
+"""
+function no_slip_model(model)
+	# modify parameters
+	m = model.nu + model.nc + model.nb + model.ns
+	idx_ψ = (1:0)
+	idx_η = (1:0)
+	idx_s = model.nu + model.nc + model.nb .+ (1:model.ns)
+
+	# assemble update parameters
+	params = []
+	for f in fieldnames(typeof(model))
+		if f == :m
+			push!(params, m)
+		elseif f == :idx_ψ
+			push!(params, idx_ψ)
+		elseif f == :idx_η
+			push!(params, idx_η)
+		elseif f == :idx_s
+			push!(params, idx_s)
+		else
+			push!(params, getfield(model,f))
+		end
+	end
+
+	return typeof(model)(params...)
+end

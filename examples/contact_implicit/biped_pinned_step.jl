@@ -32,7 +32,7 @@ xl, xu = state_bounds(model, T, x1 = [q1; Inf * ones(model.nq)], xT = [Inf * one
 # Objective
 include_objective(["velocity", "nonlinear_stage"])
 q_ref = linear_interp(q1, qT, T)
-X0 = configuration_to_state(q_ref)
+x0 = configuration_to_state(q_ref)
 
 obj_penalty = PenaltyObjective(1.0e5, model.m)
 
@@ -44,7 +44,7 @@ R = Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...])
 obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
-    [X0[t] for t = 1:T],
+    [x0[t] for t = 1:T],
     [zeros(model.m) for t = 1:T]
     )
 obj_velocity = velocity_objective(
@@ -77,22 +77,22 @@ prob = trajectory_optimization_problem(model,
 
 # trajectory initialization
 q_ref = linear_interp(q1, qT, T)
-X0 = configuration_to_state(q_ref) # linear interpolation on state
-U0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
+x0 = configuration_to_state(q_ref) # linear interpolation on state
+u0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
     nlp = :ipopt,
     tol = 1.0e-3, c_tol = 1.0e-3)
 
-check_slack(Z̄, prob)
+check_slack(z̄, prob)
 
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
 # Visualize
-visualize!(vis, model, state_to_configuration(X̄), Δt = h)
+visualize!(vis, model, state_to_configuration(x̄), Δt = h)

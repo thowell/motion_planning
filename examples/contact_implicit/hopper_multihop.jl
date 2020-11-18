@@ -58,21 +58,21 @@ prob = problem(model,
                )
 
 # Trajectory initialization
-X0 = [x1 for t = 1:T] #linear_interp(x1, x1, T) # linear interpolation on state
-U0 = [1.0e-2 * rand(model.m) for t = 1:T-1] # random controls
+x0 = [x1 for t = 1:T] #linear_interp(x1, x1, T) # linear interpolation on state
+u0 = [1.0e-2 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time Z̄ = solve(prob, copy(Z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time z̄ = solve(prob, copy(z0), tol = 1.0e-3, c_tol = 1.0e-3)
 
-check_slack(Z̄, prob)
-X̄, Ū = unpack(Z̄, prob)
+check_slack(z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
-visualize!(vis, model, state_to_configuration(X̄), Δt = h)
+visualize!(vis, model, state_to_configuration(x̄), Δt = h)

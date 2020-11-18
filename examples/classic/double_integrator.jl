@@ -29,18 +29,18 @@ prob = trajectory_optimization_problem(model,
                )
 
 # Initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation for states
-U0 = [ones(model.m) for t = 1:T-1]
+x0 = linear_interp(x1, xT, T) # linear interpolation for states
+u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 # Solve
 include_snopt()
-@time Z̄ = solve(prob, copy(Z0), nlp = :SNOPT7)
+@time z̄ = solve(prob, copy(z0), nlp = :SNOPT7)
 
 # Visualize
 using Plots
-X̄, Ū = unpack(Z̄, prob)
-plot(hcat(X̄...)', width = 2.0)
-plot(hcat(Ū...)', width = 2.0, linetype = :steppost)
+x̄, ū = unpack(z̄, prob)
+plot(hcat(x̄...)', width = 2.0)
+plot(hcat(ū...)', width = 2.0, linetype = :steppost)

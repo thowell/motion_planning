@@ -105,29 +105,29 @@ prob = trajectory_optimization_problem(model_ft,
                )
 
 # Trajectory initialization
-X0 = deepcopy(x_ref) # linear interpolation on state
-U0 = [[1.0e-5 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref) # linear interpolation on state
+u0 = [[1.0e-5 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
 
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
 	nlp = :SNOPT7,
 	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
-@show Ū[4][end]
-@show check_slack(Z̄, prob)
+@show ū[4][end]
+@show check_slack(z̄, prob)
 
 using Plots
-plot(hcat(Ū...)[end,:], linetype=:steppost)
+plot(hcat(ū...)[end,:], linetype=:steppost)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-visualize!(vis, model_ft, state_to_configuration(X̄), Δt = Ū[1][end])
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])

@@ -51,8 +51,8 @@ z̄ = solve(prob, copy(z0))
 x̄, ū = unpack(z̄, prob)
 
 # using Plots
-# plot(hcat(X̄...)')
-# plot(hcat(Ū...)', linetype = :steppost)
+# plot(hcat(x̄...)')
+# plot(hcat(ū...)', linetype = :steppost)
 
 # DPO
 

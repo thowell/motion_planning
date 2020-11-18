@@ -36,17 +36,17 @@ prob = trajectory_optimization_problem(model,
            )
 
 # Trajectory initialization
-X0 = linear_interp(x1, xT, T) # linear interpolation on state
-U0 = random_controls(model, T, 0.001) # random controls
+x0 = linear_interp(x1, xT, T) # linear interpolation on state
+u0 = random_controls(model, T, 0.001) # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 # Solve
-@time Z̄ = solve(prob, copy(Z0))
+@time z̄ = solve(prob, copy(z0))
 
 # Visualize
 using Plots
-X̄, Ū = unpack(Z̄, prob)
-plot(hcat(X̄...)', width = 2.0)
-plot(hcat(Ū...)', width = 2.0, linetype = :steppost)
+x̄, ū = unpack(z̄, prob)
+plot(hcat(x̄...)', width = 2.0)
+plot(hcat(ū...)', width = 2.0, linetype = :steppost)
