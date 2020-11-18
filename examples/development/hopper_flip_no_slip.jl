@@ -1,13 +1,6 @@
-include(joinpath(pwd(), "models/hopper.jl"))
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/loop.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
-
-
-# Free-time model
-
-model_ft = free_time_model(model)
+# Model
+include_model("hopper")
+model_ft = free_time_model(no_slip_model(model))
 
 function fd(model::Hopper, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
@@ -26,6 +19,16 @@ function fd(model::Hopper, x⁺, x, u, w, h, t)
 	+ transpose(N_func(model, q3)) * SVector{1}(λ)
 	+ transpose(P_func(model, q3)) * SVector{2}(b)
 	- h * G_func(model, q2⁺))]
+end
+
+function no_slip(model::Hopper, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+
+	h = u[end]
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
 # Horizon
@@ -65,6 +68,7 @@ q_ref = [linear_interp(q1, q_right, 6)...,
 x_ref = configuration_to_state(q_ref)
 
 # Objective
+include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
     [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
@@ -78,45 +82,45 @@ obj_velocity = velocity_objective([Diagonal(ones(model_ft.nq)) for t = 1:T],
 obj = MultiObjective([obj_tracking, obj_velocity, obj_contact_penalty])
 
 # Constraints
+include_constraints(["free_time", "contact_no_slip"])
 con_free_time = free_time_constraints(T)
-con_contact = contact_constraints(model_ft, T)
-con_loop = loop_constraints(model_ft, 1, T)
+con_contact = contact_no_slip_constraints(model_ft, T)
 con = multiple_constraints([con_free_time, con_contact])
 
 # Problem
-prob = trajectory_optimization_problem(model_ft,
+prob = trajectory_optimization_problem(
+			   model_ft,
                obj,
                T,
                xl = xl,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # Trajectory initialization
-X0 = deepcopy(x_ref) # linear interpolation on state
-U0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref) # linear interpolation on state
+u0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
 
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
 	nlp = :SNOPT7,
 	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
-@show Ū[4][end]
-@show check_slack(Z̄, prob)
+@show ū[4][end]
+@show check_slack(z̄, prob)
 
 using Plots
-tf, t, h = get_time(Ū)
-plot(t[1:end-1], hcat(Ū...)[1:2,:]', linetype=:steppost,
+tf, t, h = get_time(ū)
+plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
 	xlabel="time (s)", ylabel = "control",
 	label = ["angle" "length"],
 	width = 2.0, legend = :top)
@@ -124,5 +128,5 @@ plot(t[1:end-1], h, linetype=:steppost)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
-visualize!(vis, model_ft, state_to_configuration(X̄), Δt = h[1])
+render(vis)
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])

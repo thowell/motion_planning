@@ -79,27 +79,27 @@ prob = trajectory_optimization_problem(model,
 # Trajectory initialization
 q_ref = linear_interp(q1, qT, T)
 x_ref = configuration_to_state(q_ref)
-X0 = deepcopy(x_ref) #linear_interp(x1, x1, T) # linear interpolation on state
-U0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref) #linear_interp(x1, x1, T) # linear interpolation on state
+u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3)
 
-check_slack(Z̄, prob)
+check_slack(z̄, prob)
 
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(X̄), Δt = h)
+visualize!(vis, model, state_to_configuration(x̄), Δt = h)
 
 # add parked cars
 obj_path = joinpath(pwd(),"models/cybertruck/cybertruck.obj")

@@ -38,7 +38,7 @@ plt_x = plot(t_nominal, hcat(x̄...)[3,:],legend=:topright,color=:red,
 plt_x = plot!(t_sim_nom,hcat(z_tvlqr...)[3,:],color=:black,label="",
     width=1.0)
 
-plt_x = plot(t_dpo,hcat(X̄_dpo...)[3,:],legend=:topright,color=:red,
+plt_x = plot(t_dpo,hcat(x̄_dpo...)[3,:],legend=:topright,color=:red,
     label="",width=2.0,xlabel="time (s)",
     title="Rocket",ylabel="state")
 plt_x = plot!(t_sim_dpo,hcat(z_dpo...)[3,:],color=:black,label="",

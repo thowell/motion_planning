@@ -1,6 +1,5 @@
+# Model
 include_model("hopper")
-include_objective(["velocity"])
-include_constraints(["contact", "loop", "free_time"])
 
 # Free-time model
 model_ft = free_time_model(model)
@@ -71,6 +70,7 @@ q_ref = [linear_interp(q1, q_right, 6)...,
 x_ref = configuration_to_state(q_ref)
 
 # Objective
+include_objective(["velocity"])
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
     [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
@@ -84,9 +84,9 @@ obj_velocity = velocity_objective([Diagonal(ones(model_ft.nq)) for t = 1:T],
 obj = MultiObjective([obj_tracking, obj_velocity, obj_contact_penalty])
 
 # Constraints
-con_free_time = free_time_constraints(T)
+include_constraints(["contact", "free_time"])
 con_contact = contact_constraints(model_ft, T)
-con_loop = loop_constraints(model_ft, 1, T)
+con_free_time = free_time_constraints(T)
 con = multiple_constraints([con_free_time, con_contact])
 
 # Problem
@@ -101,28 +101,28 @@ prob = trajectory_optimization_problem(model_ft,
                )
 
 # Trajectory initialization
-X0 = deepcopy(x_ref) # linear interpolation on state
-U0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref) # linear interpolation on state
+u0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
 
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
 	nlp = :SNOPT7,
 	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
-X̄, Ū = unpack(Z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
-@show Ū[4][end]
-@show check_slack(Z̄, prob)
+@show ū[4][end]
+@show check_slack(z̄, prob)
 
 using Plots
-tf, t, h = get_time(Ū)
-plot(t[1:end-1], hcat(Ū...)[1:2,:]', linetype=:steppost,
+tf, t, h = get_time(ū)
+plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
 	xlabel="time (s)", ylabel = "control",
 	label = ["angle" "length"],
 	width = 2.0, legend = :top)
@@ -131,4 +131,4 @@ plot(t[1:end-1], h, linetype=:steppost)
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
-visualize!(vis, model_ft, state_to_configuration(X̄), Δt = h[1])
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])

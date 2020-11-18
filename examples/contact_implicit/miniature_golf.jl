@@ -66,26 +66,26 @@ prob = problem(model,
 
 
 # Trajectory initialization
-X0 = deepcopy(x_ref)
-U0 = [[u_ref[1:model.nu]; 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref)
+u0 = [[u_ref[1:model.nu]; 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
-Z0 = pack(X0, U0, prob)
+z0 = pack(x0, u0, prob)
 
-@time Z̄ = solve(prob, copy(Z0),
+@time z̄ = solve(prob, copy(z0),
 	c_tol = 1.0e-3, tol = 1.0e-3, max_iter = 1000)
 
-check_slack(Z̄, prob)
-X̄, Ū = unpack(Z̄, prob)
+check_slack(z̄, prob)
+x̄, ū = unpack(z̄, prob)
 
-# [ϕ_func(model,X̄[t]) for t = 1:T]
-# x_nom = [X̄[t][1] for t = 1:T]
-# z_nom = [X̄[t][2] for t = 1:T]
-# u_nom = [Ū[t][model.idx_u] for t = 1:T-1]
-# λ_nom = [Ū[t][model.idx_λ[1]] for t = 1:T-1]
-# b_nom = [Ū[t][model.idx_b] for t = 1:T-1]
-# ψ_nom = [Ū[t][model.idx_ψ[1]] for t = 1:T-1]
-# η_nom = [Ū[t][model.idx_η] for t = 1:T-1]
+# [ϕ_func(model,x̄[t]) for t = 1:T]
+# x_nom = [x̄[t][1] for t = 1:T]
+# z_nom = [x̄[t][2] for t = 1:T]
+# u_nom = [ū[t][model.idx_u] for t = 1:T-1]
+# λ_nom = [ū[t][model.idx_λ[1]] for t = 1:T-1]
+# b_nom = [ū[t][model.idx_b] for t = 1:T-1]
+# ψ_nom = [ū[t][model.idx_ψ[1]] for t = 1:T-1]
+# η_nom = [ū[t][model.idx_η] for t = 1:T-1]
 
 # plot(hcat(u_nom...)')
 # plot(hcat(λ_nom...)', linetype=:steppost)
@@ -94,4 +94,4 @@ X̄, Ū = unpack(Z̄, prob)
 # plot(hcat(η_nom...)',linetype=:steppost)
 # plot(hcat(U_nom...)',linetype=:steppost)
 
-visualize!(mvis, model, state_to_configuration(X̄), Δt = h)
+visualize!(mvis, model, state_to_configuration(x̄), Δt = h)

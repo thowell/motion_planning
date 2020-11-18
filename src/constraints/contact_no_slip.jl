@@ -1,20 +1,20 @@
 """
-	contact constraints
+	contact (no slip) constraints
 """
 
-struct ContactConstraints <: Constraints
+struct ContactNoSlip <: Constraints
 	n
 	ineq
 end
 
-function contact_constraints(model, T)
-	n = model.nc * (T + 1) + model.nc * (T - 1) + model.nb * (T - 1) + 3 * (T - 1)
+function contact_no_slip_constraints(model, T)
+	n = model.nc * (T + 1) + model.nc * (T - 1) + 2 * (T - 1)
 	ineq = con_ineq_contact(model, T)
 
-	return ContactConstraints(n, ineq)
+	return ContactNoSlip(n, ineq)
 end
 
-function constraints!(c, Z, con::ContactConstraints, model, idx, h, T)
+function constraints!(c, Z, con::ContactNoSlip, model, idx, h, T)
 	shift = 0
 
 	# signed-distance function
@@ -32,24 +32,6 @@ function constraints!(c, Z, con::ContactConstraints, model, idx, h, T)
 
 	shift += model.nc * (T + 1)
 
-	# friction cone
-	for t = 1:T-1
-		u = view(Z, idx.u[t])
-		c[shift + (t - 1) * model.nc .+ (1:model.nc)] = friction_cone(model, u)
-	end
-
-	shift += model.nc * (T - 1)
-
-	# maximum dissipation
-	for t = 1:T-1
-		x⁺ = view(Z, idx.x[t+1])
-		u = view(Z, idx.u[t])
-		c[shift + (t - 1) * model.nb .+ (1:model.nb)] = maximum_dissipation(model,
-			x⁺, u, h)
-	end
-
-	shift += model.nb * (T - 1)
-
 	# impact complementarity
 	for t = 1:T-1
 		x⁺ = view(Z, idx.x[t + 1])
@@ -64,27 +46,19 @@ function constraints!(c, Z, con::ContactConstraints, model, idx, h, T)
 
 	shift += (T - 1)
 
-	# friction cone complementarity
+	# friction cone
 	for t = 1:T-1
 		u = view(Z, idx.u[t])
-
-		s = view(u, model.idx_s)
-		ψ = view(u, model.idx_ψ)
-
-		c[shift + (t-1) * 1 + 1] = s[1] - (ψ' * friction_cone(model, u))[1]
+		c[shift + (t - 1) * model.nc .+ (1:model.nc)] = friction_cone(model, u)
 	end
 
-	shift += (T - 1)
+	shift += model.nc * (T - 1)
 
-	# friction parameter complementarity
+	# no slip
 	for t = 1:T-1
+		x⁺ = view(Z, idx.x[t+1])
 		u = view(Z, idx.u[t])
-
-		s = view(u, model.idx_s)
-		b = view(u, model.idx_b)
-		η = view(u, model.idx_η)
-
-		c[shift + (t-1) * 1 + 1] = s[1] - (η' * b)[1]
+		c[shift + (t - 1) + 1] = no_slip(model, x⁺, u, h)
 	end
 
 	shift += (T - 1)
@@ -92,7 +66,7 @@ function constraints!(c, Z, con::ContactConstraints, model, idx, h, T)
     return nothing
 end
 
-function constraints_jacobian!(∇c, Z, con::ContactConstraints, model, idx, h, T)
+function constraints_jacobian!(∇c, Z, con::ContactNoSlip, model, idx, h, T)
 	shift = 0
 	c_shift = 0
 
@@ -121,41 +95,6 @@ function constraints_jacobian!(∇c, Z, con::ContactConstraints, model, idx, h, 
 
 	c_shift += model.nc * (T + 1)
 
-	# friction cone
-	fc(y) = friction_cone(model, y)
-	for t = 1:T-1
-		u = view(Z, idx.u[t])
-		r_idx = c_shift + (t - 1) * model.nc .+ (1:model.nc)
-		c_idx = idx.u[t]
-		len = length(r_idx) * length(c_idx)
-		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(fc, u))
-		shift += len
-	end
-
-	c_shift += model.nc * (T - 1)
-
-	# maximum dissipation
-	for t = 1:T-1
-		x⁺ = view(Z, idx.x[t+1])
-		u = view(Z, idx.u[t])
-
-		mdx(y) = maximum_dissipation(model, y, u, h)
-		mdu(y) = maximum_dissipation(model, x⁺, y, h)
-
-		r_idx = c_shift + (t - 1) * model.nb .+ (1:model.nb)
-		c_idx = idx.x[t + 1]
-		len = length(r_idx) * length(c_idx)
-		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(mdx, x⁺))
-		shift += len
-
-		c_idx = idx.u[t]
-		len = length(r_idx) * length(c_idx)
-		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(mdu, u))
-		shift += len
-	end
-
-	c_shift += model.nb * (T - 1)
-
 	# impact complementarity
 	for t = 1:T-1
 		x⁺ = view(Z, idx.x[t + 1])
@@ -183,38 +122,36 @@ function constraints_jacobian!(∇c, Z, con::ContactConstraints, model, idx, h, 
 
 	c_shift += (T - 1)
 
-	# friction cone complementarity
+	# friction cone
+	fc(y) = friction_cone(model, y)
 	for t = 1:T-1
 		u = view(Z, idx.u[t])
-
-		s = view(u, model.idx_s)
-		ψ = view(u, model.idx_ψ)
-
-		cu(y) = y[model.idx_s] - [y[model.idx_ψ]' * friction_cone(model, y)]
-
-		r_idx = c_shift + (t-1) * 1 + 1
+		r_idx = c_shift + (t - 1) * model.nc .+ (1:model.nc)
 		c_idx = idx.u[t]
 		len = length(r_idx) * length(c_idx)
-		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(cu, u))
+		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(fc, u))
 		shift += len
 	end
 
-	c_shift += (T - 1)
+	c_shift += model.nc * (T - 1)
 
-	# friction parameter complementarity
+	# no slip
 	for t = 1:T-1
+		x⁺ = view(Z, idx.x[t+1])
 		u = view(Z, idx.u[t])
 
-		s = view(u, model.idx_s)
-		b = view(u, model.idx_b)
-		η = view(u, model.idx_η)
+		nsx(y) = no_slip(model, y, u, h)
+		nsu(y) = no_slip(model, x⁺, y, h)
 
-		cu(y) = y[model.idx_s] - [y[model.idx_η]' * y[model.idx_b]]
+		r_idx = c_shift + (t - 1) .+ (1:1)
+		c_idx = idx.x[t + 1]
+		len = length(r_idx) * length(c_idx)
+		∇c[shift .+ (1:len)] = ForwardDiff.gradient(nsx, x⁺)
+		shift += len
 
-		r_idx = c_shift + (t-1) * 1 + 1
 		c_idx = idx.u[t]
 		len = length(r_idx) * length(c_idx)
-		∇c[shift .+ (1:len)] = vec(ForwardDiff.jacobian(cu, u))
+		∇c[shift .+ (1:len)] = ForwardDiff.gradient(nsu, u)
 		shift += len
 	end
 
@@ -223,7 +160,7 @@ function constraints_jacobian!(∇c, Z, con::ContactConstraints, model, idx, h, 
 	return nothing
 end
 
-function constraints_sparsity(con::ContactConstraints, model, idx, T;
+function constraints_sparsity(con::ContactNoSlip, model, idx, T;
 	shift_row = 0, shift_col = 0)
 
 	row = []
@@ -247,27 +184,6 @@ function constraints_sparsity(con::ContactConstraints, model, idx, T;
 
 	con_shift += model.nc * (T + 1)
 
-	# friction cone
-	for t = 1:T-1
-		r_idx = shift_row + con_shift + (t - 1) * model.nc .+ (1:model.nc)
-		c_idx = shift_col .+ idx.u[t]
-		row_col!(row, col, r_idx, c_idx)
-	end
-
-	con_shift += model.nc * (T - 1)
-
-	# maximum dissipation
-	for t = 1:T-1
-		r_idx = shift_row + con_shift + (t - 1) * model.nb .+ (1:model.nb)
-		c_idx = shift_col .+ idx.x[t + 1]
-		row_col!(row, col, r_idx, c_idx)
-
-		c_idx = shift_col .+ idx.u[t]
-		row_col!(row, col, r_idx, c_idx)
-	end
-
-	con_shift += model.nb * (T - 1)
-
 	# impact complementarity
 	for t = 1:T-1
 		r_idx = shift_row + con_shift + (t-1) * 1 + 1
@@ -280,21 +196,26 @@ function constraints_sparsity(con::ContactConstraints, model, idx, T;
 
 	con_shift += (T - 1)
 
-	# friction cone complementarity
+	# friction cone
 	for t = 1:T-1
-		r_idx = shift_row + con_shift + (t-1) * 1 + 1
+		r_idx = shift_row + con_shift + (t - 1) * model.nc .+ (1:model.nc)
+		c_idx = shift_col .+ idx.u[t]
+		row_col!(row, col, r_idx, c_idx)
+	end
+
+	con_shift += model.nc * (T - 1)
+
+	# no slip
+	for t = 1:T-1
+		r_idx = shift_row + con_shift + (t - 1) .+ (1:1)
+		c_idx = shift_col .+ idx.x[t + 1]
+		row_col!(row, col, r_idx, c_idx)
+
 		c_idx = shift_col .+ idx.u[t]
 		row_col!(row, col, r_idx, c_idx)
 	end
 
 	con_shift += (T - 1)
-
-	# friction parameter complementarity
-	for t = 1:T-1
-		r_idx = shift_row + con_shift + (t-1) * 1 + 1
-		c_idx = shift_col .+ idx.u[t]
-		row_col!(row, col, r_idx, c_idx)
-	end
 
     return collect(zip(row, col))
 end
@@ -308,25 +229,43 @@ function con_ineq_contact(model, T)
 	push!(con_ineq, [i for i = 1:model.nc * (T + 1)])
 	shift += model.nc * (T + 1)
 
-	# friction cone
-	push!(con_ineq, [i for i = shift .+ (1:model.nc * (T - 1))])
-	shift += model.nc * (T - 1)
-
-	# maximum dissipation
-	# push!(con_ineq, [i for i = shift .+ (1:model.nb * (T - 1))])
-	shift += model.nb * (T - 1)
-
 	# impact complementarity
 	push!(con_ineq, [i for i = shift .+ (1:(T - 1))])
 	shift += (T - 1)
 
-	# friction cone complementarity
-	push!(con_ineq, [i for i = shift .+ (1:(T - 1))])
-	shift += (T - 1)
+	# friction cone
+	push!(con_ineq, [i for i = shift .+ (1:model.nc * (T - 1))])
+	shift += model.nc * (T - 1)
 
-	# friction parameter complementarity
-	push!(con_ineq, [i for i = shift .+ (1:(T - 1))])
+	# no slip
+	# push!(con_ineq, [i for i = shift .+ (1:(T - 1))])
 	shift += (T - 1)
 
     return vcat(con_ineq...)
+end
+
+function no_slip_model(model)
+	# modify parameters
+	m = model.nu + model.nc + model.nb + model.ns
+	idx_ψ = (1:0)
+	idx_η = (1:0)
+	idx_s = model.nu + model.nc + model.nb .+ (1:model.ns)
+
+	# assemble update parameters
+	params = []
+	for f in fieldnames(typeof(model))
+		if f == :m
+			push!(params, m)
+		elseif f == :idx_ψ
+			push!(params, idx_ψ)
+		elseif f == :idx_η
+			push!(params, idx_η)
+		elseif f == :idx_s
+			push!(params, idx_s)
+		else
+			push!(params, getfield(model,f))
+		end
+	end
+
+	return typeof(model)(params...)
 end

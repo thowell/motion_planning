@@ -404,6 +404,14 @@ function N_func(model::Biped, q)
 			view(J_leg_2, 2:2, :)]
 end
 
+function _P_func(model::Biped, q)
+	J_leg_1 = jacobian_2(model, q, body = :leg_1, mode = :ee)
+	J_leg_2 = jacobian_2(model, q, body = :leg_2, mode = :ee)
+
+	return [view(J_leg_1, 1:1, :);
+			view(J_leg_2, 1:1, :)]
+end
+
 function P_func(model::Biped, q)
 	J_leg_1 = jacobian_2(model, q, body = :leg_1, mode = :ee)
 	J_leg_2 = jacobian_2(model, q, body = :leg_2, mode = :ee)
@@ -427,6 +435,15 @@ function maximum_dissipation(model::Biped, x⁺, u, h)
 	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2)]
 	η = view(u, model.idx_η)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+function no_slip(model::Biped, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+	λ_stack = [λ[1]; λ[2]]
+	return s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
 function fd(model::Biped, x⁺, x, u, w, h, t)

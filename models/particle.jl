@@ -68,6 +68,11 @@ B_func(::Particle, q) = @SMatrix [1.0 0.0 0.0;
 
 N_func(::Particle, q) = @SMatrix [0.0 0.0 1.0]
 
+function _P_func(model::Particle, q)
+   return @SMatrix [1.0 0.0 0.0;
+                    0.0 1.0 0.0]
+end
+
 function P_func(model::Particle, q)
    return @SMatrix [1.0 0.0 0.0;
                     0.0 1.0 0.0;
@@ -88,6 +93,15 @@ function maximum_dissipation(model::Particle, x⁺, u, h)
 	ψ_stack = ψ[1] * ones(4)
 	η = u[model.idx_η]
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+function no_slip(model::Particle, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+	λ_stack = λ[1] * ones(2)
+	return (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
 function fd(model::Particle, x⁺, x, u, w, h, t)

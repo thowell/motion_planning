@@ -82,6 +82,9 @@ end
 
 N_func(::Hopper, q) = @SMatrix [0.0 1.0 (q[4] * sin(q[3])) (-1.0 * cos(q[3]))]
 
+function _P_func(model, q)
+	@SMatrix [1.0 0.0 (q[4] * cos(q[3])) sin(q[3])]
+end
 
 function P_func(::Hopper, q)
     @SMatrix [1.0 0.0 (q[4] * cos(q[3])) sin(q[3]);
@@ -90,7 +93,6 @@ end
 
 B_func(::Hopper, q) = @SMatrix [0.0 0.0 1.0 0.0;
                                 -sin(q[3]) cos(q[3]) 0.0 1.0]
-
 
 function fd(model::Hopper, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
@@ -117,6 +119,15 @@ function maximum_dissipation(model::Hopper, x⁺, u, h)
 	ψ_stack = ψ[1] * ones(model.nb)
 	η = u[model.idx_η]
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+function no_slip(model::Hopper, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
 function friction_cone(model::Hopper, u)

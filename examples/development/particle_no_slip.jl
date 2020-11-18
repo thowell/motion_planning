@@ -1,5 +1,7 @@
-include(joinpath(pwd(), "models/particle.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("particle")
+include_constraints("contact_no_slip")
+model = no_slip_model(model)
 
 # Horizon
 T = 51
@@ -16,7 +18,7 @@ ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
 q1 = [0.0, 0.0, 1.0]
-v1 = [3.0, 5.0, 0.0]
+v1 = [1.0, 0.0, 0.0]
 v2 = v1 - G_func(model,q1) * h
 q2 = q1 + 0.5 * h * (v1 + v2)
 
@@ -25,13 +27,13 @@ x1 = [q1; q2]
 xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
-obj = PenaltyObjective(1000.0, model.m)
+obj = PenaltyObjective(1.0e5, model.m)
 
 # Constraints
-con_contact = contact_constraints(model, T)
+con_contact = contact_no_slip_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -55,6 +57,15 @@ z0 = pack(x0, u0, prob)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
+
+t = 25
+q3 = view(x̄[t], model.nq .+ (1:model.nq))
+q2 = view(x̄[t], 1:model.nq)
+λ = view(ū[t], model.idx_λ)
+s = view(ū[t], model.idx_s)
+λ_stack = λ[1] * ones(2)
+s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
+
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
