@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
-include(joinpath(pwd(), "src/models/double_integrator.jl"))
+include(joinpath(pwd(), "models/double_integrator.jl"))
 
 # Horizon
 T = 51

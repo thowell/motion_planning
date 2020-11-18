@@ -1,5 +1,5 @@
 using Plots
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 

@@ -24,3 +24,13 @@ function objective_gradient!(∇J, Z, obj::MultiObjective, idx, T)
     end
     return nothing
 end
+
+function include_objective(str::String)
+    include(joinpath(pwd(), "src/objectives", str * ".jl"))
+end
+
+function include_objective(strs::Vector{String})
+    for s in strs
+        include_objective(s)
+    end
+end

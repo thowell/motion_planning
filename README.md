@@ -40,7 +40,7 @@ motion planning
 - [X] quadrotor
 - [X] biped
 
-## Installation
+## installation
 First, clone this repository
 ```
 $ git clone https://github.com/thowell/DirectMotionPlanning
@@ -79,3 +79,4 @@ pkg> instantiate
 - [X] nonlinear objective (stage wise)
 - [X] constraints (stage wise)
 - [ ] embed animations in README
+- [ ] dispatch over model type for free final time

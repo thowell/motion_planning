@@ -23,6 +23,8 @@ model = TemplateModel(0, 0, 0)
 state_output(model, x) = x
 control_output(model, u) = u
 
+include_model(str::String) = include(joinpath(pwd(), "models", str * ".jl"))
+
 """
 	propagate dynamics with implicit integrator
 	- LM

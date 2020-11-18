@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/acrobot.jl"))
+include(joinpath(pwd(), "models/acrobot.jl"))
 
 # Horizon
 T = 101

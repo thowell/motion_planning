@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/biped_pinned.jl"))
+include(joinpath(pwd(), "models/biped_pinned.jl"))
 include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
 include(joinpath(pwd(), "src/constraints/loop_delta.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
@@ -11,11 +11,11 @@ function fd(model::BipedPinned, x⁺, x, u, w, h, t)
 end
 
 # # Visualize
-# include(joinpath(pwd(), "src/models/visualize.jl"))
+# include(joinpath(pwd(), "models/visualize.jl"))
 # vis = Visualizer()
 # open(vis)
 #
-# urdf = joinpath(pwd(), "src/models/biped/urdf/biped_left_pinned.urdf")
+# urdf = joinpath(pwd(), "models/biped/urdf/biped_left_pinned.urdf")
 # mechanism = parse_urdf(urdf, floating=false)
 # mvis = MechanismVisualizer(mechanism,
 #     URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)

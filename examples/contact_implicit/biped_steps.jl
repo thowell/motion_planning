@@ -1,11 +1,11 @@
-include(joinpath(pwd(), "src/models/biped.jl"))
+include(joinpath(pwd(), "models/biped.jl"))
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
 include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Visualize
 # - Pkg.add any external deps from visualize.jl
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 

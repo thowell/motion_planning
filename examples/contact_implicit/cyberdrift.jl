@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/cybertruck.jl"))
+include(joinpath(pwd(), "models/cybertruck.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/obstacles.jl"))
 include(joinpath(pwd(), "src/constraints/control_complementarity.jl"))
@@ -87,8 +87,7 @@ Z0 = pack(X0, U0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-include("/home/taylor/.julia/dev/SNOPT7/src/SNOPT7.jl")
-
+include_snopt()
 @time Z̄ = solve(prob, copy(Z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3)
@@ -97,14 +96,14 @@ check_slack(Z̄, prob)
 
 X̄, Ū = unpack(Z̄, prob)
 
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)
 
 # add parked cars
-obj_path = joinpath(pwd(),"src/models/cybertruck/cybertruck.obj")
-mtl_path = joinpath(pwd(),"src/models/cybertruck/cybertruck.mtl")
+obj_path = joinpath(pwd(),"models/cybertruck/cybertruck.obj")
+mtl_path = joinpath(pwd(),"models/cybertruck/cybertruck.mtl")
 
 ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale = 0.1)
 

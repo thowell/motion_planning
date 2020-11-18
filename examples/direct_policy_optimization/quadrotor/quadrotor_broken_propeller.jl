@@ -1,4 +1,4 @@
-include(joinpath(pwd(),"src/models/quadrotor.jl"))
+include(joinpath(pwd(),"models/quadrotor.jl"))
 include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
 # Free-time model

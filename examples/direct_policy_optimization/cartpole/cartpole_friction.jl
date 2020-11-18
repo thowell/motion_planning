@@ -1,4 +1,4 @@
-include(joinpath(pwd(),"src/models/cartpole.jl"))
+include(joinpath(pwd(),"models/cartpole.jl"))
 include(joinpath(pwd(),"src/constraints/friction.jl"))
 
 # Model
