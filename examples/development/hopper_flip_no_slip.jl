@@ -1,8 +1,9 @@
-include(joinpath(pwd(), "src/models/hopper.jl"))
+include(joinpath(pwd(), "models/hopper.jl"))
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/loop.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
+
 
 # Free-time model
 
@@ -121,7 +122,7 @@ plot(t[1:end-1], hcat(Ū...)[1:2,:]', linetype=:steppost,
 	width = 2.0, legend = :top)
 plot(t[1:end-1], h, linetype=:steppost)
 
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model_ft, state_to_configuration(X̄), Δt = h[1])

@@ -1,8 +1,5 @@
-include(joinpath(pwd(), "models/biped.jl"))
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/pinned_foot.jl"))
+# Model
+include_model("biped")
 
 # Visualize
 include(joinpath(pwd(), "models/visualize.jl"))
@@ -33,6 +30,7 @@ ul, uu = control_bounds(model, T, _ul, _uu)
 xl, xu = state_bounds(model, T, x1 = [q1; Inf * ones(model.nq)], xT = [Inf * ones(model.nq); qT])
 
 # Objective
+include_objective(["velocity", "nonlinear_stage"])
 q_ref = linear_interp(q1, qT, T)
 X0 = configuration_to_state(q_ref)
 
@@ -60,6 +58,7 @@ l_stage_fh(rand(model.n), rand(model.m), 1)
 obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity])#, obj_fh])
 
 # Constraints
+include_constraints(["contact", "pinned_foot"])
 con_contact = contact_constraints(model, T)
 con_pinned = pinned_foot_constraint(model, q1, T)
 con = multiple_constraints([con_contact, con_pinned])

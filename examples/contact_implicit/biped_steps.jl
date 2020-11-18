@@ -1,4 +1,6 @@
-include(joinpath(pwd(), "models/biped.jl"))
+# Model
+include_model("biped")
+
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
 include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
