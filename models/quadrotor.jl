@@ -83,9 +83,9 @@ model = Quadrotor(n, m, d,
 function visualize!(vis, p::Quadrotor ,q; Δt = 0.1)
 
     obj_path = joinpath(pwd(),
-      "src/models/quadrotor/drone.obj")
+      "models/quadrotor/drone.obj")
     mtl_path = joinpath(pwd(),
-      "src/models/quadrotor/drone.mtl")
+      "models/quadrotor/drone.mtl")
 
     ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale = 1.0)
     setobject!(vis["drone"], ctm)

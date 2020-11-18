@@ -125,11 +125,11 @@ boxplot(["lqr" "dpo"], hcat(jtu, jdu), title="Control tracking error (n = $n_tri
 # plot!(t_sim_nom_dpo[1:end-1], hcat(u_dpo...)[1:4,:]', label = "", color = :black)
 
 # Visualize
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 
-urdf = joinpath(pwd(), "src/models/biped/urdf/biped_left_pinned.urdf")
+urdf = joinpath(pwd(), "models/biped/urdf/biped_left_pinned.urdf")
 mechanism = parse_urdf(urdf, floating=false)
 mvis = MechanismVisualizer(mechanism,
     URDFVisuals(urdf, package_path=[dirname(dirname(urdf))]), vis)

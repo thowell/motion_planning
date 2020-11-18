@@ -131,8 +131,8 @@ end
 function visualize!(vis, model::Rocket, x;
        Δt = 0.1, r_rocket = 0.1, r_pad = 0.25)
 
-	obj_rocket = joinpath(pwd(), "src/models/rocket/space_x_booster.obj")
-	mtl_rocket = joinpath(pwd(), "src/models/rocket/space_x_booster.mtl")
+	obj_rocket = joinpath(pwd(), "models/rocket/space_x_booster.obj")
+	mtl_rocket = joinpath(pwd(), "models/rocket/space_x_booster.mtl")
 
 	rkt_offset = [4.0, -6.35, 0.2]
 	ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale = 1.0)
@@ -140,8 +140,8 @@ function visualize!(vis, model::Rocket, x;
 	settransform!(vis["rocket"], compose(Translation((x[T][1:3] + rkt_offset)...),
 		LinearMap(RotZ(-pi) * RotX(pi / 2.0))))
 
-	obj_platform = joinpath(pwd(), "src/models/rocket/space_x_platform.obj")
-	mtl_platform = joinpath(pwd(), "src/models/rocket/space_x_platform.mtl")
+	obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
+	mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
 
 	ctm_platform = ModifiedMeshFileObject(obj_platform, mtl_platform, scale = 1.0)
 	setobject!(vis["platform"], ctm_platform)

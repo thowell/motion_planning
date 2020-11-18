@@ -1,7 +1,7 @@
 using MeshCat, MeshCatMechanisms, RigidBodyDynamics
 
-include(joinpath(pwd(),"src/models/kuka/kuka_utils.jl"))
-urdf_path = joinpath(pwd(), "src/models/kuka/temp/kuka.urdf")
+include(joinpath(pwd(),"models/kuka/kuka_utils.jl"))
+urdf_path = joinpath(pwd(), "models/kuka/temp/kuka.urdf")
 kuka = MeshCatMechanisms.parse_urdf(urdf_path, remove_fixed_tree_joints = true)
 kuka_visuals = MeshCatMechanisms.URDFVisuals(urdf_path)
 

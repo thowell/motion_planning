@@ -1,4 +1,4 @@
-include(joinpath(pwd(),"src/models/rocket.jl"))
+include(joinpath(pwd(),"models/rocket.jl"))
 include(joinpath(pwd(),"src/constraints/free_time.jl"))
 
 # Free-time model

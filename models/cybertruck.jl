@@ -118,8 +118,8 @@ model = CYBERTRUCK(n, m, d,
 function visualize!(vis, model::CYBERTRUCK, q;
 		Δt = 0.1)
 
-    obj_path = joinpath(pwd(), "src/models/cybertruck/cybertruck.obj")
-    mtl_path = joinpath(pwd(), "src/models/cybertruck/cybertruck.mtl")
+    obj_path = joinpath(pwd(), "models/cybertruck/cybertruck.obj")
+    mtl_path = joinpath(pwd(), "models/cybertruck/cybertruck.mtl")
 
     ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale=0.1)
     setobject!(vis["cybertruck"], ctm)

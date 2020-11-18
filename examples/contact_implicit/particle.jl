@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/particle.jl"))
+include(joinpath(pwd(), "models/particle.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Horizon
@@ -56,7 +56,7 @@ Z0 = pack(X0, U0, prob)
 check_slack(Z̄, prob)
 X̄, Ū = unpack(Z̄, prob)
 
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, state_to_configuration(X̄), Δt = h)

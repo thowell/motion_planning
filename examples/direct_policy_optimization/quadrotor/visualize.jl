@@ -1,6 +1,6 @@
 using Plots
 include(joinpath(@__DIR__, "quadrotor_broken_propeller.jl"))
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 
 X̄, Ū = unpack(Z̄, prob)
 

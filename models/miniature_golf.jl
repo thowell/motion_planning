@@ -2,7 +2,7 @@ using MeshCat, MeshCatMechanisms, RigidBodyDynamics
 using FileIO, MeshIO, GeometryTypes, CoordinateTransformations, Rotations, Meshing
 using Plots
 
-include(joinpath(pwd(),"src/models/kuka/kuka_utils.jl"))
+include(joinpath(pwd(),"models/kuka/kuka_utils.jl"))
 
 # Mini golf surface
 t = range(-1.0, stop = 3.0, length = 100)
@@ -27,7 +27,7 @@ ry1 = 1.5
 rx2 = 2.5
 ry2 = 2.5
 
-urdf_path = joinpath(pwd(), "src/models/kuka/temp/kuka.urdf")
+urdf_path = joinpath(pwd(), "models/kuka/temp/kuka.urdf")
 
 kuka = MeshCatMechanisms.parse_urdf(urdf_path, remove_fixed_tree_joints = true)
 kuka_visuals = MeshCatMechanisms.URDFVisuals(urdf_path)

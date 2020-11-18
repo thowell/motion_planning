@@ -94,3 +94,13 @@ function constraints_sparsity(con::MultiConstraints, model, idx, T;
     end
     return sparsity
 end
+
+function include_constraints(str::String)
+    include(joinpath(pwd(), "src/constraints", str * ".jl"))
+end
+
+function include_constraints(strs::Vector{String})
+    for s in strs
+        include_constraints(s)
+    end
+end

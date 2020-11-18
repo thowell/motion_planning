@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/hopper_2wall.jl"))
+include(joinpath(pwd(), "models/hopper_2wall.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/loop.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
@@ -127,7 +127,7 @@ X̄, Ū = unpack(Z̄, prob)
 using Plots
 plot(hcat(Ū...)[end,:], linetype=:steppost)
 
-include(joinpath(pwd(), "src/models/visualize.jl"))
+include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(X̄), Δt = Ū[1][end])

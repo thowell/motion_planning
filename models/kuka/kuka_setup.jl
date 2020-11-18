@@ -1,12 +1,12 @@
 using MeshCat, MeshCatMechanisms, RigidBodyDynamics
 using FileIO, MeshIO, GeometryTypes, CoordinateTransformations, Rotations
 
-urdf_original = joinpath(pwd(),"src/models/kuka/kuka.urdf")
-urdf_new = joinpath(pwd(),"src/models/kuka/temp/kuka.urdf")
+urdf_original = joinpath(pwd(),"models/kuka/kuka.urdf")
+urdf_new = joinpath(pwd(),"models/kuka/temp/kuka.urdf")
 
 function write_kuka_urdf()
-    kuka_mesh_dir = joinpath(pwd(),"src/models/kuka/meshes")
-    temp_dir = joinpath(pwd(),"src/models/kuka/temp")
+    kuka_mesh_dir = joinpath(pwd(),"models/kuka/meshes")
+    temp_dir = joinpath(pwd(),"models/kuka/temp")
     if !isdir(temp_dir)
         mkdir(temp_dir)
     end

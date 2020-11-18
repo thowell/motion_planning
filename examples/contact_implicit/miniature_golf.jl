@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/miniature_golf.jl"))
+include(joinpath(pwd(), "models/miniature_golf.jl"))
 include(joinpath(pwd(), "src/constraints/contact.jl"))
 include(joinpath(pwd(), "src/constraints/visualize.jl"))
 

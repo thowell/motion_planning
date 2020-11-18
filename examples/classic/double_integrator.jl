@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/double_integrator.jl"))
+include(joinpath(pwd(), "models/double_integrator.jl"))
 
 # Horizon
 T = 11

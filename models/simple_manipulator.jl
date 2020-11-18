@@ -217,8 +217,8 @@ function visualize!(vis, model::RRParticle, q;
         MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
 
     if cybertruck
-        obj_path = joinpath(pwd(), "src/models/cybertruck/cybertruck.obj")
-        mtl_path = joinpath(pwd(), "src/models/cybertruck/cybertruck.mtl")
+        obj_path = joinpath(pwd(), "models/cybertruck/cybertruck.obj")
+        mtl_path = joinpath(pwd(), "models/cybertruck/cybertruck.mtl")
 
         ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale=0.07)
         setobject!(vis["particle"], ctm)

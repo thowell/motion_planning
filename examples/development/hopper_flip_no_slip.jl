@@ -1,8 +1,11 @@
-include_model("hopper")
-include_objective(["velocity"])
-include_constraints(["contact", "loop", "free_time"])
+include(joinpath(pwd(), "src/models/hopper.jl"))
+include(joinpath(pwd(), "src/objectives/velocity.jl"))
+include(joinpath(pwd(), "src/constraints/contact.jl"))
+include(joinpath(pwd(), "src/constraints/loop.jl"))
+include(joinpath(pwd(), "src/constraints/free_time.jl"))
 
 # Free-time model
+
 model_ft = free_time_model(model)
 
 function fd(model::Hopper, x⁺, x, u, w, h, t)
@@ -22,16 +25,6 @@ function fd(model::Hopper, x⁺, x, u, w, h, t)
 	+ transpose(N_func(model, q3)) * SVector{1}(λ)
 	+ transpose(P_func(model, q3)) * SVector{2}(b)
 	- h * G_func(model, q2⁺))]
-end
-
-function maximum_dissipation(model::Hopper, x⁺, u, h)
-	q3 = x⁺[model.nq .+ (1:model.nq)]
-	q2 = x⁺[1:model.nq]
-	ψ = u[model.idx_ψ]
-	ψ_stack = ψ[1] * ones(model.nb)
-	η = u[model.idx_η]
-	h = u[end]
-	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
 # Horizon
@@ -128,7 +121,7 @@ plot(t[1:end-1], hcat(Ū...)[1:2,:]', linetype=:steppost,
 	width = 2.0, legend = :top)
 plot(t[1:end-1], h, linetype=:steppost)
 
-include(joinpath(pwd(), "models/visualize.jl"))
+include(joinpath(pwd(), "src/models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model_ft, state_to_configuration(X̄), Δt = h[1])

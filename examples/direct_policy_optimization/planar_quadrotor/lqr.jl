@@ -1,5 +1,5 @@
 include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
-include(joinpath(pwd(), "src/models/quadrotor2D.jl"))
+include(joinpath(pwd(), "models/quadrotor2D.jl"))
 
 # Additive noise model
 model = additive_noise_model(model)

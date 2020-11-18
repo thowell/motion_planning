@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/car.jl"))
+include(joinpath(pwd(), "models/car.jl"))
 include(joinpath(pwd(), "src/constraints/stage.jl"))
 
 # Horizon

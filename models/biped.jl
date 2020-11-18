@@ -566,7 +566,7 @@ function visualize!(vis, model::Biped, q;
 	MeshCat.setanimation!(vis, anim)
 end
 
-# urdf = joinpath(pwd(), "src/models/biped/urdf/biped_float.urdf")
+# urdf = joinpath(pwd(), "models/biped/urdf/biped_float.urdf")
 # mechanism = parse_urdf(urdf, floating=false)
 # state = MechanismState(mechanism)
 # state_cache = StateCache(mechanism)

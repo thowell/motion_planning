@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/models/pendulum.jl"))
+include(joinpath(pwd(), "models/pendulum.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
 
 # Free-time model with additive noise
