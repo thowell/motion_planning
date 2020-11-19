@@ -73,15 +73,16 @@ x_ref = configuration_to_state(q_ref)
 include_objective(["velocity"])
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
+    [Diagonal([1.0e-1, 1.0e-1,
+		zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T-1],
     1.0)
 
 obj_contact_penalty = PenaltyObjective(1.0e3, model_ft.m - 1)
 obj_velocity = velocity_objective([Diagonal(ones(model_ft.nq)) for t = 1:T],
-	model_ft.nq)
-obj = MultiObjective([obj_tracking, obj_velocity, obj_contact_penalty])
+	model_ft.nq, idx_angle = (3:3))
+obj = MultiObjective([obj_tracking, obj_contact_penalty, obj_velocity])
 
 # Constraints
 include_constraints(["contact", "free_time"])
@@ -97,8 +98,7 @@ prob = trajectory_optimization_problem(model_ft,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # Trajectory initialization
 x0 = deepcopy(x_ref) # linear interpolation on state
@@ -120,15 +120,15 @@ x̄, ū = unpack(z̄, prob)
 @show ū[4][end]
 @show check_slack(z̄, prob)
 
-# using Plots
-# tf, t, h = get_time(ū)
-# plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
-# 	xlabel="time (s)", ylabel = "control",
-# 	label = ["angle" "length"],
-# 	width = 2.0, legend = :top)
-# plot(t[1:end-1], h, linetype=:steppost)
-#
-# include(joinpath(pwd(), "models/visualize.jl"))
-# vis = Visualizer()
-# open(vis)
-# visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])
+using Plots
+tf, t, h = get_time(ū)
+plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
+	xlabel="time (s)", ylabel = "control",
+	label = ["angle" "length"],
+	width = 2.0, legend = :top)
+plot(t[1:end-1], h, linetype=:steppost)
+
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])

@@ -119,14 +119,14 @@ x_ref = configuration_to_state(q_ref)
 # Objective
 include_objective(["velocity"])
 obj_tracking = quadratic_time_tracking_objective(
-    [Diagonal(100.0 * [1.0; 1.0; 0.0; 0.0; 1.0; 1.0; 0.0; 0.0]) for t = 1:T],
+    [Diagonal(1.0 * [1.0; 1.0; 0.0; 0.0; 1.0; 1.0; 0.0; 0.0]) for t = 1:T],
     [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [x_ref[t] for t = 1:T],
     [zeros(model_ft.m) for t = 1:T-1],
     1.0)
 
-obj_velocity = velocity_objective([Diagonal(10.0 * ones(model_ft.nq)) for t = 1:T],
-	model_ft.nq)
+obj_velocity = velocity_objective([Diagonal(1.0 * ones(model_ft.nq)) for t = 1:T],
+	model_ft.nq, idx_angle = (3:3))
 obj = MultiObjective([obj_tracking, obj_velocity])
 
 # Constraints
@@ -143,8 +143,7 @@ prob = trajectory_optimization_problem(model_ft,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # Trajectory initialization
 x0 = deepcopy(x_ref) # linear interpolation on state
@@ -155,7 +154,7 @@ z0 = pack(x0, u0, prob)
 
 using LinearAlgebra, ForwardDiff, SparseArrays, Optim, LineSearches
 include(joinpath(pwd(),"src/solvers/augmented_lagrangian.jl"))
-prob = prob
+
 function f(x)
     MOI.eval_objective(prob, x)
 end
@@ -216,9 +215,10 @@ function g_al!(G, x, al::AugmentedLagrangian)
 end
 
 function solve(x, al; alg = :LBFGS, max_iter = 5, c_tol = 1.0e-3)
+	println("*augmented Lagrangian solve*")
     # reset augmented Lagrangian
     reset!(al)
-    println("solving...")
+    println("	solving...")
     for i = 1:max_iter
 
         # update augmented Lagrangian methods
@@ -226,25 +226,29 @@ function solve(x, al; alg = :LBFGS, max_iter = 5, c_tol = 1.0e-3)
         _g!(G, z) = g_al!(G, z, al)
 
         # solve
-        sol = optimize(_f, _g!, x, @eval $alg()) # linesearch = LineSearches.BackTracking()
+        sol = Optim.optimize(_f, _g!, x, @eval $alg()) # linesearch = LineSearches.BackTracking()
 
         # evaluate constraints
         x = sol.minimizer
         c_max = constraint_violation(al, x)
-        println("iter: $i")
-        println("c_max: $c_max")
+        println("	iter: $i")
+        println("	c_max: $c_max")
 
         # check for convergence -> update augmented Lagrangian
         if c_max < c_tol
+			println("solve: success")
             return x, sol
         else
+			if i >= max_iter
+				println("solve: failed")
+				return x, sol
+			end
+
             c!(al.c, x)
             bounds!(al, x)
             update!(al)
         end
     end
-
-    return x, sol
 end
 
 n = prob.num_var
@@ -257,11 +261,15 @@ sum(isfinite.(xu))
 sum(cu .> cl)
 
 al = augmented_lagrangian(n, m,
-    xl = xl, xu = xu, ρ0 = 100.0, s = 10.0,
+    xl = xl, xu = xu, ρ0 = 1.0, s = 10.0,
     idx_ineq = idx_ineq)
 
+f_al(z0, al)
+_c0 = zero(z0)
+g_al!(_c0, z0, al)
+_c0
 @time x_sol_al, sol = solve(copy(z0), al,
-    alg = :BFGS, max_iter = 20, c_tol = 1.0e-2)
+    alg = :BFGS, max_iter = 2, c_tol = 1.0e-2)
 
 # Visualize
 using Plots

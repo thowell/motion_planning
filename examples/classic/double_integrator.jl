@@ -25,8 +25,7 @@ prob = trajectory_optimization_problem(model,
 			   obj,
 			   T,
                xl = xl,
-               xu = xu,
-               )
+               xu = xu)
 
 # Initialization
 x0 = linear_interp(x1, xT, T) # linear interpolation for states
