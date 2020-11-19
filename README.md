@@ -68,7 +68,7 @@ pkg> instantiate
 
 ## TODO
 - [X] direct policy optimization implementation
-	- [ ] paper visualizations
+	- [ ] update paper visualizations
 	- [X] save TO and DPO trajectories
 	- [ ] solve DPO to tighter tolerances
 - [ ] check for SNOPT installation
@@ -80,3 +80,4 @@ pkg> instantiate
 - [X] constraints (stage wise)
 - [ ] embed animations in README
 - [ ] dispatch over model type for free final time
+- [ ] analytical velocity objective gradient

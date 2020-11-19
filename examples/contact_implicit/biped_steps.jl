@@ -87,42 +87,42 @@ obj_control = quadratic_tracking_objective(
 # quadratic velocity penalty
 # Σ v' Q v
 obj_velocity = velocity_objective(
-    [Diagonal(10.0 * ones(model.nq)) for t = 1:T-1],
+    [Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
     model.nq,
     h = h,
     idx_angle = collect([3, 4, 5, 6, 7]))
 
 # torso height
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
-l_stage_torso_h(x, u, t) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
-l_terminal_torso_h(x) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
+l_stage_torso_h(x, u, t) = 10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
+l_terminal_torso_h(x) = 10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
 obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
-l_stage_torso_lat(x, u, t) = (10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
-l_terminal_torso_lat(x) = (10.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
+l_stage_torso_lat(x, u, t) = (1.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
+l_terminal_torso_lat(x) = (1.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
 obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
-l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.025)^2.0
+l_stage_fh1(x, u, t) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.025)^2.0
 l_terminal_fh1(x) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_1, mode = :ee)[2])^2.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
+l_stage_fh2(x, u, t) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
 l_terminal_fh2(x) = 1.0 * (kinematics_2(model, view(x, 8:14), body = :leg_2, mode = :ee)[2])^2.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # initial configuration
-function l_stage_conf(x, u, t)
-    if t == 1
-        return 0.0#(x - [q1; q1])' * Diagonal(1000.0 * ones(model.n)) * (x - [q1; q1])
-    else
-        return 0.0
-    end
-end
-l_terminal_conf(x) = (x - [qT; qT])' * Diagonal(1000.0 * ones(model.n)) * (x - [qT; qT])
-obj_conf = nonlinear_stage_objective(l_stage_conf, l_terminal_conf)
+# function l_stage_conf(x, u, t)
+#     if t == 1
+#         return (x - [q1; q1])' * Diagonal(1000.0 * ones(model.n)) * (x - [q1; q1])
+#     else
+#         return 0.0
+#     end
+# end
+# l_terminal_conf(x) = (x - [qT; qT])' * Diagonal(10.0 * ones(model.n)) * (x - [qT; qT])
+# obj_conf = nonlinear_stage_objective(l_stage_conf, l_terminal_conf)
 
 obj = MultiObjective([obj_penalty,
                       obj_control,
@@ -130,7 +130,7 @@ obj = MultiObjective([obj_penalty,
                       obj_torso_h,
                       obj_torso_lat,
                       obj_fh1,
-                      obj_fh2])#,
+                      obj_fh2])
                       # obj_conf])
 
 # Constraints
@@ -150,7 +150,7 @@ prob = trajectory_optimization_problem(model,
                )
 
 # trajectory initialization
-u0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
+u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -161,7 +161,7 @@ include_snopt()
 @time z̄ = solve(prob, copy(z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3,
-    time_limit = 60 * 3, mapl = 0)
+    time_limit = 60 * 3, mapl = 5)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
