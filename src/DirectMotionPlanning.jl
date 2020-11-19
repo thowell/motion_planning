@@ -4,6 +4,7 @@ using LinearAlgebra, ForwardDiff, FiniteDiff, StaticArrays, SparseArrays
 using MathOptInterface, Ipopt
 using Distributions, Interpolations
 using JLD2
+using Optim, LineSearches
 
 using Colors
 using CoordinateTransformations

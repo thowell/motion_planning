@@ -203,7 +203,7 @@ function visualize!(vis, model::Box, q;
 		Vec(2.0 * model.r, 2.0 * model.r, 2.0 * model.r)))
 
     for i = 1:model.n_corners
-        setobject!(vis["corner$i"], Sphere(Point3f0(0),
+        setobject!(vis["corner$i"], GeometryTypes.Sphere(Point3f0(0),
             convert(Float32, 0.05)),
             MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
     end

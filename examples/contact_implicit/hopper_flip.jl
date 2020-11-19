@@ -120,15 +120,15 @@ x̄, ū = unpack(z̄, prob)
 @show ū[4][end]
 @show check_slack(z̄, prob)
 
-using Plots
-tf, t, h = get_time(ū)
-plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
-	xlabel="time (s)", ylabel = "control",
-	label = ["angle" "length"],
-	width = 2.0, legend = :top)
-plot(t[1:end-1], h, linetype=:steppost)
-
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-open(vis)
-visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])
+# using Plots
+# tf, t, h = get_time(ū)
+# plot(t[1:end-1], hcat(ū...)[1:2,:]', linetype=:steppost,
+# 	xlabel="time (s)", ylabel = "control",
+# 	label = ["angle" "length"],
+# 	width = 2.0, legend = :top)
+# plot(t[1:end-1], h, linetype=:steppost)
+#
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# open(vis)
+# visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])
