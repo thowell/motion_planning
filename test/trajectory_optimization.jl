@@ -4,7 +4,7 @@
 prob_traj = prob.prob
 
 # objective
-for i = 1:100
+for i = 1:1
     z0 = rand(prob_traj.num_var)
     tmp_o(z) = eval_objective(prob_traj, z)
     ∇j = zeros(prob_traj.num_var)
