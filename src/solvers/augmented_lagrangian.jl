@@ -102,9 +102,9 @@ function active_set_update!(al::AugmentedLagrangian)
     fill!(al.asl, 1)
     fill!(al.asu, 1)
 
-    al.as[al.idx_ineq] = .!((view(al.λ, al.idx_ineq) .== 0.0) .& (view(al.c, al.idx_ineq) .< 0.0)) # (view(al.c, al.idx_ineq) .> 0.0) #
-    al.asl .= .!((al.λl .== 0.0) .& (al.cl .< 0.0)) # (al.cl .> 0.0) #
-    al.asu .= .!((al.λu .== 0.0) .& (al.cu .< 0.0)) # (al.cu .> 0.0) #
+    al.as[al.idx_ineq] = ((view(al.λ, al.idx_ineq) .> 0.0) .| (view(al.c, al.idx_ineq) .>= 0.0)) # (view(al.c, al.idx_ineq) .> 0.0) #
+    al.asl .= ((al.λl .> 0.0) .| (al.cl .>= 0.0)) # (al.cl .> 0.0) #
+    al.asu .= ((al.λu .> 0.0) .| (al.cu .>= 0.0)) # (al.cu .> 0.0) #
     #TODO: soc as
 end
 
