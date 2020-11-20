@@ -108,7 +108,7 @@ l_torso = 0.75
 l_thigh = 0.2755
 l_leg = 0.308
 
-d_torso = 0.0342
+d_torso = 0.75 / 2.0
 d_thigh = 0.2176
 d_leg = 0.1445
 
@@ -373,67 +373,67 @@ function jacobian_3(model::Quadruped, q; body = :leg_3, mode = :ee)
 end
 
 #test kinematics
-q = rand(nq)
-
-@assert norm(kinematics_1(model, q, body = :torso, mode = :ee) - [q[1] + model.l1 * sin(q[3]); q[2] - model.l1 * cos(q[3])]) ≈ 0.0
-@assert norm(kinematics_1(model, q, body = :torso, mode = :com) - [q[1] + model.d1 * sin(q[3]); q[2] - model.d1 * cos(q[3])]) ≈ 0.0
-@assert norm(kinematics_1(model, q, body = :thigh_1, mode = :ee) - [q[1] + model.l2 * sin(q[4]); q[2] - model.l2 * cos(q[4])]) ≈ 0.0
-@assert norm(kinematics_1(model, q, body = :thigh_1, mode = :com) - [q[1] + model.d2 * sin(q[4]); q[2] - model.d2 * cos(q[4])]) ≈ 0.0
-@assert norm(kinematics_1(model, q, body = :thigh_2, mode = :ee) - [q[1] + model.l4 * sin(q[6]); q[2] - model.l4 * cos(q[6])]) ≈ 0.0
-@assert norm(kinematics_1(model, q, body = :thigh_2, mode = :com) - [q[1] + model.d4 * sin(q[6]); q[2] - model.d4 * cos(q[6])]) ≈ 0.0
-
-@assert norm(kinematics_2(model, q, body = :leg_1, mode = :ee) - [q[1] + model.l2 * sin(q[4]) + model.l3 * sin(q[4] + q[5]); q[2] - model.l2 * cos(q[4]) - model.l3 * cos(q[4] + q[5])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :leg_1, mode = :com) - [q[1] + model.l2 * sin(q[4]) + model.d3 * sin(q[4] + q[5]); q[2] - model.l2 * cos(q[4]) - model.d3 * cos(q[4] + q[5])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :leg_2, mode = :ee) - [q[1] + model.l4 * sin(q[6]) + model.l5 * sin(q[6] + q[7]); q[2] - model.l4 * cos(q[6]) - model.l5 * cos(q[6] + q[7])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :leg_2, mode = :com) - [q[1] + model.l4 * sin(q[6]) + model.d5 * sin(q[6] + q[7]); q[2] - model.l4 * cos(q[6]) - model.d5 * cos(q[6] + q[7])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :thigh_3, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :thigh_3, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.d6 * sin(q[3] + q[8]); q[2] - model.l1 * cos(q[3]) - model.d6 * cos(q[3] + q[8])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :thigh_4, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10])]) ≈ 0.0
-@assert norm(kinematics_2(model, q, body = :thigh_4, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.d8 * sin(q[3] + q[10]); q[2] - model.l1 * cos(q[3]) - model.d8 * cos(q[3] + q[10])]) ≈ 0.0
-
-@assert norm(kinematics_3(model, q, body = :leg_3, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]) + model.l7 * sin(q[3] + q[8] + q[9]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8]) - model.l7 * cos(q[3] + q[8] + q[9])]) ≈ 0.0
-@assert norm(kinematics_3(model, q, body = :leg_3, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]) + model.d7 * sin(q[3] + q[8] + q[9]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8]) - model.d7 * cos(q[3] + q[8] + q[9])]) ≈ 0.0
-@assert norm(kinematics_3(model, q, body = :leg_4, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]) + model.l9 * sin(q[3] + q[10] + q[11]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10]) - model.l9 * cos(q[3] + q[10] + q[11])]) ≈ 0.0
-@assert norm(kinematics_3(model, q, body = :leg_4, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]) + model.d9 * sin(q[3] + q[10] + q[11]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10]) - model.d9 * cos(q[3] + q[10] + q[11])]) ≈ 0.0
-
-k1(z) = kinematics_1(model, z, body = :torso, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :ee)) ≈ 0.0
-k1(z) = kinematics_1(model, z, body = :torso, mode = :com)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :com)) ≈ 0.0
-k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :ee)) ≈ 0.0
-k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :com)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :com)) ≈ 0.0
-k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :ee)) ≈ 0.0
-k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :com)
-@assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :com)) ≈ 0.0
-
-k2(z) = kinematics_2(model, z, body = :leg_1, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_1, mode = :ee)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :leg_1, mode = :com)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_1, mode = :com)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :leg_2, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_2, mode = :ee)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :leg_2, mode = :com)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_2, mode = :com)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :thigh_3, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_3, mode = :ee)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :thigh_3, mode = :com)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_3, mode = :com)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :thigh_4, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_4, mode = :ee)) ≈ 0.0
-k2(z) = kinematics_2(model, z, body = :thigh_4, mode = :com)
-@assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_4, mode = :com)) ≈ 0.0
-
-k3(z) = kinematics_3(model, z, body = :leg_3, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_3, mode = :ee)) ≈ 0.0
-k3(z) = kinematics_3(model, z, body = :leg_3, mode = :com)
-@assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_3, mode = :com)) ≈ 0.0
-k3(z) = kinematics_3(model, z, body = :leg_4, mode = :ee)
-@assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_4, mode = :ee)) ≈ 0.0
-k3(z) = kinematics_3(model, z, body = :leg_4, mode = :com)
-@assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_4, mode = :com)) ≈ 0.0
+# q = rand(nq)
+#
+# @assert norm(kinematics_1(model, q, body = :torso, mode = :ee) - [q[1] + model.l1 * sin(q[3]); q[2] - model.l1 * cos(q[3])]) ≈ 0.0
+# @assert norm(kinematics_1(model, q, body = :torso, mode = :com) - [q[1] + model.d1 * sin(q[3]); q[2] - model.d1 * cos(q[3])]) ≈ 0.0
+# @assert norm(kinematics_1(model, q, body = :thigh_1, mode = :ee) - [q[1] + model.l2 * sin(q[4]); q[2] - model.l2 * cos(q[4])]) ≈ 0.0
+# @assert norm(kinematics_1(model, q, body = :thigh_1, mode = :com) - [q[1] + model.d2 * sin(q[4]); q[2] - model.d2 * cos(q[4])]) ≈ 0.0
+# @assert norm(kinematics_1(model, q, body = :thigh_2, mode = :ee) - [q[1] + model.l4 * sin(q[6]); q[2] - model.l4 * cos(q[6])]) ≈ 0.0
+# @assert norm(kinematics_1(model, q, body = :thigh_2, mode = :com) - [q[1] + model.d4 * sin(q[6]); q[2] - model.d4 * cos(q[6])]) ≈ 0.0
+#
+# @assert norm(kinematics_2(model, q, body = :leg_1, mode = :ee) - [q[1] + model.l2 * sin(q[4]) + model.l3 * sin(q[4] + q[5]); q[2] - model.l2 * cos(q[4]) - model.l3 * cos(q[4] + q[5])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :leg_1, mode = :com) - [q[1] + model.l2 * sin(q[4]) + model.d3 * sin(q[4] + q[5]); q[2] - model.l2 * cos(q[4]) - model.d3 * cos(q[4] + q[5])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :leg_2, mode = :ee) - [q[1] + model.l4 * sin(q[6]) + model.l5 * sin(q[6] + q[7]); q[2] - model.l4 * cos(q[6]) - model.l5 * cos(q[6] + q[7])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :leg_2, mode = :com) - [q[1] + model.l4 * sin(q[6]) + model.d5 * sin(q[6] + q[7]); q[2] - model.l4 * cos(q[6]) - model.d5 * cos(q[6] + q[7])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :thigh_3, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :thigh_3, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.d6 * sin(q[3] + q[8]); q[2] - model.l1 * cos(q[3]) - model.d6 * cos(q[3] + q[8])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :thigh_4, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10])]) ≈ 0.0
+# @assert norm(kinematics_2(model, q, body = :thigh_4, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.d8 * sin(q[3] + q[10]); q[2] - model.l1 * cos(q[3]) - model.d8 * cos(q[3] + q[10])]) ≈ 0.0
+#
+# @assert norm(kinematics_3(model, q, body = :leg_3, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]) + model.l7 * sin(q[3] + q[8] + q[9]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8]) - model.l7 * cos(q[3] + q[8] + q[9])]) ≈ 0.0
+# @assert norm(kinematics_3(model, q, body = :leg_3, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.l6 * sin(q[3] + q[8]) + model.d7 * sin(q[3] + q[8] + q[9]); q[2] - model.l1 * cos(q[3]) - model.l6 * cos(q[3] + q[8]) - model.d7 * cos(q[3] + q[8] + q[9])]) ≈ 0.0
+# @assert norm(kinematics_3(model, q, body = :leg_4, mode = :ee) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]) + model.l9 * sin(q[3] + q[10] + q[11]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10]) - model.l9 * cos(q[3] + q[10] + q[11])]) ≈ 0.0
+# @assert norm(kinematics_3(model, q, body = :leg_4, mode = :com) - [q[1] + model.l1 * sin(q[3]) + model.l8 * sin(q[3] + q[10]) + model.d9 * sin(q[3] + q[10] + q[11]); q[2] - model.l1 * cos(q[3]) - model.l8 * cos(q[3] + q[10]) - model.d9 * cos(q[3] + q[10] + q[11])]) ≈ 0.0
+#
+# k1(z) = kinematics_1(model, z, body = :torso, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :ee)) ≈ 0.0
+# k1(z) = kinematics_1(model, z, body = :torso, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :com)) ≈ 0.0
+# k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :ee)) ≈ 0.0
+# k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :com)) ≈ 0.0
+# k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :ee)) ≈ 0.0
+# k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :com)) ≈ 0.0
+#
+# k2(z) = kinematics_2(model, z, body = :leg_1, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_1, mode = :ee)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :leg_1, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_1, mode = :com)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :leg_2, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_2, mode = :ee)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :leg_2, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :leg_2, mode = :com)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :thigh_3, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_3, mode = :ee)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :thigh_3, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_3, mode = :com)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :thigh_4, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_4, mode = :ee)) ≈ 0.0
+# k2(z) = kinematics_2(model, z, body = :thigh_4, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :thigh_4, mode = :com)) ≈ 0.0
+#
+# k3(z) = kinematics_3(model, z, body = :leg_3, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_3, mode = :ee)) ≈ 0.0
+# k3(z) = kinematics_3(model, z, body = :leg_3, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_3, mode = :com)) ≈ 0.0
+# k3(z) = kinematics_3(model, z, body = :leg_4, mode = :ee)
+# @assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_4, mode = :ee)) ≈ 0.0
+# k3(z) = kinematics_3(model, z, body = :leg_4, mode = :com)
+# @assert norm(ForwardDiff.jacobian(k3, q) - jacobian_3(model, q, body = :leg_4, mode = :com)) ≈ 0.0
 
 # Lagrangian
 
@@ -500,7 +500,7 @@ function lagrangian(model::Quadruped, q, q̇)
 	v_leg_3 = J_leg_3 * q̇
 
 	L += 0.5 * model.m7 * v_leg_3' * v_leg_3
-	L += 0.5 * model.J7 * q̇[8]^2.0
+	L += 0.5 * model.J7 * q̇[9]^2.0
 	L -= model.m7 * model.g * p_leg_3[2]
 
 	# thigh 4
@@ -542,7 +542,7 @@ end
 
 # Methods
 function M_func(model::Quadruped, q)
-	M = Diagonal([0.0, 0.0, model.J1, model.J2, model.J3, model.J4, model.J5])
+	M = Diagonal([0.0, 0.0, model.J1, model.J2, model.J3, model.J4, model.J5, model.J6, model.J7, model.J8, model.J9])
 
 	# torso
 	J_torso = jacobian_1(model, q, body = :torso, mode = :com)
@@ -777,6 +777,46 @@ function visualize!(vis, model::Quadruped, q;
 
 	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
+	hip1 = setobject!(vis["hip1"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.025)),
+        MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	hip2 = setobject!(vis["hip2"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.025)),
+        MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	knee1 = setobject!(vis["knee1"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.025)),
+        MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	knee2 = setobject!(vis["knee2"], GeometryTypes.Sphere(Point3f0(0),
+		convert(Float32, 0.025)),
+		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	knee3 = setobject!(vis["knee3"], GeometryTypes.Sphere(Point3f0(0),
+		convert(Float32, 0.025)),
+		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	knee4 = setobject!(vis["knee4"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.025)),
+        MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
+
+	feet1 = setobject!(vis["feet1"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.035)),
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet2 = setobject!(vis["feet2"], GeometryTypes.Sphere(Point3f0(0),
+		convert(Float32, 0.035)),
+		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet3 = setobject!(vis["feet3"], GeometryTypes.Sphere(Point3f0(0),
+		convert(Float32, 0.035)),
+		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
+	feet4 = setobject!(vis["feet4"], GeometryTypes.Sphere(Point3f0(0),
+        convert(Float32, 0.035)),
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
+
 	T = length(q)
 	for t = 1:T
 		MeshCat.atframe(anim, t) do
@@ -819,7 +859,16 @@ function visualize!(vis, model::Quadruped, q;
 			settransform!(vis["thigh4"], cable_transform(p_torso, p_thigh_4))
 			settransform!(vis["leg4"], cable_transform(p_thigh_4, p_leg_4))
 			settransform!(vis["torso"], cable_transform(p_torso, p))
-
+			settransform!(vis["hip1"], Translation(p))
+			settransform!(vis["hip2"], Translation(p_torso))
+			settransform!(vis["knee1"], Translation(p_thigh_1))
+			settransform!(vis["knee2"], Translation(p_thigh_2))
+			settransform!(vis["knee3"], Translation(p_thigh_3))
+			settransform!(vis["knee4"], Translation(p_thigh_4))
+			settransform!(vis["feet1"], Translation(p_leg_1))
+			settransform!(vis["feet2"], Translation(p_leg_2))
+			settransform!(vis["feet3"], Translation(p_leg_3))
+			settransform!(vis["feet4"], Translation(p_leg_4))
 		end
 	end
 
@@ -862,5 +911,5 @@ end
 include(joinpath(pwd(),"models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-q0 = initial_configuration(model, pi / 10.0)
+q0 = initial_configuration(model, pi / 7.5)
 visualize!(vis, model, [q0], Δt = 1.0)

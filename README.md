@@ -4,7 +4,7 @@
 - [X] double integrator
 - [X] acrobot
 - [ ] robotic arm
-- [X] biped
+- [X] biped (hybrid)
 
 ## contact-implicit trajectory optimization examples
 - [X] particle
@@ -13,16 +13,16 @@
 - [X] cyberjump
 - [X] box drop
 - [X] box on corner
-- [X] raibert hopper
-- [X] raibert hopper vertical gait
-- [X] raibert hopper flip
+- [X] raibert hopper (2D)
+- [X] raibert hopper (2D) vertical gait
+- [X] raibert hopper (2D) flip
 - [X] hopper (3D)
 - [ ] hopper (3D) wall scaling
 - [X] miniature golf
 - [ ] ball-in-cup robot arm
 - [ ] ball-in-cup quadrotor
-- [X] biped
-- [ ] quadruped
+- [X] biped (2D)
+- [X] quadruped (2D)
 - [ ] atlas
 
 ## direct policy optimization examples
