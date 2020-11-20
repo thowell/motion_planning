@@ -56,7 +56,7 @@ prob = trajectory_optimization_problem(model,
 
 # Trajectory initialization
 x0 = configuration_to_state(linear_interp(q1, qT, T)) # linear interpolation on state
-u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+u0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -73,5 +73,5 @@ x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)

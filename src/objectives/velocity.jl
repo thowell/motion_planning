@@ -10,7 +10,6 @@ struct VelocityObjective <: Objective
 end
 
 function velocity_objective(Q, n; h = 0.0, idx_angle = (1:0))
-    @warn "angle difference not implemented"
     VelocityObjective(Q, n, h, idx_angle)
 end
 
@@ -23,11 +22,11 @@ function objective(Z, obj::VelocityObjective, idx, T)
     n = obj.n
 
     J = 0.0
-
+    ϵ = 1.0e-5
     for t = 1:T-1
         q⁻ = view(Z, idx.x[t][n .+ (1:n)])
         q⁺ = view(Z, idx.x[t + 1][n .+ (1:n)])
-        h = obj.h == 0.0 ? view(Z, idx.u[t][end]) : obj.h
+        h = obj.h == 0.0 ? 1.0 : obj.h
         v = (q⁺ - q⁻) ./ h
         v[obj.idx_angle] = angle_diff.(view(q⁻, obj.idx_angle), view(q⁺, obj.idx_angle)) ./ h
 
@@ -38,25 +37,24 @@ function objective(Z, obj::VelocityObjective, idx, T)
 end
 
 function objective_gradient!(∇J, Z, obj::VelocityObjective, idx, T)
-    tmp(y) = objective(y, obj, idx, T)
-    ∇J .+= ForwardDiff.gradient(tmp, Z)
-    # n = obj.n
-    #
-    # for t = 1:T-1
-    #     q⁻ = view(Z, idx.x[t][n .+ (1:n)])
-    #     q⁺ = view(Z, idx.x[t + 1][n .+ (1:n)])
-    #     h = obj.h == 0.0 ? view(Z, idx.u[t][end]) : obj.h
-    #     v = (q⁺ - q⁻) ./ h
-    #     # v[obj.idx_angle] = angle_diff.(view(q⁻, obj.idx_angle),
-    #     #     view(q⁺, obj.idx_angle)) ./ h
-    #
-    #     dJdv = 2.0 * obj.Q[t] * v
-    #     ∇J[idx.x[t][n .+ (1:n)]] += -1.0 ./ h * dJdv
-    #     ∇J[idx.x[t + 1][n .+ (1:n)]] += 1.0 ./ h * dJdv
-    #     # if obj.h == 0.0
-    #     #     ∇J[idx.u[t][end]] += -1.0 * dJdv' * v ./ h
-    #     # end
-    # end
+    # tmp(y) = objective(y, obj, idx, T)
+    # ∇J .+= ForwardDiff.gradient(tmp, Z)
+    n = obj.n
+
+    J = 0.0
+    ϵ = 1.0e-5
+    for t = 1:T-1
+        q⁻ = view(Z, idx.x[t][n .+ (1:n)])
+        q⁺ = view(Z, idx.x[t + 1][n .+ (1:n)])
+        h = obj.h == 0.0 ? 1.0 : obj.h
+
+        v = (q⁺ - q⁻) ./ h
+        v[obj.idx_angle] = angle_diff.(view(q⁻, obj.idx_angle), view(q⁺, obj.idx_angle)) ./ h
+
+        dJdv = 2.0 * obj.Q[t] * v
+        ∇J[idx.x[t][n .+ (1:n)]] += -1.0 ./ h * dJdv
+        ∇J[idx.x[t + 1][n .+ (1:n)]] += 1.0 ./ h * dJdv
+    end
 
     return nothing
 end

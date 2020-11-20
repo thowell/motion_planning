@@ -4,12 +4,12 @@
 prob_traj = prob.prob
 
 # objective
-for i = 1:1
+for i = 1:100
     z0 = rand(prob_traj.num_var)
     tmp_o(z) = eval_objective(prob_traj, z)
     ∇j = zeros(prob_traj.num_var)
     eval_objective_gradient!(∇j, z0, prob_traj)
-    @assert norm(ForwardDiff.gradient(tmp_o, z0) - ∇j, Inf) < 1.0e-10
+    @assert norm(ForwardDiff.gradient(tmp_o, z0) - ∇j, Inf) < 1.0e-5
     println("i $i")
 end
 
