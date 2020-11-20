@@ -11,28 +11,63 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 
-# Configurations
-# 1: x pos
-# 2: z pos
-# 3: torso angle (rel. to downward vertical)
-# 4: thigh 1 angle (rel. to downward vertical)
-# 5: calf 1 (rel. to thigh 1)
-# 6: thigh 2 (rel. to downward vertical)
-# 7: calf 2 (rel. to thigh 2)
-# θ = pi / 12.5
-# q1 = initial_configuration(model, θ) # generate initial config from θ
-# qT = copy(q1)
-# qT[1] += 1.0
-# q1[3] -= pi / 30.0
-# q1[4] += pi / 20.0
-# q1[5] -= pi / 10.0
-# q1, qT = loop_configurations(model, θ)
-# qT[1] += 1.0
+θ = pi / 25.0
+q1 = zeros(model.nq)
+function initial_configuration(model::Quadruped, θ)
+	q0 = zeros(model.nq)
+	q0[3] = pi
 
-θ = pi / 7.5
+	q0[4] = θ
+	# q0[5] = -1.0 * q0[4]
+	q0[2] = model.l2*cos(q0[4]) + model.l3 * cos(q0[4] + q0[5])
+	q0[6] = -1.0 * acos(q0[2] / (model.l4 + model.l5))
+	# q0[1] = -1.0 * model.l2 * sin(θ)
+
+	q0[8] = θ
+	q0[10] = -θ
+
+	return q0
+end
+
+function middle_configuration(model::Quadruped, θ)
+	q0 = zeros(model.nq)
+	q0[3] = 0
+
+	q0[4] = θ - pi
+	# # q0[5] = -1.0 * q0[4]
+	q0[6] = -θ - pi
+	# # q0[1] = -1.0 * model.l2 * sin(θ)
+	#
+	q0[8] = θ
+	q0[10] = -θ
+
+	q0[2] = model.l1 * cos(q0[3]) + model.l6*cos(q0[3] + q0[8]) + model.l7 * cos(q0[8] + q0[9])
+	q0[1] = 1.0
+
+	return q0
+end
+
+function final_configuration(model::Quadruped, θ)
+	q0 = zeros(model.nq)
+	q0[3] = -pi
+
+	q0[4] = θ -2.0 * pi
+	# q0[5] = -1.0 * q0[4]
+	q0[2] = model.l2*cos(q0[4]) + model.l3 * cos(q0[4] + q0[5])
+	q0[6] = -1.0 * acos(q0[2] / (model.l4 + model.l5)) - 2.0 * pi
+	# q0[1] = -1.0 * model.l2 * sin(θ)
+
+	q0[8] = θ
+	q0[10] = -θ
+	q0[1] = 2.0
+
+	return q0
+end
+
 q1 = initial_configuration(model, θ)
-qT = copy(q1)
-qT[1] = 2.5
+qM = middle_configuration(model, θ)
+qT = final_configuration(model, θ)
+#q_ref = [linear_interp(q1, qM, 14)[1:end-1]..., linear_interp(qM, qT, 13)...]
 visualize!(vis, model, [qT])
 
 # Horizon
@@ -60,8 +95,6 @@ xl, xu = state_bounds(model, T,
 
 # Objective
 q_ref = linear_interp(q1, qT, T)
-visualize!(vis, model, q_ref)
-
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
@@ -136,6 +169,7 @@ obj = MultiObjective([obj_penalty,
                       obj_fh2,
                       obj_fh3,
                       obj_fh4])
+                      # obj_conf])
 
 # Constraints
 con_contact = contact_constraints(model, T)
@@ -150,7 +184,8 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con)
+               con = con
+               )
 
 # trajectory initialization
 u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
