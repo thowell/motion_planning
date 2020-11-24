@@ -29,11 +29,11 @@ render(vis)
 # q1, qT = loop_configurations(model, θ)
 # qT[1] += 1.0
 
-θ = pi / 7.5
+θ = -pi / 5.0
 q1 = initial_configuration(model, θ)
 qT = copy(q1)
 qT[1] = 2.5
-visualize!(vis, model, [qT])
+visualize!(vis, model, [q1])
 
 # Horizon
 T = 26
@@ -88,32 +88,32 @@ obj_velocity = velocity_objective(
 q2_idx = (12:22)
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
 l_stage_torso_h(x, u, t) = 10.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
-l_terminal_torso_h(x) = 10.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
+l_terminal_torso_h(x) = 0.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
 obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
 l_stage_torso_lat(x, u, t) = (1.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], q2_idx), body = :torso, mode = :com)[1])^2.0)
-l_terminal_torso_lat(x) = (1.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], q2_idx), body = :torso, mode = :com)[1])^2.0)
+l_terminal_torso_lat(x) = (0.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], q2_idx), body = :torso, mode = :com)[1])^2.0)
 obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
-l_stage_fh1(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2] - 0.025)^2.0
-l_terminal_fh1(x) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2])^2.0
+l_stage_fh1(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh1(x) = 0.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2])^2.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2] - 0.025)^2.0
-l_terminal_fh2(x) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2])^2.0
+l_stage_fh2(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh2(x) = 0.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2])^2.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 3 height
-l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2] - 0.025)^2.0
-l_terminal_fh3(x) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2])^2.0
+l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh3(x) = 0.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2])^2.0
 obj_fh3 = nonlinear_stage_objective(l_stage_fh3, l_terminal_fh3)
 
 # foot 4 height
-l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2] - 0.025)^2.0
-l_terminal_fh4(x) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2])^2.0
+l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2] - 0.05)^2.0
+l_terminal_fh4(x) = 0.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2])^2.0
 obj_fh4 = nonlinear_stage_objective(l_stage_fh4, l_terminal_fh4)
 
 # initial configuration
