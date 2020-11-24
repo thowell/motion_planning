@@ -60,7 +60,7 @@ xl, xu = state_bounds(model_ft, T,
 		[model_ft.qL; model_ft.qL],
 		[model_ft.qU; model_ft.qU],
         x1 = [q1; q1],
-		xT = [Inf * ones(model_ft.nq); qT])
+		xT = [qT; qT])
 
 q_ref = [linear_interp(q1, q_right, 6)...,
          linear_interp(q_right, q_top, 6)[2:end]...,
@@ -130,5 +130,5 @@ plot(t[1:end-1], h, linetype=:steppost)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-render(vis)
+open(vis)
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h[1])
