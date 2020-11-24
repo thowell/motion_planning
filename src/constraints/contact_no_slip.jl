@@ -243,29 +243,3 @@ function con_ineq_contact(model, T)
 
     return vcat(con_ineq...)
 end
-
-function no_slip_model(model)
-	# modify parameters
-	m = model.nu + model.nc + model.nb + model.ns
-	idx_ψ = (1:0)
-	idx_η = (1:0)
-	idx_s = model.nu + model.nc + model.nb .+ (1:model.ns)
-
-	# assemble update parameters
-	params = []
-	for f in fieldnames(typeof(model))
-		if f == :m
-			push!(params, m)
-		elseif f == :idx_ψ
-			push!(params, idx_ψ)
-		elseif f == :idx_η
-			push!(params, idx_η)
-		elseif f == :idx_s
-			push!(params, idx_s)
-		else
-			push!(params, getfield(model,f))
-		end
-	end
-
-	return typeof(model)(params...)
-end

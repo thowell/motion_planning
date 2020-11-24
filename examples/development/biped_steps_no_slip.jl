@@ -151,7 +151,7 @@ prob = trajectory_optimization_problem(model,
                )
 
 # trajectory initialization
-u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+u0 = [1.0e-6 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -159,10 +159,10 @@ z0 = pack(x0, u0, prob)
 # Solve
 include_snopt()
 
-@time z̄ = solve(prob, copy(z0),
+@time z̄ = solve(prob, copy(z̄ + 0.01 * rand(prob.num_var)),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3,
-    time_limit = 60 * 3, mapl = 5)
+    time_limit = 60 * 3, mapl = 0)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
