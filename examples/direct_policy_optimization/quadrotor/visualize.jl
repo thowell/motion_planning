@@ -265,7 +265,7 @@ for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
 	i = k
 	q_to = z
 	for t = 1:3:T_sim
-		setobject!(vis["traj_to$t$i"], Sphere(Point3f0(0),
+		setobject!(vis["traj_to$t$i"], GeometryTypes.Sphere(Point3f0(0),
 			convert(Float32,0.025)),
 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
 		settransform!(vis["traj_to$t$i"], Translation((q_to[t][1],q_to[t][2],q_to[t][3])))
@@ -274,7 +274,7 @@ for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
 end
 q_to_nom = X_nom
 for t = 1:T
-	setobject!(vis["traj_to_nom$t"], Sphere(Point3f0(0),
+	setobject!(vis["traj_to_nom$t"], GeometryTypes.Sphere(Point3f0(0),
 		convert(Float32,0.05)),
 		MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
 	settransform!(vis["traj_to_nom$t"], Translation((q_to_nom[t][1],q_to_nom[t][2],q_to_nom[t][3])))
@@ -285,7 +285,7 @@ for (k,z) in enumerate([z_sample1,z_sample2,z_sample3,z_sample4])
 	i = k
 	q_dpo = z
 	for t = 1:3:T_sim
-		setobject!(vis["traj_dpo$t$i"], Sphere(Point3f0(0),
+		setobject!(vis["traj_dpo$t$i"], GeometryTypes.Sphere(Point3f0(0),
 			convert(Float32,0.025)),
 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
 		settransform!(vis["traj_dpo$t$i"], Translation((q_dpo[t][1],q_dpo[t][2],q_dpo[t][3])))
@@ -295,7 +295,7 @@ end
 
 q_dpo_nom = X_nom_sample
 for t = 1:T
-	setobject!(vis["traj_dpo_nom$t"], Sphere(Point3f0(0),
+	setobject!(vis["traj_dpo_nom$t"], GeometryTypes.Sphere(Point3f0(0),
 		convert(Float32,0.05)),
 		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,1.0)))
 	settransform!(vis["traj_dpo_nom$t"], Translation((q_dpo_nom[t][1],q_dpo_nom[t][2],q_dpo_nom[t][3])))

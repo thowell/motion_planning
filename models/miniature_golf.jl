@@ -396,7 +396,7 @@ function visualize!(mvis, model::KukaParticle, q;
 	settransform!(vis["circle1"], compose(Translation(0.25, -1.5, 0.0)))
 
 
-	setobject!(vis["ball"], Sphere(Point3f0(0),
+	setobject!(vis["ball"], GeometryTypes.Sphere(Point3f0(0),
 				convert(Float32, r_ball)),
 				MeshPhongMaterial(color = RGBA(1,1,1,1.0)))
 

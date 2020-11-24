@@ -20,7 +20,7 @@ xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 
 # Objective
 obj = quadratic_tracking_objective(
-        [t < T ? Diagonal(ones(model.n)) : Diagonal(ones(model.n)) for t = 1:T],
+        [t < T ? Diagonal(1.0 * ones(model.n)) : Diagonal(ones(model.n)) for t = 1:T],
         [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1],
         [xT for t = 1:T], [zeros(model.m) for t = 1:T])
 
@@ -32,8 +32,7 @@ prob = trajectory_optimization_problem(model,
            xl = xl,
            xu = xu,
            ul = ul,
-           uu = uu,
-           )
+           uu = uu)
 
 # Trajectory initialization
 x0 = linear_interp(x1, xT, T) # linear interpolation on state
