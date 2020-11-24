@@ -138,7 +138,7 @@ ixy = "0" ixz = "0" iyz = "0" />
         <visual>
           <origin rpy = "0 0 0" xyz = "0.288 0 0"/>
 			<geometry>
-			  <sphere radius = "0.02"/>
+			  <GeometryTypes.Sphere radius = "0.02"/>
 			</geometry>
             <!-- <material name = "link-color"/> -->
             <material name = "Hebi-X-color"/>
@@ -203,7 +203,7 @@ ixy = "0" ixz = "0" iyz = "0" />
         <visual>
           <origin rpy = "0 0 0" xyz = "0.288 0 0"/>
 			<geometry>
-			  <sphere radius = "0.02"/>
+			  <GeometryTypes.Sphere radius = "0.02"/>
 			</geometry>
             <!-- <material name = "link-color"/> -->
             <material name = "Hebi-X-color"/>

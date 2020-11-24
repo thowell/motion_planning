@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/hopper.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("hopper")
 
 # Horizon
 T = 31
@@ -28,25 +28,23 @@ xl, xu = state_bounds(model, T, [model.qL; model.qL], [model.qU; model.qU],
     x1 = x1, xT = [Inf*ones(model.nq); qT])
 
 # Objective
-Qq = Diagonal([1.0, 1.0, 1.0, 1.0])
-Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
-QT = cat(0.5 * Qq, 100.0 * Diagonal(ones(model.nq)), dims = (1, 2))
-R = Diagonal([1.0e-1, 1.0e-3, zeros(model.m - model.nu)...])
-
+include_objective("velocity")
+obj_velocity = velocity_objective([Diagonal(ones(model.nq)) for t = 1:T],
+	model.nq, idx_angle = (3:3), h = h)
 obj_tracking = quadratic_tracking_objective(
-    [t < T ? Q : QT for t = 1:T],
-    [R for t = 1:T-1],
-    [[qT; qT] for t = 1:T],
-    [zeros(model.m) for t = 1:T]
-    )
-obj_penalty = PenaltyObjective(100.0, model.m)
-obj = MultiObjective([obj_tracking, obj_penalty])
+    [Diagonal(zeros(model.n)) for t = 1:T],
+    [Diagonal([1.0e-1, 1.0e-1, zeros(model.m - model.nu)...]) for t = 1:T-1],
+    [zeros(model.n) for t = 1:T],
+    [zeros(model.m) for t = 1:T-1])
+obj_penalty = PenaltyObjective(1.0e5, model.m)
+obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity])
 
 # Constraints
+include_constraints("contact")
 con_contact = contact_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -54,25 +52,26 @@ prob = problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_contact
-               )
+               con = con_contact)
 
 # Trajectory initialization
-x0 = [x1 for t = 1:T] #linear_interp(x1, x1, T) # linear interpolation on state
-u0 = [1.0e-2 * rand(model.m) for t = 1:T-1] # random controls
+x0 = configuration_to_state(linear_interp(q1, qT, T)) # linear interpolation on state
+u0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-
-@time z̄ = solve(prob, copy(z0), tol = 1.0e-3, c_tol = 1.0e-3)
+include_snopt()
+@time z̄ = solve(prob, copy(z0),
+ 	nlp = :SNOPT7,
+	tol = 1.0e-3, c_tol = 1.0e-3)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)

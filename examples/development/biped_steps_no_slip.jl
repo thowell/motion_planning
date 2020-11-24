@@ -147,8 +147,7 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # trajectory initialization
 u0 = [1.0e-6 * rand(model.m) for t = 1:T-1] # random controls
