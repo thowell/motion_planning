@@ -724,8 +724,6 @@ model = Quadruped(n, m, d,
 			  idx_η,
 			  idx_s)
 
-
-
 # visualization
 function visualize!(vis, model::Quadruped, q;
       r = 0.035, Δt = 0.1)
