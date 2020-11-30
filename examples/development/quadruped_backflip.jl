@@ -220,13 +220,15 @@ include_snopt()
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 tf, t, hc = get_time(ū)
-
+ū
 # Visualize
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
+
+visualize!(vis, model_ft, [[state_to_configuration(x̄)[1] for i = 1:5]..., state_to_configuration(x̄)..., [state_to_configuration(x̄)[end] for i = 1:5]...], Δt = ū[1][end])
+
 # setobject!(vis["box"], HyperRectangle(Vec(0.0, 0.0, 0.0), Vec(0.5, 1.0, 0.25)))
 # settransform!(vis["box"], Translation(1.0, -0.5, 0))
 # # open(vis)
-# using Plots
-# plot(hcat(ū...)[model_ft.idx_u, :]', linetype = :steppost)
-
-setobject!(vis["top_color"], )
+using Plots
+plot(t[1:end-1], hcat(ū...)[model_ft.idx_u, :]', linetype = :steppost,
+	width = 2.0, label = "", xlabel= "time (s)", ylabel = "control")
