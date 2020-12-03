@@ -1,8 +1,8 @@
 """
-    Acrobot
+    Double pendulum
 """
 
-struct Acrobot{T} <: Model
+struct DoublePendulum{T} <: Model
     n::Int
     m::Int
     d::Int
@@ -23,7 +23,7 @@ struct Acrobot{T} <: Model
     b2::T
 end
 
-function M(model::Acrobot, x)
+function M(model::DoublePendulum, x)
     a = (model.J1 + model.J2 + model.m2 * model.l1 * model.l1
          + 2.0 * model.m2 * model.l1 * model.lc2 * cos(x[2]))
 
@@ -35,7 +35,7 @@ function M(model::Acrobot, x)
               b c]
 end
 
-function τ(model::Acrobot, x)
+function τ(model::DoublePendulum, x)
     a = (-1.0 * model.m1 * model.g * model.lc1 * sin(x[1])
          - model.m2 * model.g * (model.l1 * sin(x[1])
          + model.lc2 * sin(x[1] + x[2])))
@@ -46,7 +46,7 @@ function τ(model::Acrobot, x)
               b]
 end
 
-function C(model::Acrobot, x)
+function C(model::DoublePendulum, x)
     a = -2.0 * model.m2 * model.l1 * model.lc2 * sin(x[2]) * x[4]
     b = -1.0 * model.m2 * model.l1 * model.lc2 * sin(x[2]) * x[4]
     c = model.m2 * model.l1 * model.lc2 * sin(x[2]) * x[3]
@@ -56,37 +56,37 @@ function C(model::Acrobot, x)
               c d]
 end
 
-function B(model::Acrobot, x)
-    @SMatrix [0.0;
-              1.0]
+function B(model::DoublePendulum, x)
+    @SMatrix [1.0 0.0;
+              0.0 1.0]
 end
 
-function f(model::Acrobot, x, u, w)
+function f(model::DoublePendulum, x, u, w)
     q = view(x, 1:2)
     v = view(x, 3:4)
     qdd = M(model, q) \ (-1.0 * C(model, x) * v
-            + τ(model, q) + B(model, q) * u[1:1] - [model.b1; model.b2] .* v)
+            + τ(model, q) + B(model, q) * u[1:2] - [model.b1; model.b2] .* v)
     @SVector [x[3],
               x[4],
               qdd[1],
               qdd[2]]
 end
 
-function k_mid(model::Acrobot, x)
+function kinematics_mid(model::DoublePendulum, x)
     @SVector [model.l1 * sin(x[1]),
               -1.0 * model.l1 * cos(x[1])]
 end
 
-function k_ee(model::Acrobot, x)
+function kinematics_ee(model::DoublePendulum, x)
     @SVector [model.l1 * sin(x[1]) + model.l2 * sin(x[1] + x[2]),
               -1.0 * model.l1 * cos(x[1]) - model.l2 * cos(x[1] + x[2])]
 end
 
-n, m, d = 4, 1, 0
-model = Acrobot(n, m , d, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+n, m, d = 4, 2, 0
+model = DoublePendulum(n, m , d, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
 
 # visualization
-function visualize!(vis, model::Acrobot, x;
+function visualize!(vis, model::DoublePendulum, x;
         color=RGBA(0.0, 0.0, 0.0, 1.0),
         r = 0.1, Δt = 0.1)
 

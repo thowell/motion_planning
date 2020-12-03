@@ -136,10 +136,10 @@ function friction_cone(model::Hopper, u)
 	return @SVector [model.μ * λ[1] - sum(b)]
 end
 
-r = 0.7
+r = 0.5
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
-qL[4] = r / 2.0
+qL[4] = 0.1
 qU[4] = r
 
 model = Hopper(n, m, d,
