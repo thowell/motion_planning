@@ -1,11 +1,11 @@
 include(joinpath(pwd(), "models/hopper.jl"))
 include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+include(joinpath(pwd(), "src/constraints/contact_no_slip.jl"))
 include(joinpath(pwd(), "src/constraints/free_time.jl"))
 include(joinpath(pwd(), "src/constraints/loop.jl"))
 
 # Free-time model
-model_ft = free_time_model(model)
+model_ft = free_time_model(no_slip_model(model))
 
 function fd(model::Hopper, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
@@ -26,18 +26,19 @@ function fd(model::Hopper, x⁺, x, u, w, h, t)
 	- h * G_func(model, q2⁺))]
 end
 
-function maximum_dissipation(model::Hopper, x⁺, u, h)
-	q3 = x⁺[model.nq .+ (1:model.nq)]
-	q2 = x⁺[1:model.nq]
-	ψ = u[model.idx_ψ]
-	ψ_stack = ψ[1] * ones(model.nb)
-	η = u[model.idx_η]
+model_ft.m
+model_ft.idx_s
+function no_slip(model::Hopper, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
 	h = u[end]
-	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / (1.0e-6 + h))[1]
 end
 
 # Horizon
-T = 101
+T = 51
 
 # Time step
 tf = 1.0
@@ -61,24 +62,29 @@ xl, xu = state_bounds(model_ft, T,
         x1 = [q1; Inf * ones(model.nq)])
 
 # Objective
+Qq = Diagonal([1.0, 1.0, 1.0, 1.0])
+Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
+QT = cat(0.5 * Qq, 1.0 * Diagonal(ones(model_ft.nq)), dims = (1, 2))
+R = Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...])
+
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
+    [R for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
 obj_contact_penalty = PenaltyObjective(1.0e5, model_ft.m - 1)
 obj_velocity = velocity_objective(
-    [Diagonal(10.0 * ones(model_ft.nq)) for t = 1:T-1],
+    [Diagonal(1.0e-1 * ones(model_ft.nq)) for t = 1:T-1],
     model_ft.nq,
     h = h,
     idx_angle = collect([3]))
-obj = MultiObjective([obj_tracking, obj_contact_penalty, obj_velocity])
+obj = MultiObjective([obj_tracking, obj_contact_penalty])#, obj_velocity])
 
 # Constraints
 con_free_time = free_time_constraints(T)
-con_contact = contact_constraints(model_ft, T)
-con_loop = loop_constraints(model, 1, T)
+con_contact = contact_no_slip_constraints(model_ft, T)
+con_loop = loop_constraints(model_ft, 1, T)
 
 con = multiple_constraints([con_free_time, con_contact, con_loop])
 
@@ -103,25 +109,18 @@ z0 = pack(x0, u0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
+@time z̄ = solve(prob, copy(z0),
+	nlp = :SNOPT7,
+	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
+	time_limit = 60)
 
-optimize = true
-if optimize
-	@time z̄ = solve(prob, copy(z0),
-		nlp = :SNOPT7,
-		tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
-		time_limit = 60)
-	@show check_slack(z̄, prob)
-	x̄, ū = unpack(z̄, prob)
-	_ū = [ū[t][1:5] for t = 1:T-1]
-	tf, t, h̄ = get_time(ū)
-	@show tf
-	@show h̄[1]
-	@save joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ _ū h̄
-else
-	@load joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ _ū h̄
-end
+check_slack(z̄, prob)
+x̄, ū = unpack(z̄, prob)
+tf, t, hc = get_time(ū)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
+
+@save joinpath(@__DIR__, "hopper_vertical_gait_no_slip.jld2") x̄ ū
