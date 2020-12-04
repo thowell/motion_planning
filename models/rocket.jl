@@ -2,32 +2,32 @@
 	Rocket
 """
 
-abstract type Rocket end
+abstract type Rocket{I, T} <: Model{I, T} end
 
-struct RocketNominal{T} <: Rocket
+struct RocketNominal{I, T} <: Rocket{I, T}
 	n::Int
 	m::Int
 	d::Int
 
-	g::T  # gravity
-	m1::T # mass
-	l1::T # length
-	J::T  # inertia
+	g  # gravity
+	m1 # mass
+	l1 # length
+	J  # inertia
 end
 
-struct RocketSlosh{T} <: Rocket
+struct RocketSlosh{I, T} <: Rocket{I, T}
 	n::Int
 	m::Int
 	d::Int
 
-	g::T  # gravity
-	m1::T # mass
-	l1::T # length
-	J::T  # inertia
+	g  # gravity
+	m1 # mass
+	l1 # length
+	J  # inertia
 
-	m2::T # mass of fuel
-	l2::T # length of fuel pendulum
-	l3::T # length from rocket COM to fuel pendulum
+	m2 # mass of fuel
+	l2 # length of fuel pendulum
+	l3 # length from rocket COM to fuel pendulum
 end
 
 g = 9.81 # gravity
@@ -45,11 +45,11 @@ d = 0
 
 # nominal model
 n_nominal = 6
-model_nominal = RocketNominal(n_nominal, m, d, g, m1, l1, J)
+model_nominal = RocketNominal{Midpoint, FixedTime}(n_nominal, m, d, g, m1, l1, J)
 
 # slosh model
 n_slosh = 8
-model_slosh = RocketSlosh(n_slosh, m, d, g, m1 - m2, l1, J, m2, l2, l3)
+model_slosh = RocketSlosh{Midpoint, FixedTime}(n_slosh, m, d, g, m1 - m2, l1, J, m2, l2, l3)
 
 function k_thruster(model::Rocket, x)
 	y, z, θ = x[1:3]

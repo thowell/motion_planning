@@ -1,6 +1,8 @@
-abstract type Model end
+abstract type Integration end
 
-struct TemplateModel <: Model
+abstract type Model{Integration, Time} end
+
+struct TemplateModel{I, T} <: Model{Integration, Time}
 	n::Int # state dimension
 	m::Int # control dimension
 	d::Int # disturbance dimension
@@ -18,7 +20,7 @@ function k(model::TemplateModel, x)
 	nothing
 end
 
-model = TemplateModel(0, 0, 0)
+model = TemplateModel{Integration, Time}(0, 0, 0)
 
 state_output(model, x) = x
 control_output(model, u) = u
@@ -210,8 +212,8 @@ function initial_torque(model, q1, h)
 	if iter == 10
 		@warn "newton failed"
 	end
-    @show norm(r)
-    @show iter
+    # @show norm(r)
+    # @show iter
     return y
 end
 
@@ -220,10 +222,15 @@ end
 """
 	free final time model
 """
-function free_time_model(model)
-	model_ft = typeof(model)([f == :m ? getfield(model,f) + 1 : getfield(model,f)
+function free_time_model(model::Model{I, FixedTime}) where I <: Integration
+	model_ft = typeof(model).name.wrapper{I, FreeTime}([f == :m ? getfield(model,f) + 1 : getfield(model,f)
 	 	for f in fieldnames(typeof(model))]...)
 	return model_ft
+end
+
+function free_time_model(model::Model{I, FreeTime}) where I <: Integration
+	@warn "Model is already free time"
+	return model
 end
 
 """

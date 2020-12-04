@@ -1,10 +1,10 @@
-struct BipedPinned{T}
+struct BipedPinned{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    l1::T
-    l2::T
+    l1
+    l2
 end
 
 function f(model::BipedPinned, x, u, w)
@@ -12,7 +12,7 @@ function f(model::BipedPinned, x, u, w)
 end
 
 n, m, d = 10, 4, 0
-model = BipedPinned(n, m, d, 0.2755, 0.288)
+model = BipedPinned{Midpoint, FixedTime}(n, m, d, 0.2755, 0.288)
 
 function kinematics(model::BipedPinned, q)
 	θ1 = π - (q[1] + q[5])

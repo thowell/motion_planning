@@ -1,11 +1,11 @@
-include(joinpath(pwd(),"models/cartpole.jl"))
-include(joinpath(pwd(),"src/constraints/friction.jl"))
-
 # Model
+include_model("cartpole")
 μ0 = 0.1 # coefficient of friction
 
-model_nominal = CartpoleFriction(n, m, d, 1.0, 0.2, 0.5, 9.81, 0.0)
-model_friction = CartpoleFriction(n, m, d, 1.0, 0.2, 0.5, 9.81, μ0)
+model_nominal = CartpoleFriction{Midpoint, FixedTime}(n, m, d,
+    1.0, 0.2, 0.5, 9.81, 0.0)
+model_friction = CartpoleFriction{Midpoint, FixedTime}(n, m, d, 
+    1.0, 0.2, 0.5, 9.81, μ0)
 
 # Horizon
 T = 51
@@ -39,8 +39,9 @@ penalty_obj = PenaltyObjective(1000.0, 7)
 multi_obj = MultiObjective([obj, penalty_obj])
 
 # Constraints
-n_stage = 5
+include_constraints("friction")
 
+n_stage = 5
 con_friction = FrictionConstraints(n_stage * (T - 1),
     vcat([(t - 1) * n_stage .+ (3:5) for t = 1:T-1]...),
     n_stage)
@@ -67,7 +68,7 @@ prob_friction = trajectory_optimization_problem(model_friction,
                     con = con_friction)
 
 # Trajectory initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation on stateF
+x0 = linear_interpolation(x1, xT, T) # linear interpolation on stateF
 u0 = [ones(model_nominal.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

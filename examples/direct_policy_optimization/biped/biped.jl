@@ -1,14 +1,6 @@
-include(joinpath(pwd(), "models/biped_pinned.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/loop_delta.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
-include(joinpath(pwd(), "src/constraints/stage.jl"))
-
+# Model
+include_model("biped_pinned")
 model = free_time_model(additive_noise_model(model))
-
-function fd(model::BipedPinned, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
-end
 
 # # Visualize
 # include(joinpath(pwd(), "models/visualize.jl"))
@@ -53,6 +45,7 @@ ul, uu = control_bounds(model, T,
 xl, xu = state_bounds(model, T, x1 = [x1[1:5]; Inf * ones(5)])
 
 # Objective
+include_objective("nonlinear_stage")
 qq = 1.0 * [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 Q = [Diagonal(qq) for t = 1:T]
 R = [Diagonal([1.0e-3 * ones(model.m - 1); h0]) for t = 1:T-1]
@@ -70,10 +63,10 @@ obj_fh = nonlinear_stage_objective(l_stage_fh, l_terminal_fh)
 
 obj_multi = MultiObjective([obj_track, obj_fh])
 
-# Constraints
+# Constraints]
+include_constraints(["loop_delta", "free_time"])
 con_loop = loop_delta_constraints(model, (1:model.n), 1, T)
 con_free_time = free_time_constraints(T)
-
 con = multiple_constraints([con_loop, con_free_time])#, con_pinned_foot])
 
 # Problem
@@ -85,11 +78,10 @@ prob = trajectory_optimization_problem(model,
            xu = xu,
            ul = ul,
            uu = uu,
-		   con = con
-           )
+		   con = con)
 
 # Trajectory initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation on state
+x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
@@ -108,7 +100,6 @@ else
 	println("Loading solution...")
 	@load joinpath(@__DIR__, "sol_to.jld2") z̄
 end
-
 
 # Unpack solutions
 x̄, ū = unpack(z̄, prob)

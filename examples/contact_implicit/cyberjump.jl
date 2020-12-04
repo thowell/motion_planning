@@ -89,7 +89,7 @@ prob = problem(model,
                )
 
 # Trajectory initialization
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x_ref = configuration_to_state(q_ref)
 x0 = deepcopy(x_ref) # linear interpolation on state
 u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls

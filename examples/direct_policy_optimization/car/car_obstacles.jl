@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/car.jl"))
-include(joinpath(pwd(), "src/constraints/stage.jl"))
+# Model
+include_model("car")
 
 # Horizon
 T = 51
@@ -26,6 +26,8 @@ obj = quadratic_tracking_objective(
         [xT for t = 1:T], [zeros(model.m) for t = 1:T])
 
 # Constraints
+include_constraints("stage")
+
 circles = [(0.85, 0.3, 0.1),
            (0.375, 0.75, 0.1),
            (0.25, 0.2, 0.1),
@@ -61,7 +63,7 @@ prob = trajectory_optimization_problem(
            con = con_obstacles)
 
 # Trajectory initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation on state
+x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 u0 = random_controls(model, T, 0.001) # random controls
 
 # Pack trajectories into vector

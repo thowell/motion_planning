@@ -1,5 +1,3 @@
-
-
 function cable_transform(y, z)
     v1 = [0.0, 0.0, 1.0]
     # if norm(z) > norm(y)

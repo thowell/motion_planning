@@ -24,7 +24,7 @@ q1 = [0.0, 0.5 + z_h, 0.0, 0.25]
 x1 = [q1; q1; 0.0]
 qT = [0.0, 0.5 + z_h, 0.0, 0.5]
 xT = [qT; qT; 0.0]
-X0 = linear_interp(x1, xT, T)
+X0 = linear_interpolation(x1, xT, T)
 
 include("initial_torque.jl")
 u1 = initial_torque(model, q1, h)

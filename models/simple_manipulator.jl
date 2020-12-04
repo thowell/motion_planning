@@ -1,21 +1,21 @@
 # 2-link revolute-revolute manipulator + particle
-mutable struct RRParticle{T} <: Model
+mutable struct RRParticle{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    m1::T
-    J1::T
-    l1::T
+    m1
+    J1
+    l1
 
-    m2::T
-    J2::T
-    l2::T
+    m2
+    J2
+    l2
 
-    mp::T
+    mp
 
-    μ::T
-    g::T
+    μ
+    g
 
     nq
     nu
@@ -163,7 +163,7 @@ function maximum_dissipation(model::RRParticle, x⁺, u, h)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function fd(model::RRParticle, x⁺, x, u, w, h, t)
+function fd(model::RRParticle{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -181,7 +181,7 @@ function fd(model::RRParticle, x⁺, x, u, w, h, t)
     - h *(G_func(model, q2⁺) - 0.5 * C_func(model, q2⁺, q3, h)))]
 end
 
-model = RRParticle(n, m, d,
+model = RRParticle{Discrete, FixedTime}(n, m, d,
 				   m1, J1, l1,
 				   m2, J2, l2,
 				   mp, μ, g,

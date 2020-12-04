@@ -6,20 +6,18 @@
       Modified Rodrigues Parameters.
 """
 
-using Rotations
-
-struct Quadrotor{T}
+struct Quadrotor{I, T} <: Model{I, T}
       n::Int
       m::Int
       d::Int
 
-      mass::T # mass
+      mass # mass
       J       # inertia matrix
       Jinv    # inertia matrix inverse
       g       # gravity
-      L::T    # length
-      kf::T   # coefficient
-      km::T   # coefficient
+      L    # length
+      kf   # coefficient
+      km   # coefficient
 end
 
 function f(model::Quadrotor, z, u, w)
@@ -71,7 +69,7 @@ L = 0.175
 kf = 1.0
 km = 0.0245
 
-model = Quadrotor(n, m, d,
+model = Quadrotor{Midpoint, FixedTime}(n, m, d,
                   mass,
                   J,
                   Jinv,

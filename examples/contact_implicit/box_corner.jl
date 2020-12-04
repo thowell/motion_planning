@@ -60,7 +60,7 @@ prob = problem(model,
                )
 
 # Trajectory initialization
-x0 = linear_interp(x1, [qT; qT], T) # linear interpolation on state
+x0 = linear_interpolation(x1, [qT; qT], T) # linear interpolation on state
 u0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

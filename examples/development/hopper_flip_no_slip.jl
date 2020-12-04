@@ -60,10 +60,10 @@ xl, xu = state_bounds(model_ft, T,
         x1 = [q1; q1],
 		xT = [Inf * ones(model_ft.nq); qT])
 
-q_ref = [linear_interp(q1, q_right, 6)...,
-         linear_interp(q_right, q_top, 6)[2:end]...,
-         linear_interp(q_top, q_left, 6)[2:end]...,
-         linear_interp(q_left, qT, 6)[2:end]...]
+q_ref = [linear_interpolation(q1, q_right, 6)...,
+         linear_interpolation(q_right, q_top, 6)[2:end]...,
+         linear_interpolation(q_top, q_left, 6)[2:end]...,
+         linear_interpolation(q_left, qT, 6)[2:end]...]
 
 x_ref = configuration_to_state(q_ref)
 

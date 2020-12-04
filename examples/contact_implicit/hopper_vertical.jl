@@ -1,40 +1,6 @@
-include(joinpath(pwd(), "models/hopper.jl"))
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
-include(joinpath(pwd(), "src/constraints/loop.jl"))
-
-# Free-time model
+# Model
+include_model("hopper")
 model_ft = free_time_model(model)
-
-function fd(model::Hopper, x⁺, x, u, w, h, t)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2⁺ = view(x⁺, 1:model.nq)
-	q2⁻ = view(x, model.nq .+ (1:model.nq))
-	q1 = view(x, 1:model.nq)
-	u_ctrl = view(u, model.idx_u)
-	λ = view(u, model.idx_λ)
-	b = view(u, model.idx_b)
-	h = u[end]
-
-	[q2⁺ - q2⁻;
-	((1.0 / h) * (M_func(model, q1) * (SVector{4}(q2⁺) - SVector{4}(q1))
-	- M_func(model, q2⁺) * (SVector{4}(q3) - SVector{4}(q2⁺)))
-	+ transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
-	+ transpose(N_func(model, q3)) * SVector{1}(λ)
-	+ transpose(P_func(model, q3)) * SVector{2}(b)
-	- h * G_func(model, q2⁺))]
-end
-
-function maximum_dissipation(model::Hopper, x⁺, u, h)
-	q3 = x⁺[model.nq .+ (1:model.nq)]
-	q2 = x⁺[1:model.nq]
-	ψ = u[model.idx_ψ]
-	ψ_stack = ψ[1] * ones(model.nb)
-	η = u[model.idx_η]
-	h = u[end]
-	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
-end
 
 # Horizon
 T = 101
@@ -62,6 +28,7 @@ xl, xu = state_bounds(model_ft, T,
         x1 = [q1; Inf * ones(model.nq)])
 
 # Objective
+include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
     [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
@@ -77,10 +44,10 @@ obj_velocity = velocity_objective(
 obj = MultiObjective([obj_tracking, obj_contact_penalty, obj_velocity])
 
 # Constraints
+include_constraints(["free_time", "contact", "loop"])
 con_free_time = free_time_constraints(T)
 con_contact = contact_constraints(model_ft, T)
 con_loop = loop_constraints(model, 1, T)
-
 con = multiple_constraints([con_free_time, con_contact, con_loop])
 
 # Problem
@@ -91,8 +58,7 @@ prob = trajectory_optimization_problem(model_ft,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # Trajectory initialization
 x0 = [[q1; q1] for t = 1:T] # linear interpolation on state

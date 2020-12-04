@@ -1,10 +1,10 @@
-struct Quadruped{T}
+struct Quadruped{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    g::T
-    μ::T
+    g
+    μ
 
     # torso
     l1
@@ -680,7 +680,7 @@ function no_slip(model::Quadruped, x⁺, u, h)
 	return s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
-function fd(model::Quadruped, x⁺, x, u, w, h, t)
+function fd(model::Quadruped{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -698,7 +698,36 @@ function fd(model::Quadruped, x⁺, x, u, w, h, t)
     - h * C_func(model, q3, (q3 - q2⁺) / h))]
 end
 
-model = Quadruped(n, m, d,
+function fd(model::Quadruped{Discrete, FreeTime}, x⁺, x, u, w, h, t)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2⁺ = view(x⁺, 1:model.nq)
+	q2⁻ = view(x, model.nq .+ (1:model.nq))
+	q1 = view(x, 1:model.nq)
+	u_ctrl = view(u, model.idx_u)
+	λ = view(u, model.idx_λ)
+	b = view(u, model.idx_b)
+	h = u[end]
+
+    [q2⁺ - q2⁻;
+    ((1.0 / h) * (M_func(model, q1) * (SVector{11}(q2⁺) - SVector{11}(q1))
+    - M_func(model, q2⁺) * (SVector{11}(q3) - SVector{11}(q2⁺)))
+    + transpose(B_func(model, q3)) * SVector{8}(u_ctrl)
+    + transpose(N_func(model, q3)) * SVector{4}(λ)
+    + transpose(P_func(model, q3)) * SVector{8}(b)
+    - h * C_func(model, q3, (q3 - q2⁺) / h))]
+end
+
+function maximum_dissipation(model::Quadruped{Discrete, FreeTime}, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	ψ = view(u, model.idx_ψ)
+	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2); ψ[3] * ones(2); ψ[4] * ones(2)]
+	η = view(u, model.idx_η)
+	h = u[end]
+	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+model = Quadruped{Discrete, FixedTime}(n, m, d,
 			  g, μ,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
@@ -908,8 +937,8 @@ function initial_configuration(model::Quadruped, θ)
 	return q1
 end
 
-include(joinpath(pwd(),"models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-q0 = initial_configuration(model, pi / 7.5)
-visualize!(vis, model, [q0], Δt = 1.0)
+# include(joinpath(pwd(),"models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# q0 = initial_configuration(model, pi / 7.5)
+# visualize!(vis, model, [q0], Δt = 1.0)

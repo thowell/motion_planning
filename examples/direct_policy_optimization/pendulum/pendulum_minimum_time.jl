@@ -1,19 +1,13 @@
-include(joinpath(pwd(), "models/pendulum.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
-
-# Free-time model with additive noise
+# Model
+include_model("pendulum")
 model = free_time_model(additive_noise_model(model))
-
-function fd(model::Pendulum, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
-end
 
 # Horizon
 T = 51
 
 # Bounds
 tf = 2.0
-h0 = tf / (T-1) # timestep
+h0 = tf / (T - 1) # timestep
 
 ul, uu = control_bounds(model, T, [-3.0; 0.0], [3.0; h0])
 
@@ -27,6 +21,7 @@ xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 obj = PenaltyObjective(1.0, model.m)
 
 # Time step constraints
+include_constraints("free_time")
 con_free_time = free_time_constraints(T)
 
 # Problem
@@ -37,11 +32,10 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-			   con = con_free_time
-               )
+			   con = con_free_time)
 
 # Initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation for states
+x0 = linear_interpolation(x1, xT, T) # linear interpolation for states
 u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector

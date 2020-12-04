@@ -1,23 +1,27 @@
 """
     Hopper
-    	model from "Dynamically Stable Legged Locomotion"
-		x = (px, py, t, r)
+    	model inspired by "Dynamically Stable Legged Locomotion"
+		x = (y, z, t, r)
+			y - lateral position
+			z - vertical position
+			t - body orientation
+			r - leg length
 """
-struct Hopper{T}
+struct Hopper{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    mb::T # mass of body
-    ml::T # mass of leg
-    Jb::T # inertia of body
-    Jl::T # inertia of leg
+    mb # mass of body
+    ml # mass of leg
+    Jb # inertia of body
+    Jl # inertia of leg
 
-    μ::T  # coefficient of friction
-    g::T  # gravity
+    μ  # coefficient of friction
+    g  # gravity
 
-    qL::Vector{T}
-    qU::Vector{T}
+    qL::Vector
+    qU::Vector
 
     nq
     nu
@@ -94,7 +98,7 @@ end
 B_func(::Hopper, q) = @SMatrix [0.0 0.0 1.0 0.0;
                                 -sin(q[3]) cos(q[3]) 0.0 1.0]
 
-function fd(model::Hopper, x⁺, x, u, w, h, t)
+function fd(model::Hopper{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -112,7 +116,7 @@ function fd(model::Hopper, x⁺, x, u, w, h, t)
     - h * G_func(model, q2⁺))]
 end
 
-function maximum_dissipation(model::Hopper, x⁺, u, h)
+function maximum_dissipation(model::Hopper{Discrete, FixedTime}, x⁺, u, h)
 	q3 = x⁺[model.nq .+ (1:model.nq)]
 	q2 = x⁺[1:model.nq]
 	ψ = u[model.idx_ψ]
@@ -121,12 +125,50 @@ function maximum_dissipation(model::Hopper, x⁺, u, h)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function no_slip(model::Hopper, x⁺, u, h)
+function fd(model::Hopper{Discrete, FreeTime}, x⁺, x, u, w, h, t)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2⁺ = view(x⁺, 1:model.nq)
+	q2⁻ = view(x, model.nq .+ (1:model.nq))
+	q1 = view(x, 1:model.nq)
+	u_ctrl = view(u, model.idx_u)
+	λ = view(u, model.idx_λ)
+	b = view(u, model.idx_b)
+	h = u[end]
+
+	[q2⁺ - q2⁻;
+	((1.0 / h) * (M_func(model, q1) * (SVector{4}(q2⁺) - SVector{4}(q1))
+	- M_func(model, q2⁺) * (SVector{4}(q3) - SVector{4}(q2⁺)))
+	+ transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
+	+ transpose(N_func(model, q3)) * SVector{1}(λ)
+	+ transpose(P_func(model, q3)) * SVector{2}(b)
+	- h * G_func(model, q2⁺))]
+end
+
+function maximum_dissipation(model::Hopper{Discrete, FreeTime}, x⁺, u, h)
+	q3 = x⁺[model.nq .+ (1:model.nq)]
+	q2 = x⁺[1:model.nq]
+	ψ = u[model.idx_ψ]
+	ψ_stack = ψ[1] * ones(model.nb)
+	η = u[model.idx_η]
+	h = u[end]
+	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+function no_slip(model::Hopper{Discrete, FixedTime}, x⁺, u, h)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2 = view(x⁺, 1:model.nq)
 	λ = view(u, model.idx_λ)
 	s = view(u, model.idx_s)
 
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
+end
+
+function no_slip(model::Hopper{Discrete, FreeTime}, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+	h = u[end]
 	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
@@ -142,7 +184,7 @@ qU = Inf * ones(nq)
 qL[4] = 0.1
 qU[4] = r
 
-model = Hopper(n, m, d,
+model = Hopper{Discrete, FixedTime}(n, m, d,
 			   mb, ml, Jb, Jl,
 			   μ, g,
 			   qL, qU,

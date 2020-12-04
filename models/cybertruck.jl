@@ -1,12 +1,12 @@
-struct CYBERTRUCK{T} <: Model
+struct CYBERTRUCK{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    mass::T
-    J::T
-    μ::T
-    g::T
+    mass
+    J
+    μ
+    g
 
     nq
     nu
@@ -82,7 +82,7 @@ function maximum_dissipation(model::CYBERTRUCK, x⁺, u, h)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function fd(model::CYBERTRUCK, x⁺, x, u, w, h, t)
+function fd(model::CYBERTRUCK{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -100,7 +100,7 @@ function fd(model::CYBERTRUCK, x⁺, x, u, w, h, t)
     - h * G_func(model, q2⁺))]
 end
 
-model = CYBERTRUCK(n, m, d,
+model = CYBERTRUCK{Discrete, FixedTime}(n, m, d,
 				   mass, J, μ, g,
 				   nq,
   				   nu,

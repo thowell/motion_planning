@@ -1,12 +1,6 @@
-include(joinpath(pwd(),"models/rocket.jl"))
-include(joinpath(pwd(),"src/constraints/free_time.jl"))
-
-# Free-time model
+# Model
+include_model("rocket")
 model_sl = free_time_model(additive_noise_model(model_slosh))
-
-function fd(model::RocketSlosh, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
-end
 
 # Horizon
 T = 41
@@ -80,7 +74,7 @@ prob_slosh = trajectory_optimization_problem(model_sl,
                     con = con_free_time)
 
 # Trajectory initialization
-x0_slosh = linear_interp(x1_slosh, xT_slosh, T) # linear interpolation on state
+x0_slosh = linear_interpolation(x1_slosh, xT_slosh, T) # linear interpolation on state
 u0 = [ones(model_sl.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

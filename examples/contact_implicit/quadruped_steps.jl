@@ -59,7 +59,7 @@ xl, xu = state_bounds(model, T,
     xT = [qT; qT])
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 visualize!(vis, model, q_ref)
 
 x0 = configuration_to_state(q_ref)

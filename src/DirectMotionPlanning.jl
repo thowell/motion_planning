@@ -18,8 +18,9 @@ include("unscented.jl")
 include("indices.jl")
 include("utils.jl")
 
-include("integration.jl")
+include("time.jl")
 include("model.jl")
+include("integration.jl")
 
 include("problem.jl")
 
@@ -32,5 +33,10 @@ include("constraints/dynamics.jl")
 
 include("moi.jl")
 include("solvers/snopt.jl")
+
+# direct policy optimization
+function include_dpo()
+    include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+end
 
 end # module

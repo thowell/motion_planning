@@ -78,17 +78,17 @@ ee_in_world = transform(state, ee_point, world).v
 
 # Kuka iiwa arm parsed from URDF using RigidBodyDynamics.jl
 # + 3D particle
-struct KukaParticle{T} <: Model
+struct KukaParticle{I, T} <: Model{I, T}
 	n::Int
 	m::Int
 	d::Int
 
 	# particle
-	mp::T
-	rp::T
+	mp
+	rp
 
-    qL::Vector{T}
-    qU::Vector{T}
+    qL::Vector
+    qU::Vector
 
     state_cache1
     state_cache2
@@ -254,7 +254,7 @@ function maximum_dissipation(model::KukaParticle, x⁺, u, h)
     P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function fd(model::KukaParticle, x⁺, x, u, w, h, t)
+function fd(model::KukaParticle{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -356,7 +356,7 @@ end
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
 
-model = KukaParticle(
+model = KukaParticle{Discrete, FixedTime}(
 	n, m, d,
 	mp, rp,
 	qL, qU,

@@ -13,42 +13,7 @@ h = tf / (T - 1)
 
 u1 = initial_torque(model, q1, h)[model.idx_u]
 
-# Free-time model_ft
 model_ft = free_time_model(model)
-
-function fd(model::Quadruped, x⁺, x, u, w, h, t)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2⁺ = view(x⁺, 1:model.nq)
-	q2⁻ = view(x, model.nq .+ (1:model.nq))
-	q1 = view(x, 1:model.nq)
-	u_ctrl = view(u, model.idx_u)
-	λ = view(u, model.idx_λ)
-	b = view(u, model.idx_b)
-	h = u[end]
-
-    [q2⁺ - q2⁻;
-    ((1.0 / h) * (M_func(model, q1) * (SVector{11}(q2⁺) - SVector{11}(q1))
-    - M_func(model, q2⁺) * (SVector{11}(q3) - SVector{11}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{8}(u_ctrl)
-    + transpose(N_func(model, q3)) * SVector{4}(λ)
-    + transpose(P_func(model, q3)) * SVector{8}(b)
-    - h * C_func(model, q3, (q3 - q2⁺) / h))]
-end
-
-function maximum_dissipation(model::Quadruped, x⁺, u, h)
-	q3 = view(x⁺, model.nq .+ (1:model.nq))
-	q2 = view(x⁺, 1:model.nq)
-	ψ = view(u, model.idx_ψ)
-	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2); ψ[3] * ones(2); ψ[4] * ones(2)]
-	η = view(u, model.idx_η)
-	h = u[end]
-	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
-end
-
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/free_time.jl"))
 
 # Visualize
 # - Pkg.add any external deps from visualize.jl
@@ -57,22 +22,6 @@ vis = Visualizer()
 open(vis)
 
 # Configurations
-# 1: x pos
-# 2: z pos
-# 3: torso angle (rel. to downward vertical)
-# 4: thigh 1 angle (rel. to downward vertical)
-# 5: calf 1 (rel. to thigh 1)
-# 6: thigh 2 (rel. to downward vertical)
-# 7: calf 2 (rel. to thigh 2)
-# θ = pi / 12.5
-# q1 = initial_configuration(model_ft, θ) # generate initial config from θ
-# qT = copy(q1)
-# qT[1] += 1.0
-# q1[3] -= pi / 30.0
-# q1[4] += pi / 20.0
-# q1[5] -= pi / 10.0
-# q1, qT = loop_configurations(model_ft, θ)
-# qT[1] += 1.0
 
 q1 = initial_configuration(model_ft,  θ)
 qM = initial_configuration(model_ft,  -pi / 2.5)
@@ -92,10 +41,10 @@ visualize!(vis, model_ft, [q1])
 visualize!(vis, model_ft, [qM])
 visualize!(vis, model_ft, [qT])
 
-q_ref = [linear_interp(q1, qM, 14)[1:end-1]...,
-    linear_interp(qM, qT, 13)...]
+q_ref = [linear_interpolation(q1, qM, 14)[1:end-1]...,
+    linear_interpolation(qM, qT, 13)...]
 
-# q_ref = linear_interp(q1, qM, T)
+# q_ref = linear_interpolation(q1, qM, T)
 visualize!(vis, model_ft, q_ref)
 
 # Bounds
@@ -117,6 +66,8 @@ xl, xu = state_bounds(model_ft, T,
     xT = [Inf * ones(model.nq); qT])
 
 # Objective
+include_objective(["velocity", "nonlinear_stage"])
+
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
@@ -182,6 +133,7 @@ obj = MultiObjective([obj_penalty,
                       obj_fh4])
 
 # Constraints
+include_constraints(["contact", "free_time"])
 con_contact = contact_constraints(model_ft, T)
 con_free_time = free_time_constraints(T)
 con = multiple_constraints([con_contact, con_free_time])

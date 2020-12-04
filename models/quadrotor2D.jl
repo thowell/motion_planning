@@ -2,15 +2,15 @@
     Planar quadrotor
 """
 
-mutable struct Quadrotor2D{T}
+mutable struct Quadrotor2D{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    L::T    # length
-    mass::T # mass
-    J::T    # inertia
-    g::T    # gravity
+    L    # length
+    mass # mass
+    J    # inertia
+    g    # gravity
 end
 
 function f(model::Quadrotor2D, x, u, w)
@@ -27,4 +27,4 @@ function f(model::Quadrotor2D, x, u, w)
 end
 
 n, m, d = 6, 2, 0
-model = Quadrotor2D(n, m, d, 1.0, 1.0, 1.0, 9.81)
+model = Quadrotor2D{Midpoint, FixedTime}(n, m, d, 1.0, 1.0, 1.0, 9.81)
