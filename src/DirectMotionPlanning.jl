@@ -8,10 +8,10 @@ using JLD2
 using Colors
 using CoordinateTransformations
 using FileIO
-using GeometryTypes
-using MeshCat, MeshIO, MeshCatMechanisms
+using GeometryBasics
+using MeshCat, MeshIO
 using Rotations
-using RigidBodyDynamics
+# using RigidBodyDynamics, MeshCatMechanisms
 
 include("lqr.jl")
 include("unscented.jl")

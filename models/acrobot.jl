@@ -99,10 +99,10 @@ function visualize!(vis, model::Acrobot, x;
         convert(Float32, 0.025))
     setobject!(vis["l2$i"], l2, MeshPhongMaterial(color = color))
 
-    setobject!(vis["elbow$i"], GeometryTypes.Sphere(Point3f0(0.0),
+    setobject!(vis["elbow$i"], Sphere(Point3f0(0.0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = color))
-    setobject!(vis["ee$i"], GeometryTypes.Sphere(Point3f0(0.0),
+    setobject!(vis["ee$i"], Sphere(Point3f0(0.0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = color))
 

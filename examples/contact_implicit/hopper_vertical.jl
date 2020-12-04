@@ -45,9 +45,10 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
+_uu[model_ft.idx_u] .= 10.0
 _uu[end] = 2.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] .= -Inf
+_ul[model_ft.idx_u] .= -10.0
 _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
@@ -95,7 +96,7 @@ prob = trajectory_optimization_problem(model_ft,
 
 # Trajectory initialization
 x0 = [[q1; q1] for t = 1:T] # linear interpolation on state
-u0 = [[1.0e-5 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -125,3 +126,5 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
+
+plot(hcat(_ū...)[1:2, :]', linetype = :steppost)

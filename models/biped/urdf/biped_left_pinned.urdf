@@ -38,7 +38,7 @@
         <visual>
           <origin rpy = "0 0 0" xyz = "-0.01 0 0"/>
 			<geometry>
-			  <GeometryTypes.Sphere radius = "0.02"/>
+			  <Sphere radius = "0.02"/>
 			</geometry>
             <!-- <material name = "link-color"/> -->
             <material name = "Hebi-X-color"/>
@@ -176,7 +176,7 @@
         <visual>
           <origin rpy = "0 0 0" xyz = "0.288 0 0"/>
 			<geometry>
-			  <GeometryTypes.Sphere radius = "0.02"/>
+			  <Sphere radius = "0.02"/>
 			</geometry>
             <!-- <material name = "link-color"/> -->
             <material name = "Hebi-X-color"/>

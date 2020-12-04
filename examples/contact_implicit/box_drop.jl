@@ -16,7 +16,7 @@ _ul = zeros(model.m)
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-mrp = MRP(UnitQuaternion(RotY(pi / 10.0)*RotX(pi / 15.0)))
+mrp = MRP(UnitQuaternion(RotY(pi / 10.0) * RotX(pi / 15.0)))
 
 q1 = [0.0, 0.0, 2.5, mrp.x, mrp.y, mrp.z]
 v1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -64,10 +64,3 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
-
-obj = Rect(Vec(-1.0 * model.r,
-    -1.0 * model.r,
-    -1.0 * model.r),
-    Vec(2.0 * model.r, 2.0 * model.r, 2.0 * model.r))
-
-setobject!(vis, obj)
