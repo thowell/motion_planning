@@ -61,7 +61,7 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K = tvlqr(model,
+K, P = tvlqr(model,
 	x̄, [ū[t][1:1] for t = 1:T-1],
  	Q, [R[t][1:1, 1:1] for t = 1:T-1],
 	h)

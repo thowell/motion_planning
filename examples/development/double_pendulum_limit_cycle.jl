@@ -9,7 +9,7 @@ function fd(model::DoublePendulum, x⁺, x, u, w, h, t)
 end
 
 # Horizon
-T = 100
+T = 50
 Tm = convert(Int, floor(T / 2))
 
 # Time step
@@ -83,6 +83,9 @@ z0 = pack(x0, u0, prob)
 # Visualize
 using Plots
 x, u = unpack(z, prob)
+_u = [u[t][1:2] for t = 1:T-1]
+tf, t, _h = get_time(u)
+
 plot(hcat(x...)', width = 2.0)
 plot(hcat(u...)', width = 2.0, linetype = :steppost)
 
@@ -135,3 +138,6 @@ plot(hcat([vec(PN[t]) for t = 1:(TN - 1)]...)',
     title = "LQR cost-to-go ($N cycles)",
     xlabel = "time step t",
     labels = "")
+
+ctg = PN[1:T]
+@save joinpath(@__DIR__, "double_pendulum_limit_cycle.jld2") x _u _h ctg

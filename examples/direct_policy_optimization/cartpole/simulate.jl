@@ -83,10 +83,10 @@ x̄_friction, ū_friction = unpack(z̄_friction, prob_friction)
 x̄_dpo, ū_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
 
 # Policies
-K_nominal = tvlqr(model,
+K_nominal, P_nominal = tvlqr(model,
 	x̄_nominal, [ū_nominal[t][1:1] for t = 1:T-1],
  	Q, [R[t][1:1, 1:1] for t = 1:T-1], h)
-K_friction = tvlqr(model, x̄_friction, [ū_friction[t][1:1] for t = 1:T-1],
+K_friction, P_friction = tvlqr(model, x̄_friction, [ū_friction[t][1:1] for t = 1:T-1],
  	Q, [R[t][1:1, 1:1] for t = 1:T-1],
 	h)
 θ = get_policy(z, prob_dpo)

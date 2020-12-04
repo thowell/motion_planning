@@ -23,6 +23,7 @@
 - [ ] ball-in-cup quadrotor
 - [X] biped (2D)
 - [X] quadruped (2D)
+- [X] quadruped (2D) backflip
 - [ ] atlas
 
 ## direct policy optimization examples

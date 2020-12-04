@@ -81,7 +81,7 @@ end
 
 # TVLQR policy
 A, B = get_dynamics(model)
-K = tvlqr(
+K, P = tvlqr(
 	[A for t = 1:T-1],
 	[B for t = 1:T-1],
 	Q, R)

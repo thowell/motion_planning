@@ -133,7 +133,7 @@ else
 end
 
 # TVLQR policy
-K = tvlqr(A, B, Q, R)
+K, P = tvlqr(A, B, Q, R)
 
 # DPO policy
 θ = get_policy(z, prob_dpo)
