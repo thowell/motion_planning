@@ -54,7 +54,7 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K = tvlqr(model, x̄, ū, Q, R, 0.0)
+K, P = tvlqr(model, x̄, ū, Q, R, 0.0)
 
 z0 = pack(z̄, K, prob_dpo)
 
