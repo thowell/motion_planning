@@ -1,14 +1,14 @@
 """
 	Particle
 """
-struct Particle{T}
+struct Particle{I, T} <: Model{I, T}
 	n::Int
 	m::Int
 	d::Int
 
-    mass::T
-	g::T
-    μ::T
+    mass
+	g
+    μ
 
     nq
     nu
@@ -104,7 +104,7 @@ function no_slip(model::Particle, x⁺, u, h)
 	return (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
-function fd(model::Particle, x⁺, x, u, w, h, t)
+function fd(model::Particle{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -122,7 +122,7 @@ function fd(model::Particle, x⁺, x, u, w, h, t)
     - h * G_func(model, q2⁺))]
 end
 
-model = Particle(n, m, d,
+model = Particle{Discrete, FixedTime}(n, m, d,
 				 mass, g, μ,
 				 nq,
 				 nu,

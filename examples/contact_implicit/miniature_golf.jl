@@ -28,7 +28,7 @@ xl, xu = state_bounds(model, T, [model.qL; model.qL], [model.qU; model.qU],
 	x1 = x1)
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x_ref = configuration_to_state(q_ref)
 set_configuration!(mvis, q_init)
 set_configuration!(state, q_init)

@@ -1,12 +1,6 @@
-include(joinpath(pwd(),"models/rocket.jl"))
-include(joinpath(pwd(),"src/constraints/free_time.jl"))
-
-# Free-time model
+# Model
+include_model("rocket")
 model_nom = free_time_model(model_nominal)
-
-function fd(model::RocketNominal, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, u[end])
-end
 
 # Horizon
 T = 41
@@ -62,6 +56,7 @@ obj = quadratic_time_tracking_objective(
 	1.0)
 
 # Time step constraints
+include_constraints("free_time")
 con_free_time = free_time_constraints(T)
 
 # Problem
@@ -75,12 +70,11 @@ prob_nominal = trajectory_optimization_problem(model_nom,
                     con = con_free_time)
 
 # Trajectory initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation on state
+x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 u0 = [ones(model_nom.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob_nominal)
-
 
 # Solve
 optimize = true

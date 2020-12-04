@@ -1,10 +1,10 @@
-struct Biped{T}
+struct Biped{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    g::T
-    μ::T
+    g
+    μ
 
     # torso
     l1
@@ -446,7 +446,7 @@ function no_slip(model::Biped, x⁺, u, h)
 	return s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
-function fd(model::Biped, x⁺, x, u, w, h, t)
+function fd(model::Biped{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -464,7 +464,7 @@ function fd(model::Biped, x⁺, x, u, w, h, t)
     - h * C_func(model, q3, (q3 - q2⁺) / h))]
 end
 
-model = Biped(n, m, d,
+model = Biped{Discrete, FixedTime}(n, m, d,
 			  g, μ,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,

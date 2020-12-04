@@ -1,23 +1,23 @@
 """
     Hopper2Wall
     	model from "Dynamically Stable Legged Locomotion"
-		x = (px, py, t, r)
+		x = (y, z, t, r)
 """
-struct Hopper2Wall{T}
+struct Hopper2Wall{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    mb::T # mass of body
-    ml::T # mass of leg
-    Jb::T # inertia of body
-    Jl::T # inertia of leg
+    mb # mass of body
+    ml # mass of leg
+    Jb # inertia of body
+    Jl # inertia of leg
 
-    μ::T  # coefficient of friction
-    g::T  # gravity
+    μ  # coefficient of friction
+    g  # gravity
 
-    qL::Vector{T}
-    qU::Vector{T}
+    qL::Vector
+    qU::Vector
 
     nq
     nu
@@ -102,7 +102,7 @@ B_func(::Hopper2Wall, q) = @SMatrix [0.0 0.0 1.0 0.0;
                                 -sin(q[3]) cos(q[3]) 0.0 1.0]
 
 
-function fd(model::Hopper2Wall, x⁺, x, u, w, h, t)
+function fd(model::Hopper2Wall{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -143,7 +143,7 @@ qU = Inf * ones(nq)
 qL[4] = r / 2.0
 qU[4] = r
 
-model = Hopper2Wall(n, m, d,
+model = Hopper2Wall{Discrete, FixedTime}(n, m, d,
 			   mb, ml, Jb, Jl,
 			   μ, g,
 			   qL, qU,

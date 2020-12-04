@@ -1,12 +1,8 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
-include(joinpath(pwd(), "models/quadrotor2D.jl"))
+include_dpo()
 
-# Additive noise model
+# Model
+include_model("quadrotor2D")
 model = additive_noise_model(model)
-
-function fd(model::Quadrotor2D, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, h) - w
-end
 
 # Horizon
 T = 51
@@ -36,11 +32,10 @@ prob = trajectory_optimization_problem(model,
            xl = xl,
            xu = xu,
            ul = ul,
-           uu = uu,
-           )
+           uu = uu)
 
 # Trajectory initialization
-x0 = linear_interp(x1_nom, xT_nom, T) # linear interpolation on state
+x0 = linear_interpolation(x1_nom, xT_nom, T) # linear interpolation on state
 u0 = [0.1 * ones(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

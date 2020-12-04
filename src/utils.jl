@@ -1,7 +1,7 @@
 """
     linear interpolation between two vectors over horizon T
 """
-function linear_interp(x0, xf, T)
+function linear_interpolation(x0, xf, T)
     n = length(x0)
     X = [copy(Array(x0)) for t = 1:T]
     for t = 1:T

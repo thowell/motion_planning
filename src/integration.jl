@@ -1,21 +1,40 @@
 """
+    continuous model
+"""
+abstract type Continuous <: Integration end
+
+"""
     explicit midpoint integrator
 """
-function midpoint(model, x, u, w, h)
+struct Midpoint <: Integration end
+
+function fd(model::Model{Midpoint, FixedTime}, x, u, w, h, t)
+    x + h * f(model, x + 0.5 * h * f(model, x, u, w), u, w)
+end
+
+function fd(model::Model{Midpoint, FreeTime}, x, u, w, h, t)
+    h = u[end]
     x + h * f(model, x + 0.5 * h * f(model, x, u, w), u, w)
 end
 
 """
     implicit midpoint integrator
 """
-function midpoint_implicit(model, x⁺, x, u, w, h)
+function fd(model::Model{Midpoint, FixedTime}, x⁺, x, u, w, h, t)
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w))
+end
+
+function fd(model::Model{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+    h = u[end]
     x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w))
 end
 
 """
     explicit RK3 integrator
 """
-function rk3(model, z, u, w, h)
+abstract type RK3 <: Integration end
+
+function fd(model::Model{RK3, FixedTime}, z, u, w, h, t)
     k1 = k2 = k3 = zero(z)
     k1 = h * f(model, z, u, w)
     k2 = h * f(model, z + 0.5 * k1, u, w)
@@ -26,13 +45,4 @@ end
 """
     discrete explicit dynamics
 """
-function fd(model, x, u, w, h, t)
-    midpoint(model, x, u, w, h)
-end
-
-"""
-    discrete implicit dynamics
-"""
-function fd(model, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, h)
-end
+abstract type Discrete <: Integration end

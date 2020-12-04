@@ -2,15 +2,15 @@
 	Cart-pole
 """
 
-struct Cartpole{T} <: Model
+struct Cartpole{I, T} <: Model{I, T}
 	n::Int
     m::Int
 	d::Int
 
-    mc::T     # mass of the cart in kg
-    mp::T     # mass of the pole (point mass at the end) in kg
-    l::T      # length of the pole in m
-    g::T      # gravity m/s^2
+    mc     # mass of the cart in kg
+    mp     # mass of the pole (point mass at the end) in kg
+    l      # length of the pole in m
+    g      # gravity m/s^2
 end
 
 function f(model::Cartpole, x, u, w)
@@ -31,21 +31,21 @@ function f(model::Cartpole, x, u, w)
 end
 
 n, m, d = 4, 1, 0
-model = Cartpole(n, m, d, 1.0, 0.2, 0.5, 9.81)
+model = Cartpole{Midpoint, FixedTime}(n, m, d, 1.0, 0.2, 0.5, 9.81)
 
 """
 	Cart-pole with Coulomb friction
 """
-struct CartpoleFriction{T} <: Model
+struct CartpoleFriction{I, T} <: Model{I, T}
 	n::Int
     m::Int
 	d::Int
 
-    mc::T     # mass of the cart in kg
-    mp::T     # mass of the pole (point mass at the end) in kg
-    l::T      # length of the pole in m
-    g::T      # gravity m/s^2
-	μ::T      # coefficient of friction
+    mc     # mass of the cart in kg
+    mp     # mass of the pole (point mass at the end) in kg
+    l      # length of the pole in m
+    g      # gravity m/s^2
+	μ      # coefficient of friction
 end
 
 function f(model::CartpoleFriction, x, u, w)
@@ -66,4 +66,4 @@ function f(model::CartpoleFriction, x, u, w)
 end
 
 n, m, d = 4, 7, 0
-model_friction = CartpoleFriction(n, m, d, 1.0, 0.2, 0.5, 9.81, 0.1)
+model_friction = CartpoleFriction{Midpoint, FixedTime}(n, m, d, 1.0, 0.2, 0.5, 9.81, 0.1)

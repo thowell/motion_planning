@@ -23,7 +23,7 @@ x1 = [q1; q1]
 xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x_ref = configuration_to_state(q_ref)
 
 Qq = Diagonal([1.0, 1.0, 1.0, 1.0])

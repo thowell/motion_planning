@@ -2,25 +2,25 @@
     Acrobot
 """
 
-struct Acrobot{T} <: Model
+struct Acrobot{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    m1::T    # mass link 1
-    J1::T    # inertia link 1
-    l1::T    # length link 1
-    lc1::T   # length to COM link 1
+    m1   # mass link 1
+    J1    # inertia link 1
+    l1    # length link 1
+    lc1   # length to COM link 1
 
-    m2::T    # mass link 2
-    J2::T    # inertia link 2
-    l2::T    # length link 2
-    lc2::T   # length to COM link 2
+    m2    # mass link 2
+    J2    # inertia link 2
+    l2    # length link 2
+    lc2   # length to COM link 2
 
-    g::T     # gravity
+    g     # gravity
 
-    b1::T    # joint friction
-    b2::T
+    b1    # joint friction
+    b2
 end
 
 function M(model::Acrobot, x)
@@ -83,7 +83,7 @@ function k_ee(model::Acrobot, x)
 end
 
 n, m, d = 4, 1, 0
-model = Acrobot(n, m , d, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+model = Acrobot{Midpoint, FixedTime}(n, m , d, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
 
 # visualization
 function visualize!(vis, model::Acrobot, x;

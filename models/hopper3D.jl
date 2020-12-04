@@ -1,26 +1,24 @@
-using Rotations
-
 """
     hopper 3D
         orientation representation: modified rodrigues parameters
 		similar to Raibert hopper, all mass is located at the body
 		x = (px, py, pz, tx, ty, tz, r)
 """
-struct Hopper3D{T}
+struct Hopper3D{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-	mb::T # mass of body
-    ml::T # mass of leg
-    Jb::T # inertia of body
-    Jl::T # inertia of leg
+	mb # mass of body
+    ml # mass of leg
+    Jb # inertia of body
+    Jl # inertia of leg
 
-    μ::T  # coefficient of friction
-    g::T  # gravity
+    μ  # coefficient of friction
+    g  # gravity
 
-    qL::Vector{T}
-    qU::Vector{T}
+    qL::Vector
+    qU::Vector
 
     nq
     nu
@@ -127,7 +125,7 @@ function maximum_dissipation(model::Hopper3D, x⁺, u, h)
     P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function fd(model::Hopper3D, x⁺, x, u, w, h, t)
+function fd(model::Hopper3D{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -151,7 +149,7 @@ qU = Inf * ones(nq)
 qL[7] = r / 2.0
 qU[7] = r
 
-model = Hopper3D(n, m, d,
+model = Hopper3D{Discrete, FixedTime}(n, m, d,
 			mb, ml, Jb, Jl,
 			μ, g,
 			qL, qU,

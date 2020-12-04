@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/particle.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("particle")
 
 # Horizon
 T = 51
@@ -28,10 +28,11 @@ xl, xu = state_bounds(model, T, x1 = x1)
 obj = PenaltyObjective(1000.0, model.m)
 
 # Constraints
+include_constraints("contact")
 con_contact = contact_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -39,11 +40,10 @@ prob = problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_contact
-               )
+               con = con_contact)
 
 # Trajectory initialization
-x0 = [0.01 * rand(model.n) for t = 1:T] #linear_interp(x1, x1, T) # linear interpolation on state
+x0 = [0.01 * rand(model.n) for t = 1:T] #linear_interpolation(x1, x1, T) # linear interpolation on state
 u0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

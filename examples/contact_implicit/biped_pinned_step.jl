@@ -31,7 +31,7 @@ xl, xu = state_bounds(model, T, x1 = [q1; Inf * ones(model.nq)], xT = [Inf * one
 
 # Objective
 include_objective(["velocity", "nonlinear_stage"])
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x0 = configuration_to_state(q_ref)
 
 obj_penalty = PenaltyObjective(1.0e5, model.m)
@@ -76,7 +76,7 @@ prob = trajectory_optimization_problem(model,
                )
 
 # trajectory initialization
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x0 = configuration_to_state(q_ref) # linear interpolation on state
 u0 = [0.001 * rand(model.m) for t = 1:T-1] # random controls
 

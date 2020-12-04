@@ -67,7 +67,7 @@ end
 q1 = initial_configuration(model, θ)
 qM = middle_configuration(model, θ)
 qT = final_configuration(model, θ)
-#q_ref = [linear_interp(q1, qM, 14)[1:end-1]..., linear_interp(qM, qT, 13)...]
+#q_ref = [linear_interpolation(q1, qM, 14)[1:end-1]..., linear_interpolation(qM, qT, 13)...]
 visualize!(vis, model, [qT])
 
 # Horizon
@@ -94,7 +94,7 @@ xl, xu = state_bounds(model, T,
     xT = [qT; qT])
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
+q_ref = linear_interpolation(q1, qT, T)
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable

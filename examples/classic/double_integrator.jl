@@ -18,7 +18,8 @@ xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 obj = quadratic_tracking_objective(
         [t < T ? Diagonal(ones(model.n)) : Diagonal(ones(model.n)) for t = 1:T],
         [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1],
-        [xT for t = 1:T], [zeros(model.m) for t = 1:T])
+        [xT for t = 1:T],
+		[zeros(model.m) for t = 1:T])
 
 # Problem
 prob = trajectory_optimization_problem(model,
@@ -28,18 +29,17 @@ prob = trajectory_optimization_problem(model,
                xu = xu)
 
 # Initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation for states
+x0 = linear_interpolation(x1, xT, T) # linear interpolation for states
 u0 = [ones(model.m) for t = 1:T-1]
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
 
 # Solve
-include_snopt()
-@time z̄ = solve(prob, copy(z0), nlp = :SNOPT7)
+@time z = solve(prob, copy(z0))
 
 # Visualize
 using Plots
-x̄, ū = unpack(z̄, prob)
-plot(hcat(x̄...)', width = 2.0)
-plot(hcat(ū...)', width = 2.0, linetype = :steppost)
+x, u = unpack(z, prob)
+plot(hcat(x...)', width = 2.0)
+plot(hcat(u...)', width = 2.0, linetype = :steppost)

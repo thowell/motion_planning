@@ -1,19 +1,13 @@
-include(joinpath(pwd(),"models/quadrotor.jl"))
-include(joinpath(pwd(),"src/constraints/free_time.jl"))
-
-# Free-time model
+# Model
+include_model("quadrotor")
 model = free_time_model(additive_noise_model(model))
-
-function fd(model::Quadrotor, x⁺, x, u, w, h, t)
-	midpoint_implicit(model, x⁺, x, u, w, u[end]) - w
-end
 
 # Horizon
 T = 31
 
 # Time step
 tf0 = 5.0
-h0 = tf0 / (T-1)
+h0 = tf0 / (T - 1)
 
 # ul <= u <= uu
 _uu = 5.0 * ones(model.m)
@@ -62,6 +56,7 @@ obj = quadratic_time_tracking_objective(
 	1.0)
 
 # Time step constraints
+include_constraints("free_time")
 con_free_time = free_time_constraints(T)
 
 # Problem
@@ -75,7 +70,7 @@ prob = trajectory_optimization_problem(model,
                con = con_free_time)
 
 # Trajectory initialization
-x0 = linear_interp(x1, xT, T) # linear interpolation on state
+x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 u0 = [[copy(u_ref[1:4]); h0] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector

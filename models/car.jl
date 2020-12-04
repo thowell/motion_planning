@@ -4,7 +4,7 @@
     Unicycle model (http://lavalle.pl/planning/)
 """
 
-struct Car <: Model
+struct Car{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
@@ -17,4 +17,4 @@ function f(model::Car, x, u, w)
 end
 
 n, m, d = 3, 2, 0
-model = Car(n, m, d)
+model = Car{Midpoint, FixedTime}(n, m, d)

@@ -1,10 +1,6 @@
 # Model
 include_model("biped")
 
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-
 # Visualize
 # - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
@@ -71,7 +67,9 @@ xl, xu = state_bounds(model, T,
     xT = [qT; qT])
 
 # Objective
-q_ref = linear_interp(q1, qT, T)
+include_objective(["velocity", "nonlinear_stage"])
+
+q_ref = linear_interpolation(q1, qT, T)
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
@@ -135,6 +133,8 @@ obj = MultiObjective([obj_penalty,
                       # obj_conf])
 
 # Constraints
+include_constraints("contact")
+
 con_contact = contact_constraints(model, T)
 con = multiple_constraints([con_contact])
 
@@ -147,8 +147,7 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # trajectory initialization
 u0 = [[u1; 1.0e-3 * rand(model.m - model.nu)] for t = 1:T-1] # random controls

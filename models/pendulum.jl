@@ -1,13 +1,12 @@
-struct Pendulum{T} <: Model
+struct Pendulum{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    mass::T    # mass
-    b::T    # friction
-    lc::T   # length to center of mass
-    I::T    # inertia
-    g::T    # gravity
+    mass    # mass
+    b       # friction
+    lc      # length to center of mass
+    g       # gravity
 end
 
 function f(model::Pendulum, x, u, w)
@@ -23,4 +22,4 @@ function k(model::Pendulum, x)
 end
 
 n, m, d = 2, 1, 0
-model = Pendulum(n, m, d, 1.0, 0.1, 0.5, 0.25, 9.81)
+model = Pendulum{Midpoint, FixedTime}(n, m, d, 1.0, 0.1, 0.5, 9.81)

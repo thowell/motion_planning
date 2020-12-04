@@ -9,7 +9,7 @@ v2 = v1 - G_func(model,q1) * h
 q2 = q1 + 0.5 * h * (v1 + v2)
 
 # Simulate contact model one step
-function step_contact(model, x1, h)
+function step_contact(model, x1, u1, h)
     # Horizon
     T = 2
 
@@ -21,8 +21,9 @@ function step_contact(model, x1, h)
 
     # Bounds
     _uu = Inf * ones(model.m)
-    _uu[model.idx_u] .= 0.0
+    _uu[model.idx_u] .= u1
     _ul = zeros(model.m)
+    _ul[model.idx_u] .= u1
     ul, uu = control_bounds(model, T, _ul, _uu)
 
     xl, xu = state_bounds(model, T, x1 = x1)
@@ -39,7 +40,7 @@ function step_contact(model, x1, h)
                    con = con_contact)
 
     # Trajectory initialization
-    x0 = [x1 for t = 1:T] #linear_interp(x1, x1, T) # linear interpolation on state
+    x0 = [x1 for t = 1:T]
     u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
 
     # Pack trajectories into vector
@@ -55,11 +56,11 @@ end
 
 x = [x1]
 for t = 1:200
-    push!(x, step_contact(model, x[end], h))
+    push!(x, step_contact(model, x[end], zeros(model.nu), h))
     println("step $t")
 end
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 visualize!(vis, model, state_to_configuration(x), Δt = h)

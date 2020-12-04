@@ -1,5 +1,7 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
-include(joinpath(pwd(), "models/double_integrator.jl"))
+include_dpo()
+
+# Model
+include_model("double_integrator")
 
 # Horizon
 T = 51
@@ -21,8 +23,7 @@ prob_nom = trajectory_optimization(
 			xl = xl,
 			xu = xu,
 			ul = ul,
-			uu = uu,
-			)
+			uu = uu)
 
 # DPO
 N = 2 * model.n

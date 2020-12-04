@@ -1,19 +1,17 @@
-using Rotations
-
 """
     box
         particle with contacts at each corner
         orientation representation: modified rodrigues parameters
 """
-struct Box{T}
+struct Box{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 
-    mass::T
-    J::T
-    μ::T
-    g::T
+    mass
+    J
+    μ
+    g
 
     r
 	n_corners
@@ -164,7 +162,7 @@ function maximum_dissipation(model::Box, x⁺, u, h)
     P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function fd(model::Box, x⁺, x, u, w, h, t)
+function fd(model::Box{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2⁺ = view(x⁺, 1:model.nq)
 	q2⁻ = view(x, model.nq .+ (1:model.nq))
@@ -182,7 +180,7 @@ function fd(model::Box, x⁺, x, u, w, h, t)
     - h * G_func(model, q2⁺))]
 end
 
-model = Box(n, m, d,
+model = Box{Discrete, FixedTime}(n, m, d,
 			mass, J, μ, g,
             r, 8, corner_offset,
             nq, nu, nc, nf, nb,

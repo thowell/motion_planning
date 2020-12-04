@@ -15,7 +15,7 @@ mvis = MechanismVisualizer(kuka, kuka_visuals, vis[:base])
 open(vis)
 
 # Kuka iiwa arm parsed from URDF using RigidBodyDynamics.jl
-struct Kuka{T} <: Model
+struct Kuka{I, T} <: Model{I, T}
 	n::Int
 	m::Int
 	d::Int
@@ -45,7 +45,7 @@ function f(model::Kuka, x, u, w)
 	@error "not implemented"
 end
 
-model = Kuka(
+model = Kuka{Midpoint, FixedTime}(
 	n, m, d,
     state_cache1, state_cache2, state_cache3,
     results_cache1, results_cache2, results_cache3)

@@ -55,7 +55,7 @@ prob = trajectory_optimization_problem(model,
                con = con_contact)
 
 # Trajectory initialization
-x0 = configuration_to_state(linear_interp(q1, qT, T)) # linear interpolation on state
+x0 = configuration_to_state(linear_interpolation(q1, qT, T)) # linear interpolation on state
 u0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
