@@ -776,43 +776,43 @@ function visualize!(vis, model::Quadruped, q;
 
 	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
-	hip1 = setobject!(vis["hip1"], GeometryTypes.Sphere(Point3f0(0),
+	hip1 = setobject!(vis["hip1"], Sphere(Point3f0(0),
         convert(Float32, 0.025)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	hip2 = setobject!(vis["hip2"], GeometryTypes.Sphere(Point3f0(0),
+	hip2 = setobject!(vis["hip2"], Sphere(Point3f0(0),
         convert(Float32, 0.025)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	knee1 = setobject!(vis["knee1"], GeometryTypes.Sphere(Point3f0(0),
+	knee1 = setobject!(vis["knee1"], Sphere(Point3f0(0),
         convert(Float32, 0.025)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	knee2 = setobject!(vis["knee2"], GeometryTypes.Sphere(Point3f0(0),
+	knee2 = setobject!(vis["knee2"], Sphere(Point3f0(0),
 		convert(Float32, 0.025)),
 		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	knee3 = setobject!(vis["knee3"], GeometryTypes.Sphere(Point3f0(0),
+	knee3 = setobject!(vis["knee3"], Sphere(Point3f0(0),
 		convert(Float32, 0.025)),
 		MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	knee4 = setobject!(vis["knee4"], GeometryTypes.Sphere(Point3f0(0),
+	knee4 = setobject!(vis["knee4"], Sphere(Point3f0(0),
         convert(Float32, 0.025)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-	feet1 = setobject!(vis["feet1"], GeometryTypes.Sphere(Point3f0(0),
+	feet1 = setobject!(vis["feet1"], Sphere(Point3f0(0),
         convert(Float32, r)),
         MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
-	feet2 = setobject!(vis["feet2"], GeometryTypes.Sphere(Point3f0(0),
+	feet2 = setobject!(vis["feet2"], Sphere(Point3f0(0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
-	feet3 = setobject!(vis["feet3"], GeometryTypes.Sphere(Point3f0(0),
+	feet3 = setobject!(vis["feet3"], Sphere(Point3f0(0),
 		convert(Float32, r)),
 		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
-	feet4 = setobject!(vis["feet4"], GeometryTypes.Sphere(Point3f0(0),
+	feet4 = setobject!(vis["feet4"], Sphere(Point3f0(0),
         convert(Float32, r)),
         MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 

@@ -209,10 +209,10 @@ function visualize!(vis, model::RRParticle, q;
 		convert(Float32, 0.025))
     setobject!(vis["l2"], l2, MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
-    setobject!(vis["elbow"], GeometryTypes.Sphere(Point3f0(0),
+    setobject!(vis["elbow"], Sphere(Point3f0(0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
-    setobject!(vis["ee"], GeometryTypes.Sphere(Point3f0(0),
+    setobject!(vis["ee"], Sphere(Point3f0(0),
         convert(Float32, 0.05)),
         MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
 
