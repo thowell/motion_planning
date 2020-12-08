@@ -4,10 +4,11 @@ struct DynamicsConstraints <: Constraints
     w
 end
 
-function dynamics_constraints(model, T)
+function dynamics_constraints(model, T;
+    w = [zeros(model.d) for t = 1:T-1])
+
     n = model.n * (T - 1)
     ineq = (1:0)
-    w = zeros(model.n)
 
     return DynamicsConstraints(n, ineq, w)
 end
@@ -23,7 +24,7 @@ function constraints!(c, Z, con::DynamicsConstraints, model, idx, h, T)
         u = view(Z, idx.u[t])
         x⁺ = view(Z, idx.x[t + 1])
 
-        c[(t-1) * n .+ (1:n)] = fd(model, x⁺, x, u, con.w, h, t)
+        c[(t-1) * n .+ (1:n)] = fd(model, x⁺, x, u, con.w[t], h, t)
     end
 
     return nothing
@@ -43,9 +44,9 @@ function constraints_jacobian!(∇c, Z, con::DynamicsConstraints, model, idx, h,
         u = view(Z, idx.u[t])
         x⁺ = view(Z, idx.x[t + 1])
 
-        dyn_x(z) = fd(model, x⁺, z, u, con.w, h, t)
-        dyn_u(z) = fd(model, x⁺, x, z, con.w, h, t)
-        dyn_x⁺(z) = fd(model, z, x, u, con.w, h, t)
+        dyn_x(z) = fd(model, x⁺, z, u, con.w[t], h, t)
+        dyn_u(z) = fd(model, x⁺, x, z, con.w[t], h, t)
+        dyn_x⁺(z) = fd(model, z, x, u, con.w[t], h, t)
 
         r_idx = (t-1) * n .+ (1:n)
 
