@@ -24,18 +24,18 @@ primal_bounds(prob::MOI.AbstractNLPEvaluator) = prob.primal_bounds
 
 constraint_bounds(prob::MOI.AbstractNLPEvaluator) = prob.constraint_bounds
 
-function sparsity_jacobian(n, m; shift_r = 0, shift_c = 0)
-
-    row = []
-    col = []
-
-    r = shift_r .+ (1:m)
-    c = shift_c .+ (1:n)
-
-    row_col!(row, col, r, c)
-
-    return collect(zip(row, col))
-end
+# function sparsity_jacobian(n, m; shift_r = 0, shift_c = 0)
+#
+#     row = []
+#     col = []
+#
+#     r = shift_r .+ (1:m)
+#     c = shift_c .+ (1:n)
+#
+#     row_col!(row, col, r, c)
+#
+#     return collect(zip(row, col))
+# end
 
 function MOI.eval_objective(prob::MOI.AbstractNLPEvaluator, x)
     return eval_objective(prob.prob, x)

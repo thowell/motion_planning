@@ -113,7 +113,7 @@ function fd(model::Hopper{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     + transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{1}(λ)
     + transpose(P_func(model, q3)) * SVector{2}(b)
-    - h * G_func(model, q2⁺))]
+    - h * G_func(model, q2⁺) + w)]
 end
 
 function maximum_dissipation(model::Hopper{Discrete, FixedTime}, x⁺, u, h)

@@ -428,7 +428,7 @@ function friction_cone(model::Biped, u)
 					 model.μ * λ[2] - sum(view(b, 3:4))]
 end
 
-function maximum_dissipation(model::Biped, x⁺, u, h)
+function maximum_dissipation(model::Biped{Discrete, FixedTime}, x⁺, u, h)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2 = view(x⁺, 1:model.nq)
 	ψ = view(u, model.idx_ψ)
@@ -437,7 +437,17 @@ function maximum_dissipation(model::Biped, x⁺, u, h)
 	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function no_slip(model::Biped, x⁺, u, h)
+function maximum_dissipation(model::Biped{Discrete, FreeTime}, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	ψ = view(u, model.idx_ψ)
+	ψ_stack = [ψ[1] * ones(2); ψ[2] * ones(2)]
+	η = view(u, model.idx_η)
+	h = u[end]
+	return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
+end
+
+function no_slip(model::Biped{Discrete, FixedTime}, x⁺, u, h)
 	q3 = view(x⁺, model.nq .+ (1:model.nq))
 	q2 = view(x⁺, 1:model.nq)
 	λ = view(u, model.idx_λ)
@@ -454,6 +464,25 @@ function fd(model::Biped{Discrete, FixedTime}, x⁺, x, u, w, h, t)
 	u_ctrl = view(u, model.idx_u)
 	λ = view(u, model.idx_λ)
 	b = view(u, model.idx_b)
+
+    [q2⁺ - q2⁻;
+    ((1.0 / h) * (M_func(model, q1) * (SVector{7}(q2⁺) - SVector{7}(q1))
+    - M_func(model, q2⁺) * (SVector{7}(q3) - SVector{7}(q2⁺)))
+    + transpose(B_func(model, q3)) * SVector{4}(u_ctrl)
+    + transpose(N_func(model, q3)) * SVector{2}(λ)
+    + transpose(P_func(model, q3)) * SVector{4}(b)
+    - h * C_func(model, q3, (q3 - q2⁺) / h))]
+end
+
+function fd(model::Biped{Discrete, FreeTime}, x⁺, x, u, w, h, t)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2⁺ = view(x⁺, 1:model.nq)
+	q2⁻ = view(x, model.nq .+ (1:model.nq))
+	q1 = view(x, 1:model.nq)
+	u_ctrl = view(u, model.idx_u)
+	λ = view(u, model.idx_λ)
+	b = view(u, model.idx_b)
+	h = u[end]
 
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{7}(q2⁺) - SVector{7}(q1))

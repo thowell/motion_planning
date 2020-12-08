@@ -89,6 +89,7 @@ end
 function check_slack(Z, prob)
     model = prob.prob.model
     idx = prob.prob.idx
+	T = prob.prob.T
     S̄ = [Z[idx.u[t]][model.idx_s][1] for t = 1:T-1]
     @show norm(S̄, Inf)
 end

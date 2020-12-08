@@ -1,8 +1,8 @@
 abstract type Integration end
 
-abstract type Model{Integration, Time} end
+abstract type Model{I <: Integration, T <: Time} end
 
-struct TemplateModel{I, T} <: Model{Integration, Time}
+struct TemplateModel{I, T} <: Model{I, T}
 	n::Int # state dimension
 	m::Int # control dimension
 	d::Int # disturbance dimension

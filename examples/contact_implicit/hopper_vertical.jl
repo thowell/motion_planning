@@ -47,7 +47,7 @@ obj = MultiObjective([obj_tracking, obj_contact_penalty, obj_velocity])
 include_constraints(["free_time", "contact", "loop"])
 con_free_time = free_time_constraints(T)
 con_contact = contact_constraints(model_ft, T)
-con_loop = loop_constraints(model, 1, T)
+con_loop = loop_constraints(model, (1:model.n), 1, T)
 con = multiple_constraints([con_free_time, con_contact, con_loop])
 
 # Problem
@@ -93,4 +93,5 @@ vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
 
+using Plots
 plot(hcat(_ū...)[1:2, :]', linetype = :steppost)
