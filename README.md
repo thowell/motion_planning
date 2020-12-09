@@ -4,6 +4,7 @@
 - [X] double integrator
 - [X] acrobot
 - [ ] robotic arm
+- [ ] quadrotor
 
 ## contact-implicit trajectory optimization examples
 - [X] particle
@@ -15,6 +16,7 @@
 - [X] raibert hopper (2D)
 - [X] raibert hopper (2D) vertical gait
 - [X] raibert hopper (2D) flip
+- [ ] simple walker (2D)
 - [X] hopper (3D)
 - [ ] hopper (3D) wall scaling
 - [X] miniature golf
@@ -22,11 +24,16 @@
 - [ ] ball-in-cup quadrotor
 - [X] biped (2D)
 - [X] quadruped (2D)
+- [X] quadruped (2D) over box
 - [X] quadruped (2D) backflip
+- [ ] quadruped (3D)
+- [ ] ant (3D)
+- [ ] snake (3D)
 - [ ] atlas
 
 ## direct policy optimization examples
 We provide the [examples](src/examples/direct_policy_optimization) from [Direct Policy Optimization using Deterministic Sampling and Collocation](https://arxiv.org/abs/2010.08506). Optimizing the policies requires [SNOPT](https://en.wikipedia.org/wiki/SNOPT) and resources for its installation are available [here](src/solvers/snopt.jl). The trajectories and policies from these examples have been saved and can be loaded in order to run the policy simulations and visualizations.
+(todo: update discrete disturbance dynamics, plots)
 
 LQR
 - [X] double integrator

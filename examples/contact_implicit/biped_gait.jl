@@ -125,6 +125,7 @@ plot!(foot_1_x2, foot_z2, aspect_ratio = :equal)
 
 # Horizon
 T = 51
+Tm = 26
 
 # Time step
 tf = 2.0
@@ -161,15 +162,15 @@ xl, xu = state_bounds(model, T,
     x1 = [Inf * ones(model.nq); q1],
     xT = [Inf * ones(model.nq); qT])
 
-xl[26][model.nq .+ (1:model.nq)] = copy(qM)
-xu[26][model.nq .+ (1:model.nq)] = copy(qM)
+xl[Tm][model.nq .+ (1:model.nq)] = copy(qM)
+xu[Tm][model.nq .+ (1:model.nq)] = copy(qM)
 
 # Objective
 include_objective(["velocity", "nonlinear_stage"])
 
 # q_ref = linear_interpolation(q1, qM, T)
-q_ref = [linear_interpolation(q1, qM, 26)...,
-    linear_interpolation(qM, qT, 26)[2:end]...]
+q_ref = [linear_interpolation(q1, qM, Tm)...,
+    linear_interpolation(qM, qT, Tm)[2:end]...]
 x0 = configuration_to_state(q_ref)
 
 vis = Visualizer()
@@ -211,7 +212,7 @@ obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_la
 
 # foot 1 height
 function l_stage_fh1(x, u, t)
-    if t > 26
+    if t > Tm
         # return 0.0
         return (1000.0 * (kinematics_2(model,
             view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_z2[t - 25])^2.0
@@ -230,7 +231,7 @@ obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
 function l_stage_fh2(x, u, t)
-    if t < 26
+    if t < Tm
         return (1000.0 * (kinematics_2(model,
             view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_z1[t])^2.0
             + 1000.0 * (kinematics_2(model,
