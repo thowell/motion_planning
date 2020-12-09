@@ -32,7 +32,9 @@ include_model(str::String) = include(joinpath(pwd(), "models", str * ".jl"))
 	- LM
 """
 
-function propagate_dynamics(model, x, u, w, h, t)
+function propagate_dynamics(model, x, u, w, h, t;
+		tol_r = 1.0e-8, tol_d = 1.0e-6)
+
 	# L-M
 	α = 1.0
 	reg = 1.0e-8
@@ -82,8 +84,8 @@ function propagate_dynamics(model, x, u, w, h, t)
 
 		iter += 1
 
-		norm(α * Δy, Inf) < 1.0e-6 && (return y)
-		norm(r, Inf) < 1.0e-8 && (return y)
+		norm(α * Δy, Inf) < tol_d && (return y)
+		norm(r, Inf) < tol_r && (return y)
 	end
 
 	@warn "gauss-newton failed"

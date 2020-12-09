@@ -62,7 +62,7 @@ prob_dpo = dpo_problem(
 
 # TVLQR policy
 x̄_nom, ū_nom = unpack(z̄_nom, prob_nominal)
-K, P = tvlqr(model_nom, x̄_nom, ū_nom, Q, R, 0.0)
+K, P = tvlqr(model_nom, x̄_nom, ū_nom, 0.0, Q, R)
 
 # Pack
 z0 = zeros(prob_dpo.num_var)
