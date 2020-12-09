@@ -13,8 +13,6 @@ using MeshCat, MeshIO
 using Rotations
 # using RigidBodyDynamics, MeshCatMechanisms
 
-include("lqr.jl")
-include("unscented.jl")
 include("indices.jl")
 include("utils.jl")
 
@@ -33,6 +31,9 @@ include("constraints/dynamics.jl")
 
 include("moi.jl")
 include("solvers/snopt.jl")
+
+include("lqr.jl")
+include("unscented.jl")
 
 # direct policy optimization
 function include_dpo()

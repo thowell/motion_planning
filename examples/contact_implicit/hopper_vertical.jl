@@ -31,7 +31,7 @@ xl, xu = state_bounds(model_ft, T,
 include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
+    [Diagonal([1.0, 1.0, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
@@ -79,19 +79,58 @@ if optimize
 		time_limit = 60)
 	@show check_slack(z̄, prob)
 	x̄, ū = unpack(z̄, prob)
-	_ū = [ū[t][1:5] for t = 1:T-1]
 	tf, t, h̄ = get_time(ū)
+
+	# projection
+	Q = [Diagonal(ones(model_ft.n)) for t = 1:T]
+	R = [Diagonal(0.1 * ones(model_ft.m)) for t = 1:T-1]
+	x_proj, u_proj = lqr_projection(model_ft, x̄, ū, h̄[1], Q, R)
+
 	@show tf
 	@show h̄[1]
-	@save joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ _ū h̄
+	@save joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ _ū h̄
+	@load joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
+
+plot(hcat(ū...)[1:2, :]',
+    linetype = :steppost,
+    label = "",
+    color = :red,
+    width = 2.0)
+
+plot!(hcat(u_proj...)[1:2, :]',
+    linetype = :steppost,
+    label = "", color = :black)
+
+plot(hcat(state_to_configuration(x̄)...)',
+    color = :red,
+    width = 2.0)
+
+plot!(hcat(state_to_configuration(x_proj)...)',
+    color = :black)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
+visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
 
-using Plots
-plot(hcat(_ū...)[1:2, :]', linetype = :steppost)
+x_proj2 = [copy(x̄[1])]
+u_proj2 = []
+
+T = length(x̄)
+x_proj
+for t = 1:T-1
+	push!(u_proj2, [u_proj[t][1:end-1] - 0.0 * K[t] * (x_proj2[end] - x_proj[t]); h̄[1]])
+	push!(x_proj2, propagate_dynamics(model_ft, x_proj2[end], u_proj2[end],
+		zeros(model_ft.d), h̄[1], t, tol_r = 1.0e-12, tol_d = 1.0e-12))
+end
+
+plot(hcat(state_to_configuration(x̄)...)',
+    color = :red,
+    width = 2.0,
+	label = "")
+
+plot!(hcat(state_to_configuration(x_proj2)...)',
+    color = :black,
+	label = "")

@@ -94,9 +94,8 @@ function check_slack(Z, prob)
     @show norm(S̄, Inf)
 end
 
-function state_to_configuration(X)
+function state_to_configuration(X, nq = convert(Int, floor(length(X[1]) / 2)))
     T = length(X)
-    nq = convert(Int, floor(length(X[1])/2))
     [X[1][1:nq], [X[t][nq .+ (1:nq)] for t = 1:T]...]
 end
 

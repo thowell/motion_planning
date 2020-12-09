@@ -2,33 +2,19 @@
 include_model("biped")
 model = free_time_model(model)
 
-# model_τ = Biped{Discrete, FixedTime}(n, m, d,
-# 			  g, μ,
-# 			  l_torso, d_torso, m_torso, J_torso,
-# 			  l_thigh, d_thigh, m_thigh, J_thigh,
-# 			  l_leg, d_leg, m_leg, J_leg,
-# 			  l_thigh, d_thigh, m_thigh, J_thigh,
-# 			  l_leg, d_leg, m_leg, J_leg,
-# 			  qL, qU,
-# 			  uL, uU,
-# 			  nq,
-# 			  nu,
-# 			  nc,
-# 			  nf,
-# 			  nb,
-# 			  ns,
-# 			  idx_u,
-# 			  idx_λ,
-# 			  idx_b,
-# 			  idx_ψ,
-# 			  idx_η,
-# 			  idx_s)
-
 # Visualize
 # - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
+
+# Horizon
+T = 51
+Tm = 26
+
+# Time step
+tf = 2.0
+h = tf / (T - 1)
 
 # Configurations
 # 1: x pos
@@ -122,14 +108,6 @@ foot_z2 = sqrt.((zh^2.0) * (1.0 .- ((foot_1_x2 .- abs(foot_1_T[1] / 2.0)).^2.0) 
 using Plots
 plot(foot_2_x1, foot_z1)
 plot!(foot_1_x2, foot_z2, aspect_ratio = :equal)
-
-# Horizon
-T = 51
-Tm = 26
-
-# Time step
-tf = 2.0
-h = tf / (T - 1)
 
 # u1 = initial_torque(model_τ, qM, h)
 
@@ -291,27 +269,57 @@ u0 = [[1.0e-5 * rand(model.m - 1); h] for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob)
 
 # Solve
-include_snopt()
+optimize = true
 
-@time z̄ = solve(prob, copy(z0),
-    nlp = :SNOPT7,
-    # max_iter = 1000,
-    tol = 1.0e-3, c_tol = 1.0e-3,
-    time_limit = 60 * 3, mapl = 5)
+if optimize
+    include_snopt()
 
-check_slack(z̄, prob)
-x̄, ū = unpack(z̄, prob)
-tfc, tc, hc = get_time(ū)
+	@time z̄ = solve(prob, copy(z0),
+		nlp = :ipopt,
+		tol = 1.0e-4, c_tol = 1.0e-4, mapl = 5,
+		time_limit = 60 * 3)
+	@show check_slack(z̄, prob)
+	x̄, ū = unpack(z̄, prob)
+    tf, t, h̄ = get_time(ū)
+
+	# projection
+	Q = [Diagonal(ones(model.n)) for t = 1:T]
+	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+
+	@show tf
+	@show h̄[1]
+	@save joinpath(@__DIR__, "biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+else
+	@load joinpath(@__DIR__, "biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+end
 
 # Visualize
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = ū[1][end])
+visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
 
 fh1 = [kinematics_2(model,
-    state_to_configuration(x̄)[t], body = :leg_1, mode = :ee)[2] for t = 1:T]
+    state_to_configuration(x_proj)[t], body = :leg_1, mode = :ee)[2] for t = 1:T]
 fh2 = [kinematics_2(model,
-    state_to_configuration(x̄)[t], body = :leg_2, mode = :ee)[2] for t = 1:T]
+    state_to_configuration(x_proj)[t], body = :leg_2, mode = :ee)[2] for t = 1:T]
 
-plot(fh1)
-plot!(fh2)
+plot(fh1, linetype = :steppost, label = "foot 1")
+plot!(fh2, linetype = :steppost, label = "foot 2")
+
+plot(hcat(ū...)[1:4, :]',
+    linetype = :steppost,
+    label = "",
+    color = :red,
+    width = 2.0)
+
+plot!(hcat(u_proj...)[1:4, :]',
+    linetype = :steppost,
+    label = "",
+    color = :black)
+
+plot(hcat(state_to_configuration(x̄)...)',
+    color = :red,
+    width = 2.0)
+plot!(hcat(state_to_configuration(x_proj)...)',
+    color = :black)
