@@ -35,7 +35,7 @@ function levenberg_marquardt(res::Function, x;
 		Δy = -1.0 * H \ (∇r' * r)
 
 		ls_iter = 0
-		while merit(y + α * Δy) > me + 1.0e-4 * r' * (α * Δy)
+		while merit(y + α * Δy) > me + 1.0e-4 * (∇r' * r)' * (α * Δy)
 			α *= 0.5
 			reg = reg
 			ls_iter += 1

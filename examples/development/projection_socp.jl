@@ -2,26 +2,8 @@ using LinearAlgebra, ForwardDiff
 using Convex, SCS, ECOS
 
 """
- min v'b
- st norm(b) <= y
+	projection onto second-order cone
 """
-
-# parameters
-v = [100.0; 100.0]
-ψ = norm(v)
-y = 1.0
-
-"Convex.jl"
-b = Variable(2)
-prob = minimize(v' * b)
-prob.constraints += norm(b) <= y
-@time solve!(prob, ECOS.Optimizer)
-
-@show prob.status
-@show b.value
-@show prob.constraints[1].dual
-prob.optval
-
 function Πsoc(v, s)
 	if norm(v) <= -s
 		# @warn "below cone"
@@ -39,44 +21,59 @@ function Πsoc(v, s)
 	end
 end
 
+function projection_difference(v, s)
+	vcat(Πsoc(v, s)...) - [v; s]
+end
 
+# projection_difference(ones(2), 1.0)
 
-function r(z,θ)
+"""
+ min v'b
+ st norm(b) <= y
+"""
+
+# parameters
+v = [1.0; 1.0e-1]
+ψ = norm(v)
+y = 1.0
+
+"Convex.jl"
+b = Variable(2)
+prob = minimize(v' * b)
+prob.constraints += norm(b) <= y
+@time solve!(prob, ECOS.Optimizer)
+
+@show prob.status
+@show b.value
+@show prob.constraints[1].dual
+prob.optval
+
+function lagrangian(v, y, b, ψ)
+	v' * b + ψ' * projection_difference(b, y) + 0.5 * projection_difference(b, y)' * projection_difference(b, y)
+end
+
+function r(z, θ)
 	b = z[1:2]
-	ψ = z[3]
+	ψ = z[3:5]
 	y = θ[1]
 	v = θ[2:3]
 
-	return [norm(b) * v + ψ * b;
-		    ψ * (y - norm(b))]
+	lb(w) = lagrangian(v, y, w, ψ)
+	# lψ(w) = lagrangian(v, y, b, w)
+
+	# return ForwardDiff.gradient(lb, b)
+	return [ForwardDiff.gradient(lb, b);
+			projection_difference(b, y)]
+
 end
 
-# function drz(z,θ)
-# 	b = z[1:2]
-# 	ψ = z[3]
-# 	y = θ[1]
-# 	v = θ[2:3]
-#
-# 	return [ψ*d_vec_norm(b) vec_norm(b);
-# 		    -ψ*vec_norm(b)' (y - _norm(b))]
-# end
-#
-# function drθ(z,θ)
-# 	return Array([zeros(2) Diagonal(ones(2));
-# 			ψ zeros(1,2)])
-# end
-
-# if y == 0.0
-# 	z = [zeros(2); ψ]
-# else
-# 	z = [b.value; ψ]
-# end
-z = [b.value; prob.constraints[1].dual]
 θ = [y; v]
 rz(x) = r(x, θ)
-rθ(x) = r(z, x)
 
-drdz = ForwardDiff.jacobian(rz, z)
+sol = levenberg_marquardt(rz, ones(5))
+rθ(x) = r(sol, x)
+
+drdz = ForwardDiff.jacobian(rz, sol)
 drdθ = ForwardDiff.jacobian(rθ, θ)
 
 # norm(drdz - drz(z, θ))
