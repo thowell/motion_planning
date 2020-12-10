@@ -43,7 +43,7 @@ function step_contact(model::Model{<: Integration, FixedTime}, x1, u1, w1, h;
     # Pack trajectories into vector
     z0 = pack(x0, u0, prob)
 
-    @time z = solve(prob, copy(z0), tol = tol_opt, c_tol = tol_c)
+    @time z = solve(prob, copy(z0), tol = tol_opt, c_tol = tol_c, mapl = 0)
 
     @assert check_slack(z, prob) < tol_s
     x, u = unpack(z, prob)

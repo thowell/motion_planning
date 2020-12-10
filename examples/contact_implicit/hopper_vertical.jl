@@ -118,11 +118,11 @@ vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
 
-
+# Reference trajectory
 x_track = deepcopy(x_proj)
 u_track = deepcopy(u_proj)
 
-for i = 1:5
+for i = 1:10
 	x_track = [x_track..., x_track[2:T]...]
 	u_track = [u_track..., u_track...]
 end
@@ -148,26 +148,46 @@ plot(hcat(K_vec...)', label = "")
 plot(hcat(P_vec...)', label = "")
 
 include(joinpath(pwd(), "src/simulate_contact.jl"))
-h̄[1]
 model_sim = model
+
+T_sim = 1 * T_track
+tf_track = h̄[1] * (T_track - 1)
+t_sim = range(0, stop = tf, length = T_sim)
+t_ctrl = range(0, stop = tf, length = T_track)
+h_sim = tf_track / (T_sim - 1)
+x_track_stack = hcat(x_track...)
+
 x_sim = [copy(x_proj[1])]
 u_sim = []
-for t = 1:T_track-1
-	push!(u_sim, u_track[t][1:end-1] - K[t] * (x_sim[end] - x_track[t]))
-	w0 = (t == 101 ? 25.0 * [1.0; 0.0; 0.0; 0.0] .* randn(model.nq) : 1.0e-3 * randn(model.nq))
+T_horizon = T_sim - T
+
+for tt = 1:T_horizon-1
+	t = t_sim[tt]
+	i = searchsortedlast(t_ctrl, t)
+	println("t: $t")
+	println("	i: $i")
+
+	x_cubic = zeros(model_sim.n)
+	for i = 1:model_sim.n
+		interp_cubic = CubicSplineInterpolation(t_ctrl, x_track_stack[i, :])
+		x_cubic[i] = interp_cubic(t)
+	end
+
+	push!(u_sim, u_track[i][1:end-1] - K[i] * (x_sim[end] - x_cubic))
+	w0 = (tt == 101 ? 20.0 * [1.0; 0.0; 0.0; 0.0] .* randn(model.nq) : 1.0e-5 * randn(model.nq))
 	push!(x_sim,
 		step_contact(model_sim,
 			x_sim[end],
 			u_sim[end][1:model.nu],
 			w0,
-			h̄[1]))
+			h_sim))
 end
 
-plot(hcat(state_to_configuration(x_track[1:3:T_track])...)',
+plot(hcat(state_to_configuration(x_track[1:1:T_horizon])...)',
     labels = "", legend = :bottomleft,
     width = 2.0, color = ["red" "green" "blue" "orange"], linestyle = :dash)
 
-plot!(hcat(state_to_configuration(x_sim[1:3:T_track])...)',
+plot!(hcat(state_to_configuration(x_sim[1:1:T_horizon])...)',
     labels = "", legend = :bottom,
     width = 1.0, color = ["red" "green" "blue" "orange"])
 
