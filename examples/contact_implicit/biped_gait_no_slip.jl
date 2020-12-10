@@ -1,6 +1,6 @@
 # Model
 include_model("biped")
-model = free_time_model(model)
+model = free_time_model(no_slip_model(model))
 
 # Visualize
 # - Pkg.add any external deps from visualize.jl
@@ -13,7 +13,7 @@ T = 51
 Tm = 26
 
 # Time step
-tf = 2.0
+tf = 1.0
 h = tf / (T - 1)
 
 # Configurations
@@ -245,9 +245,9 @@ obj = MultiObjective([obj_penalty,
                       obj_fh2])
 
 # Constraints
-include_constraints(["contact", "loop", "free_time"])
+include_constraints(["contact_no_slip", "loop", "free_time"])
 con_loop = loop_constraints(model, collect([(2:7)...,(9:14)...]), 1, T)
-con_contact = contact_constraints(model, T)
+con_contact = contact_no_slip_constraints(model, T)
 con_free_time = free_time_constraints(T)
 con = multiple_constraints([con_contact, con_free_time, con_loop])
 
@@ -289,9 +289,9 @@ if optimize
 
 	@show tf
 	@show h̄[1]
-	@save joinpath(@__DIR__, "biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@save joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(@__DIR__, "biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@load joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 # Visualize
@@ -325,6 +325,9 @@ plot(hcat(u_proj...)[5:6, :]',
 
 plot(hcat(state_to_configuration(x̄)...)',
     color = :red,
-    width = 2.0)
+    width = 2.0,
+    label = "")
+
 plot!(hcat(state_to_configuration(x_proj)...)',
-    color = :black)
+    color = :black,
+    label = "")
