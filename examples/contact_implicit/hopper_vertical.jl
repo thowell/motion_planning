@@ -69,12 +69,12 @@ z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-include_snopt()
 
 optimize = true
 if optimize
+	# include_snopt()
 	@time z̄ = solve(prob, copy(z0),
-		nlp = :SNOPT7,
+		nlp = :ipopt,
 		tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
 		time_limit = 60)
 	@show check_slack(z̄, prob)
@@ -93,6 +93,7 @@ else
 	@load joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
 
+using Plots
 plot(hcat(ū...)[1:2, :]',
     linetype = :steppost,
     label = "",
@@ -105,32 +106,71 @@ plot!(hcat(u_proj...)[1:2, :]',
 
 plot(hcat(state_to_configuration(x̄)...)',
     color = :red,
-    width = 2.0)
+    width = 2.0,
+	label = "")
 
 plot!(hcat(state_to_configuration(x_proj)...)',
-    color = :black)
+    color = :black,
+	label = "")
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
 
-x_proj2 = [copy(x̄[1])]
-u_proj2 = []
 
-T = length(x̄)
-x_proj
-for t = 1:T-1
-	push!(u_proj2, [u_proj[t][1:end-1] - 0.0 * K[t] * (x_proj2[end] - x_proj[t]); h̄[1]])
-	push!(x_proj2, propagate_dynamics(model_ft, x_proj2[end], u_proj2[end],
-		zeros(model_ft.d), h̄[1], t, tol_r = 1.0e-12, tol_d = 1.0e-12))
+x_track = deepcopy(x_proj)
+u_track = deepcopy(u_proj)
+
+for i = 1:5
+	x_track = [x_track..., x_track[2:T]...]
+	u_track = [u_track..., u_track...]
 end
+T_track = length(x_track)
 
-plot(hcat(state_to_configuration(x̄)...)',
-    color = :red,
-    width = 2.0,
-	label = "")
-
-plot!(hcat(state_to_configuration(x_proj2)...)',
+plot(hcat(state_to_configuration(x_track)...)',
     color = :black,
 	label = "")
+
+plot(hcat(u_track...)',
+	color = :black,
+	label = "")
+
+
+K, P = tvlqr(model_ft, x_track, u_track, h̄[1],
+	[Diagonal(ones(model_ft.n)) for t = 1:T_track],
+	[Diagonal(ones(model_ft.m)) for t = 1:T_track - 1])
+
+K_vec = [vec(K[t]) for t = 1:T_track-1]
+P_vec = [vec(P[t]) for t = 1:T_track-1]
+
+plot(hcat(K_vec...)', label = "")
+plot(hcat(P_vec...)', label = "")
+
+include(joinpath(pwd(), "src/simulate_contact.jl"))
+h̄[1]
+model_sim = model
+x_sim = [copy(x_proj[1])]
+u_sim = []
+for t = 1:T_track-1
+	push!(u_sim, u_track[t][1:end-1] - K[t] * (x_sim[end] - x_track[t]))
+	w0 = (t == 101 ? 25.0 * [1.0; 0.0; 0.0; 0.0] .* randn(model.nq) : 1.0e-3 * randn(model.nq))
+	push!(x_sim,
+		step_contact(model_sim,
+			x_sim[end],
+			u_sim[end][1:model.nu],
+			w0,
+			h̄[1]))
+end
+
+plot(hcat(state_to_configuration(x_track[1:3:T_track])...)',
+    labels = "", legend = :bottomleft,
+    width = 2.0, color = ["red" "green" "blue" "orange"], linestyle = :dash)
+
+plot!(hcat(state_to_configuration(x_sim[1:3:T_track])...)',
+    labels = "", legend = :bottom,
+    width = 1.0, color = ["red" "green" "blue" "orange"])
+
+vis = Visualizer()
+render(vis)
+visualize!(vis, model_ft, state_to_configuration(x_sim), Δt = h̄[1])
