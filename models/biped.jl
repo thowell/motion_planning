@@ -452,8 +452,16 @@ function no_slip(model::Biped{Discrete, FixedTime}, x⁺, u, h)
 	q2 = view(x⁺, 1:model.nq)
 	λ = view(u, model.idx_λ)
 	s = view(u, model.idx_s)
-	λ_stack = [λ[1]; λ[2]]
-	return s[1] - (λ_stack' * _P_func(model, q3) * (q3 - q2) / h)[1]
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
+end
+
+function no_slip(model::Biped{Discrete, FreeTime}, x⁺, u, h)
+	q3 = view(x⁺, model.nq .+ (1:model.nq))
+	q2 = view(x⁺, 1:model.nq)
+	λ = view(u, model.idx_λ)
+	s = view(u, model.idx_s)
+	h = u[end]
+	return s[1] - (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
 function fd(model::Biped{Discrete, FixedTime}, x⁺, x, u, w, h, t)
