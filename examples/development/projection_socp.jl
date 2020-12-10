@@ -22,23 +22,24 @@ prob.constraints += norm(b) <= y
 @show prob.constraints[1].dual
 prob.optval
 
-# # norms
-# _norm(x) = sqrt(x' * x)
-# function vec_norm(x)
-# 	if norm(x) == 0.0
-# 		return ones(length(x)) ./ norm(ones(length(x)))
-# 	else
-# 		x ./ _norm(x)
-# 	end
-# end
-# function d_vec_norm(x)
-# 	if norm(x) == 0.0
-# 		y = 1.0 * ones(length(x))#./norm(ones(length(x)))
-# 		return (I - y * y' / (y' * y)) /_norm(y)
-# 	else
-# 		(I - x * x' / (x' * x)) /_norm(x)
-# 	end
-# end
+function Πsoc(v, s)
+	if norm(v) <= -s
+		# @warn "below cone"
+		return zero(v), 0.0
+	elseif norm(v) <= s
+		# @warn "in cone"
+		return v, s
+	elseif norm(v) > abs(s)
+		# @warn "outside cone"
+		a = 0.5 * (1.0 + s / norm(v))
+		return a * v, a * norm(v)
+	else
+		@warn "soc projection error"
+		return zero(v), 0.0
+	end
+end
+
+
 
 function r(z,θ)
 	b = z[1:2]

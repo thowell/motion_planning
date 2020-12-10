@@ -31,6 +31,8 @@ include("constraints/dynamics.jl")
 
 include("moi.jl")
 include("solvers/snopt.jl")
+include("solvers/newton.jl")
+include("solvers/levenberg_marquardt.jl")
 
 include("lqr.jl")
 include("unscented.jl")

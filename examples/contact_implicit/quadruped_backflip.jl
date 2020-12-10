@@ -11,7 +11,7 @@ T = 26
 tf = 2.5
 h = tf / (T - 1)
 
-u1 = initial_torque(model, q1, h)[model.idx_u]
+u1 = initial_torque(model, q1, h, solver = :newton)[model.idx_u]
 
 model_ft = free_time_model(model)
 
@@ -19,7 +19,7 @@ model_ft = free_time_model(model)
 # - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 
 # Configurations
 
@@ -142,7 +142,7 @@ con = multiple_constraints([con_contact, con_free_time])
 prob = trajectory_optimization_problem(model_ft,
                obj,
                T,
-               h = h,
+               # h = h,
                xl = xl,
                xu = xu,
                ul = ul,
@@ -171,10 +171,10 @@ include_snopt()
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
-tf, t, hc = get_time(ū)
-ū
+tf, t, h̄ = get_time(ū)
+
 # Visualize
-visualize!(vis, model_ft, state_to_configuration(x̄), Δt = ū[1][end])
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h̄[1])
 
 visualize!(vis, model_ft, [[state_to_configuration(x̄)[1] for i = 1:5]..., state_to_configuration(x̄)..., [state_to_configuration(x̄)[end] for i = 1:5]...], Δt = ū[1][end])
 
