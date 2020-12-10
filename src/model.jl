@@ -29,129 +29,26 @@ include_model(str::String) = include(joinpath(pwd(), "models", str * ".jl"))
 
 """
 	propagate dynamics with implicit integrator
-	- LM
+	- Levenberg-Marquardt
+	- Newton
 """
 
 function propagate_dynamics(model, x, u, w, h, t;
+		solver = :levenberg_marquardt,
 		tol_r = 1.0e-8, tol_d = 1.0e-6)
 
-	# L-M
-	α = 1.0
-	reg = 1.0e-8
-	y = copy(x)
-
 	res(z) = fd(model, z, x, u, w, h, t)
-	merit(z) = res(z)' * res(z)
 
-	iter = 0
-
-	while iter < 100
-		me = merit(y)
-		r = res(y)
-		∇r = ForwardDiff.jacobian(res, y)
-
-		_H = ∇r' * ∇r
-		Is = Diagonal(diag(_H))
-		H = (_H + reg * Is)
-
-		pd_iter = 0
-		while !isposdef(Hermitian(Array(H)))
-			reg *= 2.0
-			H = (_H + reg * Is)
-			pd_iter += 1
-
-			if pd_iter > 100 || reg > 1.0e12
-				@error "regularization failure"
-			end
-		end
-
-		Δy = -1.0 * H \ (∇r' * r)
-
-		ls_iter = 0
-		while merit(y + α * Δy) > me + 1.0e-4 * r' * (α * Δy)
-			α *= 0.5
-			reg = reg
-			ls_iter += 1
-
-			if ls_iter > 100 || reg > 1.0e12
-				@error "line search failure"
-			end
-		end
-
-		y .+= α * Δy
-		α = min(1.2 * α, 1.0)
-		reg = 0.5 * reg
-
-		iter += 1
-
-		norm(α * Δy, Inf) < tol_d && (return y)
-		norm(r, Inf) < tol_r && (return y)
-	end
-
-	@warn "gauss-newton failed"
-	return y
+	return eval(solver)(res, copy(x), tol_r = tol_r, tol_d = tol_d)
 end
 
-# function propagate_dynamics(model, x, u, w, h, t)
-#     _fd(z) = fd(model, z, x, u, w, h, t)
-#
-#     y = copy(x)
-#     r = _fd(y)
-#
-#     iter = 0
-#
-#     while norm(r, 2) > 1.0e-8 && iter < 10
-#         ∇r = ForwardDiff.jacobian(_fd, y)
-#
-#         Δy = -1.0 * ∇r \ r
-#
-#         α = 1.0
-#
-# 		iter_ls = 0
-#         while α > 1.0e-8 && iter_ls < 10
-#             ŷ = y + α * Δy
-#             r̂ = _fd(ŷ)
-#
-#             if norm(r̂) < norm(r)
-#                 y = ŷ
-#                 r = r̂
-#                 break
-#             else
-#                 α *= 0.5
-# 				iter_ls += 1
-#             end
-#
-# 			if iter_ls == 10
-# 				@warn "line search failed"
-# 				# print("y: $y")
-# 				# print("x: $x")
-# 				# print("u: $u")
-# 				# print("w: $w")
-# 				# println("l2: $(norm(r))")
-# 				# println("linf: $(norm(r, Inf))")
-# 			end
-#         end
-#
-#         iter += 1
-#     end
-#
-# 	if iter == 10
-# 		@warn "newton failed"
-# 		# print("y: $y")
-# 		# print("x: $x")
-# 		# print("u: $u")
-# 		# print("w: $w")
-# 		# println("l2: $(norm(r))")
-# 		# println("linf: $(norm(r, Inf))")
-# 		y = fd(model, x, u, w, h, t)
-# 	end
-#     # @show norm(r)
-#     # @show iter
-#     return y
-# end
+function propagate_dynamics_jacobian(model, x, u, w, h, t;
+		solver = :levenberg_marquardt,
+		tol_r = 1.0e-8, tol_d = 1.0e-6)
 
-function propagate_dynamics_jacobian(model, x, u, w, h, t)
-	y = propagate_dynamics(model, x, u, w, h, t)
+	y = propagate_dynamics(model, x, u, w, h, t,
+			solver = solver,
+			tol_r = tol_r, tol_d = tol_d)
 
     dy(z) = fd(model, z, x, u, w, h, t)
 	dx(z) = fd(model, y, z, u, w, h, t)
@@ -167,56 +64,15 @@ end
 """
 	get gravity compensating torques
 """
-function initial_torque(model, q1, h)
+function initial_torque(model, q1, h;
+	solver = :newton,
+	tol_r = 1.0e-8, tol_d = 1.0e-6)
+
 	x = [q1; q1]
-    _fd(z) = fd(model, x, x, z, zeros(model.d), h, 0)
+    res(z) = fd(model, x, x, z, zeros(model.d), h, 0)
 
-    y = ones(model.m)
-    r = _fd(y)
-
-    iter = 0
-
-    while norm(r, 2) > 1.0e-8 && iter < 10
-        ∇r = ForwardDiff.jacobian(_fd, y)
-
-        Δy = -1.0 * ∇r \ r
-
-        α = 1.0
-
-		iter_ls = 0
-        while α > 1.0e-8 && iter_ls < 10
-            ŷ = y + α * Δy
-            r̂ = _fd(ŷ)
-
-            if norm(r̂) < norm(r)
-                y = ŷ
-                r = r̂
-                break
-            else
-                α *= 0.5
-				iter_ls += 1
-            end
-
-			if iter_ls == 10
-				@warn "line search failed"
-				# print("y: $y")
-				# print("x: $x")
-				# print("u: $u")
-				# print("w: $w")
-				# println("l2: $(norm(r))")
-				# println("linf: $(norm(r, Inf))")
-			end
-        end
-
-        iter += 1
-    end
-
-	if iter == 10
-		@warn "newton failed"
-	end
-    # @show norm(r)
-    # @show iter
-    return y
+	return eval(solver)(res, 1.0e-5 * rand(model.m),
+		tol_r = tol_r, tol_d = tol_d)
 end
 
 # Model conversions
