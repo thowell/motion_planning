@@ -1,6 +1,7 @@
 # Model
 include_model("quadruped")
 
+# signed-distance function (box)
 function ϕ_func(model::Quadruped, q)
 	h = 0.25
 	w = 0.5
@@ -18,10 +19,6 @@ function ϕ_func(model::Quadruped, q)
 
 	@SVector [z1, z2, z3, z4]
 end
-
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
 
 # Visualize
 # - Pkg.add any external deps from visualize.jl
@@ -54,7 +51,7 @@ qT[1] = 2.5
 visualize!(vis, model, [qT])
 
 # Horizon
-T = 26
+T = 51
 
 # Time step
 tf = 2.5
@@ -85,6 +82,7 @@ visualize!(vis, model, q_ref)
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
+include_objective(["velocity", "nonlinear_stage"])
 obj_penalty = PenaltyObjective(1.0e5, model.m)
 
 # quadratic tracking objective
@@ -93,8 +91,7 @@ obj_control = quadratic_tracking_objective(
     [zeros(model.n, model.n) for t = 1:T],
     [Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
     [zeros(model.n) for t = 1:T],
-    [[copy(u1); zeros(model.m - model.nu)] for t = 1:T]
-    )
+    [[copy(u1); zeros(model.m - model.nu)] for t = 1:T])
 
 # quadratic velocity penalty
 # Σ v' Q v
@@ -147,6 +144,7 @@ obj = MultiObjective([obj_penalty,
                       obj_fh4])
 
 # Constraints
+include_constraints(["contact"])
 con_contact = contact_constraints(model, T)
 con = multiple_constraints([con_contact])
 
@@ -162,7 +160,7 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [[copy(u1); 1.0e-3 * rand(model.m - model.nu)] for t = 1:T-1] # random controls
+u0 = [[copy(u1); 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -185,8 +183,8 @@ check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 
 # Visualize
-open(vis)
+# open(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
-# setobject!(vis["box"], HyperRectangle(Vec(0.0, 0.0, 0.0), Vec(0.5, 1.0, 0.25)))
-# settransform!(vis["box"], Translation(1.0, -0.5, 0))
+setobject!(vis["box"], GeometryBasics.HyperRectangle(Vec(0.0, 0.0, 0.0), Vec(0.5, 1.0, 0.25)))
+settransform!(vis["box"], Translation(1.0, -0.5, 0))
 # # open(vis)

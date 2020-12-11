@@ -93,6 +93,7 @@ else
 	@load joinpath(@__DIR__, "hopper_vertical_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 end
 
+using Plots
 plot(hcat(ū...)[1:2, :]',
     linetype = :steppost,
     label = "",

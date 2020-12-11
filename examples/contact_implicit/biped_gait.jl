@@ -9,11 +9,11 @@ vis = Visualizer()
 render(vis)
 
 # Horizon
-T = 101
-Tm = 51
+T = 51
+Tm = 26
 
 # Time step
-tf = 2.0
+tf = 1.0
 h = tf / (T - 1)
 
 # Configurations
@@ -121,7 +121,7 @@ _uu[model.idx_u] .= model.uU
 _uu[end] = 2.0 * h
 _ul = zeros(model.m)
 _ul[model.idx_u] .= model.uL
-_ul[end] = 0.01 * h
+_ul[end] = 0.5 * h
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # u1 = initial_torque(model, q1, h)[model.idx_u]
@@ -356,7 +356,7 @@ plot(hcat(u_track...)[1:model.nq, :]',
 	label = "")
 
 K, P = tvlqr(model, x_track, u_track, h̄[1],
-	[Diagonal(1.0 * ones(model.n)) for t = 1:T_track],
+	[Diagonal(10.0 * ones(model.n)) for t = 1:T_track],
 	[Diagonal(1.0 * ones(model.m)) for t = 1:T_track - 1])
 
 K_vec = [vec(K[t]) for t = 1:T_track-1]
@@ -366,27 +366,27 @@ plot(hcat(K_vec...)', label = "")
 plot(hcat(P_vec...)', label = "")
 
 include(joinpath(pwd(), "src/simulate_contact.jl"))
-# model_sim = Biped{Discrete, FixedTime}(n, m, d,
-# 			  g, μ,
-# 			  l_torso, d_torso, m_torso, J_torso,
-# 			  l_thigh, d_thigh, m_thigh, J_thigh,
-# 			  l_leg, d_leg, m_leg, J_leg,
-# 			  l_thigh, d_thigh, m_thigh, J_thigh,
-# 			  l_leg, d_leg, m_leg, J_leg,
-# 			  qL, qU,
-# 			  uL, uU,
-# 			  nq,
-# 			  nu,
-# 			  nc,
-# 			  nf,
-# 			  nb,
-# 			  ns,
-# 			  idx_u,
-# 			  idx_λ,
-# 			  idx_b,
-# 			  idx_ψ,
-# 			  idx_η,
-# 			  idx_s)
+model_sim = Biped{Discrete, FixedTime}(n, m, d,
+			  g, μ,
+			  l_torso, d_torso, m_torso, J_torso,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_leg, d_leg, m_leg, J_leg,
+			  l_thigh, d_thigh, m_thigh, J_thigh,
+			  l_leg, d_leg, m_leg, J_leg,
+			  qL, qU,
+			  uL, uU,
+			  nq,
+			  nu,
+			  nc,
+			  nf,
+			  nb,
+			  ns,
+			  idx_u,
+			  idx_λ,
+			  idx_b,
+			  idx_ψ,
+			  idx_η,
+			  idx_s)
 h̄[1]
 T_sim = 1 * T_track
 tf_track = h̄[1] * (T_track - 1)
@@ -397,7 +397,7 @@ x_track_stack = hcat(x_track...)
 
 x_sim = [copy(x_proj[1])]
 u_sim = []
-T_horizon = 200#T_sim - T
+T_horizon = 51#T_sim - T
 
 for tt = 1:T_horizon-1
 	t = t_sim[tt]
@@ -417,7 +417,7 @@ for tt = 1:T_horizon-1
 			x_sim[end],
 			u_sim[end][1:model.nu],
 			w0,
-			h_sim, tol_s = 1.0e-2))
+			h_sim, tol_s = 1.0e-1))
 end
 
 plot(hcat(state_to_configuration(x_track[1:1:T_horizon])...)',
