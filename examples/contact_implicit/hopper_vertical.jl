@@ -152,8 +152,8 @@ model_sim = model
 
 T_sim = 1 * T_track
 tf_track = h̄[1] * (T_track - 1)
-t_sim = range(0, stop = tf, length = T_sim)
-t_ctrl = range(0, stop = tf, length = T_track)
+t_sim = range(0, stop = tf_track, length = T_sim)
+t_ctrl = range(0, stop = tf_track, length = T_track)
 h_sim = tf_track / (T_sim - 1)
 x_track_stack = hcat(x_track...)
 
@@ -174,11 +174,11 @@ for tt = 1:T_horizon-1
 	end
 
 	push!(u_sim, u_track[i][1:end-1] - K[i] * (x_sim[end] - x_cubic))
-	w0 = (tt == 101 ? 20.0 * [1.0; 0.0; 0.0; 0.0] .* randn(model.nq) : 1.0e-5 * randn(model.nq))
+	w0 = (tt == 101 ? 25.0 * [1.0; 0.01; 0.0; 0.0] .* randn(model.nq) : 1.0e-5 * randn(model.nq))
 	push!(x_sim,
 		step_contact(model_sim,
 			x_sim[end],
-			u_sim[end][1:model.nu],
+			max.(min.(u_sim[end][1:model.nu], 10.0), -10.0),
 			w0,
 			h_sim))
 end
@@ -190,6 +190,8 @@ plot(hcat(state_to_configuration(x_track[1:1:T_horizon])...)',
 plot!(hcat(state_to_configuration(x_sim[1:1:T_horizon])...)',
     labels = "", legend = :bottom,
     width = 1.0, color = ["red" "green" "blue" "orange"])
+
+plot(hcat(u_sim...)[1:2, :]', linetype = :steppost)
 
 vis = Visualizer()
 render(vis)
