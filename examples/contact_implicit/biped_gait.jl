@@ -9,8 +9,8 @@ vis = Visualizer()
 render(vis)
 
 # Horizon
-T = 51
-Tm = 26
+T = 101
+Tm = 51
 
 # Time step
 tf = 2.0
@@ -99,10 +99,10 @@ foot_1_M = kinematics_2(model, qM, body = :leg_1, mode = :ee)
 foot_1_T = kinematics_2(model, qT, body = :leg_1, mode = :ee)
 
 zh = 0.1
-foot_2_x1 = range(foot_2_1[1], stop = foot_2_M[1], length = T)
+foot_2_x1 = range(foot_2_1[1], stop = foot_2_M[1], length = Tm)
 foot_z1 = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x1).^2.0) ./ abs(foot_2_1[1])^2.0) .+ 1.0e-8)
 
-foot_1_x2 = range(foot_1_M[1], stop = foot_1_T[1], length = 26)
+foot_1_x2 = range(foot_1_M[1], stop = foot_1_T[1], length = Tm)
 foot_z2 = sqrt.((zh^2.0) * (1.0 .- ((foot_1_x2 .- abs(foot_1_T[1] / 2.0)).^2.0) ./ abs(foot_1_T[1] / 2.0)^2.0) .+ 1.0e-8)
 
 using Plots
@@ -190,12 +190,12 @@ obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_la
 
 # foot 1 height
 function l_stage_fh1(x, u, t)
-    if t > Tm
+    if t >= Tm
         # return 0.0
         return (1000.0 * (kinematics_2(model,
-            view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_z2[t - 25])^2.0
+            view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_z2[t - Tm + 1])^2.0
             + 1000.0 * (kinematics_2(model,
-                view(x, 8:14), body = :leg_1, mode = :ee)[2] - foot_z2[t - 25])^2.0)
+                view(x, 8:14), body = :leg_1, mode = :ee)[2] - foot_z2[t - Tm + 1])^2.0)
     else
         # return 0.0
         return (10000.0 * (kinematics_2(model,
@@ -209,7 +209,7 @@ obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
 function l_stage_fh2(x, u, t)
-    if t < Tm
+    if t <= Tm
         return (1000.0 * (kinematics_2(model,
             view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_z1[t])^2.0
             + 1000.0 * (kinematics_2(model,
@@ -283,7 +283,7 @@ if optimize
     tf, t, h̄ = get_time(ū)
 
 	# projection
-	Q = [Diagonal(ones(model.n)) for t = 1:T]
+	Q = [Diagonal(10.0 * ones(model.n)) for t = 1:T]
 	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
 	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
 
@@ -325,6 +325,109 @@ plot(hcat(u_proj...)[5:6, :]',
 
 plot(hcat(state_to_configuration(x̄)...)',
     color = :red,
-    width = 2.0)
+    width = 2.0,
+    label = "")
 plot!(hcat(state_to_configuration(x_proj)...)',
-    color = :black)
+    color = :black,
+    label = "")
+
+# Reference trajectory
+len_stride = x_proj[end][1] - x_proj[1][1]
+x_track = deepcopy(x_proj)
+u_track = deepcopy(u_proj)
+
+for i = 1:3
+    for t = 1:T-1
+        _x = copy(x_proj[t+1])
+		_x[1] += i * len_stride
+		_x[8] += i * len_stride
+    	push!(x_track, _x)
+        push!(u_track, u_proj[t])
+    end
+end
+T_track = length(x_track)
+
+plot(hcat(state_to_configuration(x_track)...)',
+    color = :black,
+	label = "")
+
+plot(hcat(u_track...)[1:model.nq, :]',
+	color = :black,
+	label = "")
+
+K, P = tvlqr(model, x_track, u_track, h̄[1],
+	[Diagonal(1.0 * ones(model.n)) for t = 1:T_track],
+	[Diagonal(1.0 * ones(model.m)) for t = 1:T_track - 1])
+
+K_vec = [vec(K[t]) for t = 1:T_track-1]
+P_vec = [vec(P[t]) for t = 1:T_track-1]
+
+plot(hcat(K_vec...)', label = "")
+plot(hcat(P_vec...)', label = "")
+
+include(joinpath(pwd(), "src/simulate_contact.jl"))
+# model_sim = Biped{Discrete, FixedTime}(n, m, d,
+# 			  g, μ,
+# 			  l_torso, d_torso, m_torso, J_torso,
+# 			  l_thigh, d_thigh, m_thigh, J_thigh,
+# 			  l_leg, d_leg, m_leg, J_leg,
+# 			  l_thigh, d_thigh, m_thigh, J_thigh,
+# 			  l_leg, d_leg, m_leg, J_leg,
+# 			  qL, qU,
+# 			  uL, uU,
+# 			  nq,
+# 			  nu,
+# 			  nc,
+# 			  nf,
+# 			  nb,
+# 			  ns,
+# 			  idx_u,
+# 			  idx_λ,
+# 			  idx_b,
+# 			  idx_ψ,
+# 			  idx_η,
+# 			  idx_s)
+h̄[1]
+T_sim = 1 * T_track
+tf_track = h̄[1] * (T_track - 1)
+t_sim = range(0, stop = tf_track, length = T_sim)
+t_ctrl = range(0, stop = tf_track, length = T_track)
+h_sim = tf_track / (T_sim - 1)
+x_track_stack = hcat(x_track...)
+
+x_sim = [copy(x_proj[1])]
+u_sim = []
+T_horizon = 200#T_sim - T
+
+for tt = 1:T_horizon-1
+	t = t_sim[tt]
+	i = searchsortedlast(t_ctrl, t)
+	println("t: $t")
+	println("	i: $i")
+
+	x_cubic = zeros(model_sim.n)
+	for i = 1:model_sim.n
+		interp_cubic = CubicSplineInterpolation(t_ctrl, x_track_stack[i, :])
+		x_cubic[i] = interp_cubic(t)
+	end
+
+	push!(u_sim, u_track[i][1:end-1] - K[i] * (x_sim[end] - x_track[i]))
+	w0 = (tt == 101 ? 0.0 * randn(model_sim.nq) : 0.0 * randn(model_sim.nq))
+	push!(x_sim, step_contact(model_sim,
+			x_sim[end],
+			u_sim[end][1:model.nu],
+			w0,
+			h_sim, tol_s = 1.0e-2))
+end
+
+plot(hcat(state_to_configuration(x_track[1:1:T_horizon])...)',
+    labels = "", legend = :bottomleft,
+    width = 2.0, color = ["red" "green" "blue" "orange"], linestyle = :dash)
+
+plot!(hcat(state_to_configuration(x_sim[1:1:T_horizon])...)',
+    labels = "", legend = :bottom,
+    width = 1.0, color = ["red" "green" "blue" "orange"])
+
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, state_to_configuration(x_sim), Δt = h̄[1])
