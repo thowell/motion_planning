@@ -7,9 +7,9 @@ using Convex, SCS, ECOS
 """
 
 # parameters
-v = [100.0; 100.0]
+v = [1.0e-1; 1.0e-1]
 ψ = norm(v)
-y = 1.0
+y = 1.0e-1
 
 "Convex.jl"
 b = Variable(2)
@@ -24,13 +24,13 @@ prob.optval
 
 # # norms
 # _norm(x) = sqrt(x' * x)
-# function vec_norm(x)
-# 	if norm(x) == 0.0
-# 		return ones(length(x)) ./ norm(ones(length(x)))
-# 	else
-# 		x ./ _norm(x)
-# 	end
-# end
+function vec_norm(x)
+	if norm(x) == 0.0
+		return ones(length(x)) ./ norm(ones(length(x)))
+	else
+		x ./ norm(x)
+	end
+end
 # function d_vec_norm(x)
 # 	if norm(x) == 0.0
 # 		y = 1.0 * ones(length(x))#./norm(ones(length(x)))
@@ -39,7 +39,6 @@ prob.optval
 # 		(I - x * x' / (x' * x)) /_norm(x)
 # 	end
 # end
-
 function r(z,θ)
 	b = z[1:2]
 	ψ = z[3]
@@ -50,20 +49,24 @@ function r(z,θ)
 		    ψ * (y - norm(b))]
 end
 
-# function drz(z,θ)
-# 	b = z[1:2]
-# 	ψ = z[3]
-# 	y = θ[1]
-# 	v = θ[2:3]
-#
-# 	return [ψ*d_vec_norm(b) vec_norm(b);
-# 		    -ψ*vec_norm(b)' (y - _norm(b))]
-# end
-#
-# function drθ(z,θ)
-# 	return Array([zeros(2) Diagonal(ones(2));
-# 			ψ zeros(1,2)])
-# end
+function drz(z,θ)
+	b = z[1:2]
+	ψ = z[3]
+	y = θ[1]
+	v = θ[2:3]
+
+	return [v * vec_norm(b)' + ψ * I b;
+		    -ψ * vec_norm(b)' (y - norm(b))]
+end
+
+function drθ(z,θ)
+	b = z[1:2]
+	ψ = z[3]
+	y = θ[1]
+	v = θ[2:3]
+	return Array([zeros(2) Diagonal(norm(b) * ones(2));
+				  ψ zeros(1, 2)])
+end
 
 # if y == 0.0
 # 	z = [zeros(2); ψ]
@@ -77,9 +80,10 @@ rθ(x) = r(z, x)
 
 drdz = ForwardDiff.jacobian(rz, z)
 drdθ = ForwardDiff.jacobian(rθ, θ)
-
-# norm(drdz - drz(z, θ))
-# norm(drdθ - drθ(z, θ))
+drz(z, θ)
+drθ(z, θ)
+norm(drdz - drz(z, θ))
+norm(drdθ - drθ(z, θ))
 rank(drdz)
 # eigen(drdz).values
 #
@@ -89,10 +93,9 @@ rank(drdz)
 x1 = (-drdz \ drdθ)[1:2,:]
 x3 = (-(drdz' * drdz) \ (drdz' * drdθ))[1:2,:]
 
-ρ = 1.0e-8
+ρ = 1.0e-5
 x2 = (-(drdz' * drdz + ρ * I) \ (drdz' * drdθ))[1:2,:]
 x4 = (-drdz' * ((drdz * drdz' + ρ * I) \ drdθ))[1:2,:]
 
-# x2 = (-drz(z,θ) \ drθ(z,θ))[1:2,:]
-# x4 = (-(drz(z,θ)' * drz(z,θ)) \ (drz(z, θ)' * drθ(z, θ)))[1:2, :]
-#
+x2 = (-drz(z,θ) \ drθ(z,θ))[1:2,:]
+x4 = (-(drz(z,θ)' * drz(z,θ)) \ (drz(z, θ)' * drθ(z, θ)))[1:2, :]

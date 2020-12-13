@@ -25,7 +25,7 @@ x1 = [q1; q2]
 xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
-obj = PenaltyObjective(1000.0, model.m)
+obj = PenaltyObjective(1.0e5, model.m)
 
 # Constraints
 include_constraints("contact")
@@ -58,5 +58,7 @@ x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-open(vis)
+render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
+
+friction_socp(model, x̄[2], ū[1], h)

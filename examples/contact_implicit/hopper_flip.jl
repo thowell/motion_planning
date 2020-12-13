@@ -8,15 +8,15 @@ model_ft = free_time_model(model)
 T = 21
 
 # Time step
-tf = 2.5
+tf = 1.0
 h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-_uu[model_ft.idx_u] .= 100.0
+_uu[model_ft.idx_u] = 250.0 #model_ft.uU
 _uu[end] = 5.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] .= -100.0
+_ul[model_ft.idx_u] = -250.0 #model_ft.uL
 _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
@@ -44,7 +44,7 @@ x_ref = configuration_to_state(q_ref)
 include_objective(["velocity"])
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal([1.0; 10.0; 0.1; 0.1; 1.0; 10.0; 0.1; 0.1]) for t = 1:T],
-    [Diagonal([1.0, 1.0,
+    [Diagonal([1.0, 1.0e-3,
 		zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [x_ref[t] for t = 1:T],
     [zeros(model_ft.m) for t = 1:T-1],
