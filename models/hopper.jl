@@ -23,6 +23,9 @@ struct Hopper{I, T} <: Model{I, T}
     qL::Vector
     qU::Vector
 
+	uL::Vector
+	uU::Vector
+
     nq
     nu
     nc
@@ -49,14 +52,14 @@ ns = 1
 # Parameters
 g = 9.81 # gravity
 μ = 1.0  # coefficient of friction
-mb = 10.0 # body mass
-ml = 1.0  # leg mass
-Jb = 2.5 # body inertia
-Jl = 0.25 # leg inertia
+mb = 1.0 # body mass
+ml = 0.1  # leg mass
+Jb = 0.25 # body inertia
+Jl = 0.025 # leg inertia
 
 n = 2 * nq
 m = nu + nc + nb + nc + nb + ns
-d = 0
+d = nq
 
 idx_u = (1:nu)
 idx_λ = nu .+ (1:nc)
@@ -110,10 +113,11 @@ function fd(model::Hopper{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
 	((1.0 / h) * (M_func(model, q1) * (SVector{4}(q2⁺) - SVector{4}(q1))
     - M_func(model, q2⁺) * (SVector{4}(q3) - SVector{4}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
+	- h * G_func(model, q2⁺)
+    + h * (transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{1}(λ)
-    + transpose(P_func(model, q3)) * SVector{2}(b)
-    - h * G_func(model, q2⁺) + w)]
+    + transpose(P_func(model, q3)) * SVector{2}(b))
+    + h * w)]
 end
 
 function maximum_dissipation(model::Hopper{Discrete, FixedTime}, x⁺, u, h)
@@ -138,10 +142,11 @@ function fd(model::Hopper{Discrete, FreeTime}, x⁺, x, u, w, h, t)
 	[q2⁺ - q2⁻;
 	((1.0 / h) * (M_func(model, q1) * (SVector{4}(q2⁺) - SVector{4}(q1))
 	- M_func(model, q2⁺) * (SVector{4}(q3) - SVector{4}(q2⁺)))
-	+ transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
+	- h * G_func(model, q2⁺)
+	+ h * (transpose(B_func(model, q3)) * SVector{2}(u_ctrl)
 	+ transpose(N_func(model, q3)) * SVector{1}(λ)
-	+ transpose(P_func(model, q3)) * SVector{2}(b)
-	- h * G_func(model, q2⁺))]
+	+ transpose(P_func(model, q3)) * SVector{2}(b))
+	+ h * w)]
 end
 
 function maximum_dissipation(model::Hopper{Discrete, FreeTime}, x⁺, u, h)
@@ -184,10 +189,14 @@ qU = Inf * ones(nq)
 qL[4] = 0.1
 qU[4] = r
 
+uL = -100.0 * ones(nu)
+uU = 100.0 * ones(nu)
+
 model = Hopper{Discrete, FixedTime}(n, m, d,
 			   mb, ml, Jb, Jl,
 			   μ, g,
 			   qL, qU,
+			   uL, uU,
 			   nq,
 		       nu,
 		       nc,
@@ -212,7 +221,7 @@ function visualize!(vis, model::Hopper, q; Δt = 0.1)
 
     setobject!(vis["foot"], Sphere(Point3f0(0),
         convert(Float32, r_foot)),
-        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
     n_leg = 100
     for i = 1:n_leg

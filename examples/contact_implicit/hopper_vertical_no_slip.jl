@@ -11,10 +11,10 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-_uu[model_ft.idx_u] .= 10.0
+_uu[model_ft.idx_u] = model_ft.uU
 _uu[end] = 2.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] .= -10.0
+_ul[model_ft.idx_u] = model_ft.uL
 _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
@@ -31,7 +31,7 @@ xl, xu = state_bounds(model_ft, T,
 include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-2, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal([1.0, 1.0, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
@@ -88,9 +88,9 @@ if optimize
 
 	@show tf
 	@show h̄[1]
-	@save joinpath(@__DIR__, "hopper_vertical_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	@save joinpath(pwd(), "examples/trajectories/hopper_vertical_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(@__DIR__, "hopper_vertical_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	@load joinpath(pwd(), "examples/trajectories/hopper_vertical_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 using Plots

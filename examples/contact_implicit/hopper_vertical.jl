@@ -11,10 +11,10 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-_uu[model_ft.idx_u] .= 10.0
+_uu[model_ft.idx_u] = model_ft.uU
 _uu[end] = 2.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] .= -10.0
+_ul[model_ft.idx_u] = model_ft.uL
 _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
@@ -88,9 +88,9 @@ if optimize
 
 	@show tf
 	@show h̄[1]
-	@save joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@save joinpath(joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2")) x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(@__DIR__, "hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@load joinpath(joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2")) x̄ ū h̄ x_proj u_proj
 end
 
 using Plots
@@ -122,7 +122,7 @@ visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
 x_track = deepcopy(x_proj)
 u_track = deepcopy(u_proj)
 
-for i = 1:10
+for i = 1:5
 	x_track = [x_track..., x_track[2:T]...]
 	u_track = [u_track..., u_track...]
 end
@@ -174,11 +174,11 @@ for tt = 1:T_horizon-1
 	end
 
 	push!(u_sim, u_track[i][1:end-1] - K[i] * (x_sim[end] - x_cubic))
-	w0 = (tt == 101 ? 25.0 * [1.0; 0.01; 0.0; 0.0] .* randn(model.nq) : 1.0e-5 * randn(model.nq))
+	w0 = (tt == 101 ? 25.0 * [1.0; 0.01; 0.0; 0.0] .* randn(model.nq) : 1.0e-3 * randn(model.nq))
 	push!(x_sim,
 		step_contact(model_sim,
 			x_sim[end],
-			max.(min.(u_sim[end][1:model.nu], 10.0), -10.0),
+			max.(min.(u_sim[end][1:model.nu] .* (h_sim / h̄[1]), 10.0), -10.0),
 			w0,
 			h_sim))
 end
@@ -191,7 +191,25 @@ plot!(hcat(state_to_configuration(x_sim[1:1:T_horizon])...)',
     labels = "", legend = :bottom,
     width = 1.0, color = ["red" "green" "blue" "orange"])
 
-plot(hcat(u_sim...)[1:2, :]', linetype = :steppost)
+plot(hcat(u_track...)[1:2, :]',
+	width = 2.0,
+	linetype = :steppost,
+	linestyle = :dash)
+
+plot!(hcat(u_sim...)[1:2, :]',
+	width = 1.0,
+	linetype = :steppost)
+
+plot(hcat(u_track...)[3:5, 100:200]',
+	width = 2.0,
+	color = ["red" "green" "blue"],
+	linetype = :steppost,
+	linestyle = :dash)
+
+plot!(hcat(u_sim...)[3:5, 100:200]',
+	width = 1.0,
+	color = ["red" "green" "blue"],
+	linetype = :steppost)
 
 vis = Visualizer()
 render(vis)
