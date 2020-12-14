@@ -48,29 +48,9 @@ motion planning
 - [X] biped
 
 ## installation
-First, clone this repository
-```
-$ git clone https://github.com/thowell/DirectMotionPlanning
-```
-
-Next, change directories
-```
-$ cd DirectMotionPlanning
-```
-
-Now, start Julia
-```
-$ julia
-```
-
-Using the package manager, activate the package
+From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 ```julia
-pkg> activate .
-```
-
-Finally, instantiate the package to install all dependencies
-```julia
-pkg> instantiate
+pkg> add https://github.com/thowell/DirectMotionPlanning.jl
 ```
 
 ## TODO
