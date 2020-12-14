@@ -90,7 +90,7 @@ d_leg = 0.1445
 
 n = 2 * nq
 m = nu + nc + nb + nc + nb + ns
-d = 0
+d = nq
 
 idx_u = (1:nu)
 idx_λ = nu .+ (1:nc)
@@ -476,10 +476,11 @@ function fd(model::Biped{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{7}(q2⁺) - SVector{7}(q1))
     - M_func(model, q2⁺) * (SVector{7}(q3) - SVector{7}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{4}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{4}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{2}(λ)
-    + transpose(P_func(model, q3)) * SVector{4}(b)
-    - h * C_func(model, q3, (q3 - q2⁺) / h))]
+    + transpose(P_func(model, q3)) * SVector{4}(b))
+    - h * C_func(model, q3, (q3 - q2⁺) / h)
+	+ h * w)]
 end
 
 function fd(model::Biped{Discrete, FreeTime}, x⁺, x, u, w, h, t)
@@ -495,10 +496,11 @@ function fd(model::Biped{Discrete, FreeTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{7}(q2⁺) - SVector{7}(q1))
     - M_func(model, q2⁺) * (SVector{7}(q3) - SVector{7}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{4}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{4}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{2}(λ)
-    + transpose(P_func(model, q3)) * SVector{4}(b)
-    - h * C_func(model, q3, (q3 - q2⁺) / h))]
+    + transpose(P_func(model, q3)) * SVector{4}(b))
+    - h * C_func(model, q3, (q3 - q2⁺) / h)
+	+ h * w)]
 end
 
 model = Biped{Discrete, FixedTime}(n, m, d,

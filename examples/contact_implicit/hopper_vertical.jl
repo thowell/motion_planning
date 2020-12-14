@@ -88,9 +88,9 @@ if optimize
 
 	@show tf
 	@show h̄[1]
-	@save joinpath(joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2")) x̄ ū h̄ x_proj u_proj
+	@save joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2")) x̄ ū h̄ x_proj u_proj
+	@load joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 using Plots

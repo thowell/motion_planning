@@ -98,16 +98,17 @@ foot_2_M = kinematics_2(model, qM, body = :leg_2, mode = :ee)
 foot_1_M = kinematics_2(model, qM, body = :leg_1, mode = :ee)
 foot_1_T = kinematics_2(model, qT, body = :leg_1, mode = :ee)
 
-zh = 0.1
-foot_2_x1 = range(foot_2_1[1], stop = foot_2_M[1], length = T)
-foot_z1 = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x1).^2.0) ./ abs(foot_2_1[1])^2.0) .+ 1.0e-8)
 
-foot_1_x2 = range(foot_1_M[1], stop = foot_1_T[1], length = 26)
-foot_z2 = sqrt.((zh^2.0) * (1.0 .- ((foot_1_x2 .- abs(foot_1_T[1] / 2.0)).^2.0) ./ abs(foot_1_T[1] / 2.0)^2.0) .+ 1.0e-8)
+zh = 0.1
+foot_2_x = range(foot_2_1[1], stop = foot_2_M[1], length = Tm)
+foot_2_z = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x).^2.0) ./ abs(foot_2_1[1])^2.0) .+ 1.0e-8)
+
+foot_1_x = range(foot_1_M[1], stop = foot_1_T[1], length = Tm)
+foot_1_z = sqrt.((zh^2.0) * (1.0 .- ((foot_1_x .- abs(foot_1_T[1] / 2.0)).^2.0) ./ abs(foot_1_T[1] / 2.0)^2.0) .+ 1.0e-8)
 
 using Plots
-plot(foot_2_x1, foot_z1)
-plot!(foot_1_x2, foot_z2, aspect_ratio = :equal)
+plot(foot_2_x, foot_2_z)
+plot!(foot_1_x, foot_1_z, aspect_ratio = :equal)
 
 # u1 = initial_torque(model_τ, qM, h)
 
@@ -117,10 +118,10 @@ plot!(foot_1_x2, foot_z2, aspect_ratio = :equal)
 # u = (τ1..4, λ1..2, β1..4, ψ1..2, η1...4, s1)
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
-_uu[model.idx_u] .= model.uU
+_uu[model.idx_u] .= Inf
 _uu[end] = 2.0 * h
 _ul = zeros(model.m)
-_ul[model.idx_u] .= model.uL
+_ul[model.idx_u] .= -Inf
 _ul[end] = 0.01 * h
 ul, uu = control_bounds(model, T, _ul, _uu)
 
@@ -169,8 +170,8 @@ obj_control = quadratic_time_tracking_objective(
 
 # quadratic velocity penalty
 # Σ v' Q v
-q_v = 1.0 * ones(model.nq)
-q_v[2] = 1000.0
+q_v = 1.0e-1 * ones(model.nq)
+# q_v[2] = 0.0
 obj_velocity = velocity_objective(
     [Diagonal(q_v) for t = 1:T-1],
     model.nq,
@@ -179,70 +180,115 @@ obj_velocity = velocity_objective(
 
 # torso height
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
-l_stage_torso_h(x, u, t) = 1000.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
-l_terminal_torso_h(x) = 0.0 #* (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
-obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
+function l_stage_torso_h(x, u, t)
+    if t > 1
+        return 1000.0 * (kinematics_1(model,
+            view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
+    else
+        return 0.0
+    end
+end
+
+l_terminal_torso_h(x) = 0.0
+obj_th = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
-l_stage_torso_lat(x, u, t) = (1.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
-l_terminal_torso_lat(x) = (0.0 * (kinematics_1(model, view(x, 8:14), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], 8:14), body = :torso, mode = :com)[1])^2.0)
-obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
+function l_stage_torso_lat(x, u, t)
+    if t > 1
+        return (1.0 * (kinematics_1(model,
+            view(x, 8:14), body = :torso, mode = :com)[1]
+            - kinematics_1(model,
+            view(x0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
+    else
+        return 0.0
+    end
+end
+l_terminal_torso_lat(x) = 0.0
+obj_tl = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
 function l_stage_fh1(x, u, t)
     if t > Tm
         # return 0.0
         return (1000.0 * (kinematics_2(model,
-            view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_z2[t - 25])^2.0
+            view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_1_z[t - 25])^2.0
             + 1000.0 * (kinematics_2(model,
-                view(x, 8:14), body = :leg_1, mode = :ee)[2] - foot_z2[t - 25])^2.0)
+                view(x, 8:14), body = :leg_1, mode = :ee)[2] - foot_1_z[t - 25])^2.0)
     else
         # return 0.0
-        return (10000.0 * (kinematics_2(model,
+        return (1000.0 * (kinematics_2(model,
             view(x, 1:7), body = :leg_1, mode = :ee)[2] - 0.0)^2.0
-            + 10000.0 * (kinematics_2(model,
+            + 1000.0 * (kinematics_2(model,
                 view(x, 8:14), body = :leg_1, mode = :ee)[2] - 0.0)^2.0)
     end
 end
 l_terminal_fh1(x) = 0.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
+# foot 1 lateral
+function l_stage_fl1(x, u, t)
+    if t > Tm
+        # return 0.0
+        return (1000.0 * (kinematics_2(model,
+            view(x, 1:7), body = :leg_1, mode = :ee)[1] - foot_1_x[t - 25])^2.0
+            + 1000.0 * (kinematics_2(model,
+                view(x, 8:14), body = :leg_1, mode = :ee)[1] - foot_1_x[t - 25])^2.0)
+    else
+        # return 0.0
+        return (1000.0 * (kinematics_2(model,
+            view(x, 1:7), body = :leg_1, mode = :ee)[2] - foot_1_M[1])^2.0
+            + 1000.0 * (kinematics_2(model,
+                view(x, 8:14), body = :leg_1, mode = :ee)[2] - foot_1_M[1])^2.0)
+    end
+end
+l_terminal_fl1(x) = 0.0
+obj_fl1 = nonlinear_stage_objective(l_stage_fl1, l_terminal_fl1)
+
 # foot 2 height
 function l_stage_fh2(x, u, t)
     if t < Tm
         return (1000.0 * (kinematics_2(model,
-            view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_z1[t])^2.0
+            view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_2_z[t])^2.0
             + 1000.0 * (kinematics_2(model,
-                view(x, 8:14), body = :leg_2, mode = :ee)[2] - foot_z1[t])^2.0)
+                view(x, 8:14), body = :leg_2, mode = :ee)[2] - foot_2_z[t])^2.0)
     else
         # return 0.0
-        return (10000.0 * (kinematics_2(model,
+        return (1000.0 * (kinematics_2(model,
             view(x, 1:7), body = :leg_2, mode = :ee)[2] - 0.0)^2.0
-            + 10000.0 * (kinematics_2(model,
+            + 1000.0 * (kinematics_2(model,
                 view(x, 8:14), body = :leg_2, mode = :ee)[2] - 0.0)^2.0)
     end
 end
 l_terminal_fh2(x) = 0.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
-# initial configuration
-# function l_stage_conf(x, u, t)
-#     if t == 1
-#         return 0.0#(x - [q1; q1])' * Diagonal(1000.0 * ones(model.n)) * (x - [q1; q1])
-#     else
-#         return 0.0
-#     end
-# end
-# l_terminal_conf(x) = (x - [qT; qT])' * Diagonal(1000.0 * ones(model.n)) * (x - [qT; qT])
-# obj_conf = nonlinear_stage_objective(l_stage_conf, l_terminal_conf)
+# foot 2 lateral
+function l_stage_fl2(x, u, t)
+    if t < Tm
+        return (1000.0 * (kinematics_2(model,
+            view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_2_x[t])^2.0
+            + 1000.0 * (kinematics_2(model,
+                view(x, 8:14), body = :leg_2, mode = :ee)[2] - foot_2_x[t])^2.0)
+    else
+        # return 0.0
+        return (1000.0 * (kinematics_2(model,
+            view(x, 1:7), body = :leg_2, mode = :ee)[2] - foot_2_M[1])^2.0
+            + 1000.0 * (kinematics_2(model,
+                view(x, 8:14), body = :leg_2, mode = :ee)[2] - foot_2_M[1])^2.0)
+    end
+end
+l_terminal_fl2(x) = 0.0
+obj_fl2 = nonlinear_stage_objective(l_stage_fl2, l_terminal_fl2)
 
 obj = MultiObjective([obj_penalty,
                       obj_control,
                       obj_velocity,
-                      obj_torso_h,
-                      obj_torso_lat,
+                      obj_th,
+                      obj_tl,
                       obj_fh1,
-                      obj_fh2])
+                      obj_fh2,
+                      obj_fl1,
+                      obj_fl2])
 
 # Constraints
 include_constraints(["contact_no_slip", "loop", "free_time"])
@@ -263,7 +309,7 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [[1.0e-5 * rand(model.m - 1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-4 * rand(model.m - 1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -276,28 +322,28 @@ if optimize
 
 	@time z̄ = solve(prob, copy(z0),
 		nlp = :ipopt,
-		tol = 1.0e-4, c_tol = 1.0e-4, mapl = 5,
+		tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
 		time_limit = 60 * 3)
 	@show check_slack(z̄, prob)
 	x̄, ū = unpack(z̄, prob)
     tf, t, h̄ = get_time(ū)
 
 	# projection
-	Q = [Diagonal(ones(model.n)) for t = 1:T]
-	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
-	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
-
-	@show tf
-	@show h̄[1]
-	@save joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	# Q = [Diagonal(ones(model.n)) for t = 1:T]
+	# R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+	# x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+    #
+	# @show tf
+	# @show h̄[1]
+	# @save joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	# @load joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 # Visualize
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(x_proj), Δt = h̄[1])
+visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
 
 fh1 = [kinematics_2(model,
     state_to_configuration(x_proj)[t], body = :leg_1, mode = :ee)[2] for t = 1:T]
@@ -306,28 +352,28 @@ fh2 = [kinematics_2(model,
 
 plot(fh1, linetype = :steppost, label = "foot 1")
 plot!(fh2, linetype = :steppost, label = "foot 2")
-
-plot(hcat(ū...)[1:4, :]',
-    linetype = :steppost,
-    label = "",
-    color = :red,
-    width = 2.0)
-
-plot!(hcat(u_proj...)[1:4, :]',
-    linetype = :steppost,
-    label = "",
-    color = :black)
-
-plot(hcat(u_proj...)[5:6, :]',
-    linetype = :steppost,
-    label = "",
-    width = 2.0)
-
-plot(hcat(state_to_configuration(x̄)...)',
-    color = :red,
-    width = 2.0,
-    label = "")
-
-plot!(hcat(state_to_configuration(x_proj)...)',
-    color = :black,
-    label = "")
+#
+# plot(hcat(ū...)[1:4, :]',
+#     linetype = :steppost,
+#     label = "",
+#     color = :red,
+#     width = 2.0)
+#
+# plot!(hcat(u_proj...)[1:4, :]',
+#     linetype = :steppost,
+#     label = "",
+#     color = :black)
+#
+# plot(hcat(u_proj...)[5:6, :]',
+#     linetype = :steppost,
+#     label = "",
+#     width = 2.0)
+#
+# plot(hcat(state_to_configuration(x̄)...)',
+#     color = :red,
+#     width = 2.0,
+#     label = "")
+#
+# plot!(hcat(state_to_configuration(x_proj)...)',
+#     color = :black,
+#     label = "")
