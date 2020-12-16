@@ -186,6 +186,7 @@ end
 r = 0.5
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
+qL[2] = 0.0
 qL[4] = 0.1
 qU[4] = r
 

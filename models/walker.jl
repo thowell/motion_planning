@@ -1,4 +1,4 @@
-struct Biped{I, T} <: Model{I, T}
+struct Walker{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
@@ -25,6 +25,12 @@ struct Biped{I, T} <: Model{I, T}
     m_calf1
     J_calf1
 
+		# foot
+	l_foot1
+	d_foot1
+	m_foot1
+	J_foot1
+
     # leg 2
         # thigh
     l_thigh2
@@ -37,6 +43,12 @@ struct Biped{I, T} <: Model{I, T}
     d_calf2
     m_calf2
     J_calf2
+
+		# foot
+	l_foot2
+	d_foot2
+	m_foot2
+	J_foot2
 
     # joint limits
     qL
@@ -62,9 +74,9 @@ struct Biped{I, T} <: Model{I, T}
 end
 
 # Dimensions
-nq = 2 + 5                # configuration dimension
-nu = 4                    # control dimension
-nc = 2                    # number of contact points
+nq = 2 + 5 + 2            # configuration dimension
+nu = 5                    # control dimension
+nc = 4                    # number of contact points
 nf = 2                    # number of parameters for friction cone
 nb = nc * nf
 ns = 1
@@ -77,18 +89,22 @@ g = 9.81     # gravity
 m_torso = 0.5 + 0.48 * 2.0
 m_thigh = 0.8112
 m_calf = 0.3037
+m_foot = 0.05
 
 J_torso = 0.0029
 J_thigh = 0.00709
 J_calf = 0.00398
+J_foot = 0.0001
 
 l_torso = 0.15 + 0.15
 l_thigh = 0.2755
 l_calf = 0.308
+l_foot = 0.1
 
 d_torso = 0.0342
 d_thigh = 0.2176
 d_calf = 0.1445
+d_foot = 0.05
 
 n = 2 * nq
 m = nu + nc + nb + nc + nb + ns

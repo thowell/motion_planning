@@ -116,10 +116,10 @@ function fd(model::Particle{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{3}(q2⁺) - SVector{3}(q1))
     - M_func(model, q2⁺) * (SVector{3}(q3) - SVector{3}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{3}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{3}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{1}(λ)
     + transpose(P_func(model, q3)) * SVector{4}(b)
-    - h * G_func(model, q2⁺))]
+    - G_func(model, q2⁺)))]
 end
 
 model = Particle{Discrete, FixedTime}(n, m, d,

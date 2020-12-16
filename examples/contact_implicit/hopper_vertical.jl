@@ -37,7 +37,7 @@ obj_tracking = quadratic_time_tracking_objective(
     1.0)
 obj_contact_penalty = PenaltyObjective(1.0e5, model_ft.m - 1)
 obj_velocity = velocity_objective(
-    [Diagonal(10.0 * ones(model_ft.nq)) for t = 1:T-1],
+    [Diagonal(1.0 * ones(model_ft.nq)) for t = 1:T-1],
     model_ft.nq,
     h = h,
     idx_angle = collect([3]))
@@ -117,100 +117,3 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
-
-# Reference trajectory
-x_track = deepcopy(x_proj)
-u_track = deepcopy(u_proj)
-
-for i = 1:5
-	x_track = [x_track..., x_track[2:T]...]
-	u_track = [u_track..., u_track...]
-end
-T_track = length(x_track)
-
-plot(hcat(state_to_configuration(x_track)...)',
-    color = :black,
-	label = "")
-
-plot(hcat(u_track...)',
-	color = :black,
-	label = "")
-
-
-K, P = tvlqr(model_ft, x_track, u_track, h̄[1],
-	[Diagonal(ones(model_ft.n)) for t = 1:T_track],
-	[Diagonal(ones(model_ft.m)) for t = 1:T_track - 1])
-
-K_vec = [vec(K[t]) for t = 1:T_track-1]
-P_vec = [vec(P[t]) for t = 1:T_track-1]
-
-plot(hcat(K_vec...)', label = "")
-plot(hcat(P_vec...)', label = "")
-
-include(joinpath(pwd(), "src/simulate_contact.jl"))
-model_sim = model
-
-T_sim = 1 * T_track
-tf_track = h̄[1] * (T_track - 1)
-t_sim = range(0, stop = tf_track, length = T_sim)
-t_ctrl = range(0, stop = tf_track, length = T_track)
-h_sim = tf_track / (T_sim - 1)
-x_track_stack = hcat(x_track...)
-
-x_sim = [copy(x_proj[1])]
-u_sim = []
-T_horizon = T_sim - T
-
-for tt = 1:T_horizon-1
-	t = t_sim[tt]
-	i = searchsortedlast(t_ctrl, t)
-	println("t: $t")
-	println("	i: $i")
-
-	x_cubic = zeros(model_sim.n)
-	for i = 1:model_sim.n
-		interp_cubic = CubicSplineInterpolation(t_ctrl, x_track_stack[i, :])
-		x_cubic[i] = interp_cubic(t)
-	end
-
-	push!(u_sim, u_track[i][1:end-1] - K[i] * (x_sim[end] - x_cubic))
-	w0 = (tt == 101 ? 25.0 * [1.0; 0.01; 0.0; 0.0] .* randn(model.nq) : 1.0e-3 * randn(model.nq))
-	push!(x_sim,
-		step_contact(model_sim,
-			x_sim[end],
-			max.(min.(u_sim[end][1:model.nu] .* (h_sim / h̄[1]), 10.0), -10.0),
-			w0,
-			h_sim))
-end
-
-plot(hcat(state_to_configuration(x_track[1:1:T_horizon])...)',
-    labels = "", legend = :bottomleft,
-    width = 2.0, color = ["red" "green" "blue" "orange"], linestyle = :dash)
-
-plot!(hcat(state_to_configuration(x_sim[1:1:T_horizon])...)',
-    labels = "", legend = :bottom,
-    width = 1.0, color = ["red" "green" "blue" "orange"])
-
-plot(hcat(u_track...)[1:2, :]',
-	width = 2.0,
-	linetype = :steppost,
-	linestyle = :dash)
-
-plot!(hcat(u_sim...)[1:2, :]',
-	width = 1.0,
-	linetype = :steppost)
-
-plot(hcat(u_track...)[3:5, 100:200]',
-	width = 2.0,
-	color = ["red" "green" "blue"],
-	linetype = :steppost,
-	linestyle = :dash)
-
-plot!(hcat(u_sim...)[3:5, 100:200]',
-	width = 1.0,
-	color = ["red" "green" "blue"],
-	linetype = :steppost)
-
-vis = Visualizer()
-render(vis)
-visualize!(vis, model_ft, state_to_configuration(x_sim), Δt = h̄[1])

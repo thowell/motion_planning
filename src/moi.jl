@@ -1,5 +1,12 @@
 const MOI = MathOptInterface
 
+struct MOIGeneralProblem <: MOI.AbstractNLPEvaluator
+    num_var::Int                 # number of decision variables
+    num_con::Int                 # number of constraints
+    primal_bounds
+    constraint_bounds
+end
+
 struct MOIProblem <: MOI.AbstractNLPEvaluator
     num_var::Int                 # number of decision variables
     num_con::Int                 # number of constraints
@@ -24,38 +31,25 @@ primal_bounds(prob::MOI.AbstractNLPEvaluator) = prob.primal_bounds
 
 constraint_bounds(prob::MOI.AbstractNLPEvaluator) = prob.constraint_bounds
 
-# function sparsity_jacobian(n, m; shift_r = 0, shift_c = 0)
-#
-#     row = []
-#     col = []
-#
-#     r = shift_r .+ (1:m)
-#     c = shift_c .+ (1:n)
-#
-#     row_col!(row, col, r, c)
-#
-#     return collect(zip(row, col))
-# end
-
-function MOI.eval_objective(prob::MOI.AbstractNLPEvaluator, x)
+function MOI.eval_objective(prob::MOIProblem, x)
     return eval_objective(prob.prob, x)
 end
 
-function MOI.eval_objective_gradient(prob::MOI.AbstractNLPEvaluator, grad_f, x)
+function MOI.eval_objective_gradient(prob::MOIProblem, grad_f, x)
     eval_objective_gradient!(grad_f, x, prob.prob)
 end
 
-function MOI.eval_constraint(prob::MOI.AbstractNLPEvaluator, g, x)
+function MOI.eval_constraint(prob::MOIProblem, g, x)
     eval_constraint!(g, x, prob.prob)
     return nothing
 end
 
-function MOI.eval_constraint_jacobian(prob::MOI.AbstractNLPEvaluator, jac, x)
+function MOI.eval_constraint_jacobian(prob::MOIProblem, jac, x)
     eval_constraint_jacobian!(jac, x, prob.prob)
     return nothing
 end
 
-function sparsity_jacobian(prob::MOI.AbstractNLPEvaluator)
+function sparsity_jacobian(prob::MOIProblem)
     sparsity_jacobian(prob.prob)
 end
 
