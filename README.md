@@ -7,6 +7,7 @@
 - [ ] quadrotor
 
 ## contact-implicit trajectory optimization examples
+- update models: impulse -> force
 - [X] particle
 - [X] simple manipulation
 - [X] cyberdrift
@@ -33,7 +34,8 @@
 
 ## direct policy optimization examples
 We provide the [examples](src/examples/direct_policy_optimization) from [Direct Policy Optimization using Deterministic Sampling and Collocation](https://arxiv.org/abs/2010.08506). Optimizing the policies requires [SNOPT](https://en.wikipedia.org/wiki/SNOPT) and resources for its installation are available [here](src/solvers/snopt.jl). The trajectories and policies from these examples have been saved and can be loaded in order to run the policy simulations and visualizations.
-(todo: update discrete disturbance dynamics, plots)
+
+- update: discrete disturbance dynamics, plots
 
 LQR
 - [X] double integrator

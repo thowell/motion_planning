@@ -57,10 +57,10 @@ idx_s = nu + nc + nb + nc + nb .+ (1:ns)
 # Parameters
 g = 9.81 # gravity
 μ = 1.0  # coefficient of friction
-mb = 10.0 # body mass
-ml = 1.0  # leg mass
-Jb = 2.5 # body inertia
-Jl = 0.25 # leg inertia
+mb = 1.0 # body mass
+ml = 0.1  # leg mass
+Jb = 0.25 # body inertia
+Jl = 0.025 # leg inertia
 
 # Kinematics
 function kinematics(::Hopper3D, q)
@@ -137,16 +137,17 @@ function fd(model::Hopper3D{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{7}(q2⁺) - SVector{7}(q1))
     - M_func(model, q2⁺) * (SVector{7}(q3) - SVector{7}(q2⁺)))
-    + transpose(B_func(model, q3)) * SVector{3}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{3}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{1}(λ)
     + transpose(P_func(model, q3)) * SVector{4}(b)
-    - h * G_func(model, q2⁺))]
+    - G_func(model, q2⁺)))]
 end
 
-r = 0.7
+r = 0.5
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
-qL[7] = r / 2.0
+qL[3] = 0.0
+qL[7] = 0.1
 qU[7] = r
 
 model = Hopper3D{Discrete, FixedTime}(n, m, d,

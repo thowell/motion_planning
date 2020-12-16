@@ -60,5 +60,3 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
-
-friction_socp(model, x̄[2], ū[1], h)

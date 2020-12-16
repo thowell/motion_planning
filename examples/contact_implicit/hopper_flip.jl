@@ -5,7 +5,8 @@ include_model("hopper")
 model_ft = free_time_model(model)
 
 # Horizon
-T = 21
+T = 49
+Tm = 25
 
 # Time step
 tf = 1.0
@@ -13,18 +14,18 @@ h = tf / (T - 1)
 
 # Bounds
 _uu = Inf * ones(model_ft.m)
-_uu[model_ft.idx_u] = 250.0 #model_ft.uU
+_uu[model_ft.idx_u] .= 250.0 #model_ft.uU
 _uu[end] = 5.0 * h
 _ul = zeros(model_ft.m)
-_ul[model_ft.idx_u] = -250.0 #model_ft.uL
+_ul[model_ft.idx_u] .= -250.0 #model_ft.uL
 _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
 # Initial and final states
 q1 = [0.0, 0.5 , 0.0, 0.5]
-q_right = [-0.25, 0.5 + 0.5, pi / 2.0, 0.25]
-q_top = [-0.5, 0.5 + 1.0, pi, 0.25]
-q_left = [-0.75, 0.5 + 0.5, 3.0 * pi / 2.0, 0.25]
+q_right = [-0.25, 0.5 + 0.25, pi / 2.0, 0.25]
+q_top = [-0.5, 0.5 + 0.5, pi, 0.25]
+q_left = [-0.75, 0.5 + 0.25, 3.0 * pi / 2.0, 0.25]
 qT = [-1.0, 0.5,  2.0 * pi, 0.5]
 
 xl, xu = state_bounds(model_ft, T,
@@ -32,19 +33,21 @@ xl, xu = state_bounds(model_ft, T,
 		[model_ft.qU; model_ft.qU],
         x1 = [q1; q1],
 		xT = [qT; qT])
+xl[Tm][nq .+ (1:nq)] = q_top
+xu[Tm][nq .+ (1:nq)] = q_top
 
-q_ref = [linear_interpolation(q1, q_right, 6)...,
-         linear_interpolation(q_right, q_top, 6)[2:end]...,
-         linear_interpolation(q_top, q_left, 6)[2:end]...,
-         linear_interpolation(q_left, qT, 6)[2:end]...]
+q_ref = [linear_interpolation(q1, q_right, 13)...,
+         linear_interpolation(q_right, q_top, 13)[2:end]...,
+         linear_interpolation(q_top, q_left, 13)[2:end]...,
+         linear_interpolation(q_left, qT, 13)[2:end]...]
 
 x_ref = configuration_to_state(q_ref)
 
 # Objective
 include_objective(["velocity"])
 obj_tracking = quadratic_time_tracking_objective(
-    [Diagonal([1.0; 10.0; 0.1; 0.1; 1.0; 10.0; 0.1; 0.1]) for t = 1:T],
-    [Diagonal([1.0, 1.0e-3,
+    [100.0 * Diagonal([1.0; 10.0; 0.1; 0.1; 1.0; 10.0; 0.1; 0.1]) for t = 1:T],
+    [Diagonal([1.0, 1.0,
 		zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [x_ref[t] for t = 1:T],
     [zeros(model_ft.m) for t = 1:T-1],
