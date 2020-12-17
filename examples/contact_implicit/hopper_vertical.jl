@@ -3,7 +3,7 @@ include_model("hopper")
 model_ft = free_time_model(model)
 
 # Horizon
-T = 101
+T = 51
 
 # Time step
 tf = 1.0
@@ -117,3 +117,43 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
+
+@time z̄ = solve(prob, copy(z̄),
+	nlp = :ipopt,
+	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 0,
+	time_limit = 60)
+
+obj_track = quadratic_tracking_objective(
+    [Diagonal(100.0 * ones(model.n)) for t = 1:T],
+    [Diagonal(ones(model.m)) for t = 1:T-1],
+    [x̄[t] for t = 1:T],
+    [ū[t][1:end-1] for t = 1:T-1])
+
+
+prob_track = trajectory_optimization_problem(model,
+               obj_track,
+               T,
+               xl = xl,
+               xu = xu,
+               ul = [ul[t][1:end-1] for t = 1:T-1],
+               uu = [uu[t][1:end-1] for t = 1:T-1],
+               con = con_contact)
+
+z_track = pack(x̄, [ū[t][1:end-1] for t = 1:T-1], prob_track) #+ 1.0e-2 * ones(prob_track.num_var)
+# z_track[1:model.n] .+= 0.25
+# prob_track.primal_bounds[1][1:model.n] = z_track[1:model.n]
+# prob_track.primal_bounds[2][1:model.n] = z_track[1:model.n]
+
+@time z_sol = solve(prob_track, copy(z_track),
+	nlp = :ipopt,
+	tol = 1.0e-5, c_tol = 1.0e-5, mapl = 0,
+	time_limit = 60)
+
+x_sol, u_sol = unpack(z_sol, prob_track)
+plot(hcat(state_to_configuration(x̄)...)')
+plot!(hcat(state_to_configuration(x_sol)...)')
+
+plot(hcat([ū[t][1:end-1] for t = 1:T-1]...)', color = :red, width = 2.0, label = "")
+plot!(hcat(u_sol...)', color = :black, width = 1.0)
+
+x_sol[1] - z_track[1:model.n]
