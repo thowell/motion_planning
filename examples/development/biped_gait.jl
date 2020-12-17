@@ -13,7 +13,7 @@ T = 51
 Tm = 26
 
 # Time step
-tf = 1.0
+tf = 2.0
 h = tf / (T - 1)
 
 # Configurations
@@ -60,7 +60,7 @@ function initial_configuration_1(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh
     return q1, qM, qT
 end
 
-q1, qM, qT = initial_configuration_1(model, pi - pi / 50.0, -pi + pi / 7.5, -pi / 5.5, -pi - pi / 20.0)
+q1, qM, qT = initial_configuration_1(model, pi - pi / 50.0, -pi + pi / 10.0, -pi / 15.0, -pi - pi / 75.0)
 qq_ref = linear_interpolation(q1, qM, T)
 visualize!(vis, model, [q1], Δt = h)
 
@@ -71,7 +71,7 @@ foot_1_M = kinematics_2(model, qM, body = :calf_1, mode = :ee)
 foot_1_T = kinematics_2(model, qT, body = :calf_1, mode = :ee)
 
 
-zh = 0.1
+zh = 0.15
 foot_2_x = [range(foot_2_1[1], stop = foot_2_M[1], length = Tm)...,
     [foot_2_M[1] for t = 1:Tm-1]...]
 foot_2_z = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x).^2.0)
@@ -143,19 +143,19 @@ obj_penalty = PenaltyObjective(1.0e5, model.m - 1)
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 x_torso = zeros(model.n)
-x_torso[3] = 1.0
-x_torso[10] = 1.0
+x_torso[3] = 10.0
+x_torso[10] = 10.0
 obj_control = quadratic_time_tracking_objective(
     [Diagonal(x_torso) for t = 1:T],
-    [Diagonal([1.0e-3 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal([1.0 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
     [x0[t] for t = 1:T],
     [zeros(model.m) for t = 1:T-1],
     1.0)
 
 # quadratic velocity penalty
 # Σ v' Q v
-q_v = 1.0e-1 * ones(model.nq)
-q_v[3] = 1.0
+q_v = 1.0 * ones(model.nq)
+q_v[3] = 10.0
 obj_velocity = velocity_objective(
     [Diagonal(q_v) for t = 1:T-1],
     model.nq,
@@ -165,7 +165,7 @@ obj_velocity = velocity_objective(
 # torso height
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
 function l_stage_torso_h(x, u, t)
-    return 0.0 * (kinematics_1(model,
+    return 10.0 * (kinematics_1(model,
             view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
 end
 
@@ -174,7 +174,7 @@ obj_th = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
 function l_stage_torso_lat(x, u, t)
-    return (0.0 * (kinematics_1(model,
+    return (1.0 * (kinematics_1(model,
         view(x, 8:14), body = :torso, mode = :com)[1]
         - kinematics_1(model,
         view(x0[t], 8:14), body = :torso, mode = :com)[1])^2.0)
@@ -184,9 +184,9 @@ obj_tl = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
 function l_stage_fh1(x, u, t)
-    return (10.0 * (kinematics_2(model,
+    return (1000.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_1, mode = :ee)[2] - foot_1_z[t])^2.0
-        + 10.0 * (kinematics_2(model,
+        + 1000.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_1, mode = :ee)[2] - foot_1_z[t])^2.0)
 end
 l_terminal_fh1(x) = 0.0
@@ -194,9 +194,9 @@ obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 1 lateral
 function l_stage_fl1(x, u, t)
-    return (1.0 * (kinematics_2(model,
+    return (100.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_1, mode = :ee)[1] - foot_1_x[t])^2.0
-        + 1.0 * (kinematics_2(model,
+        + 100.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_1, mode = :ee)[1] - foot_1_x[t])^2.0)
 end
 l_terminal_fl1(x) = 0.0
@@ -204,9 +204,9 @@ obj_fl1 = nonlinear_stage_objective(l_stage_fl1, l_terminal_fl1)
 
 # foot 2 height
 function l_stage_fh2(x, u, t)
-    return (10.0 * (kinematics_2(model,
+    return (100.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_2, mode = :ee)[2] - foot_2_z[t])^2.0
-        + 10.0 * (kinematics_2(model,
+        + 100.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_2, mode = :ee)[2] - foot_2_z[t])^2.0)
 end
 l_terminal_fh2(x) = 0.0
@@ -214,9 +214,9 @@ obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 2 lateral
 function l_stage_fl2(x, u, t)
-    return (1.0 * (kinematics_2(model,
+    return (100.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_2, mode = :ee)[2] - foot_2_x[t])^2.0
-        + 1.0 * (kinematics_2(model,
+        + 100.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_2, mode = :ee)[2] - foot_2_x[t])^2.0)
 end
 l_terminal_fl2(x) = 0.0
@@ -251,21 +251,31 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [[1.0e-5 * rand(model.m - 2); 1.0e-3; h] for t = 1:T-1] # random controls
+u0 = [[1.0e-4 * rand(model.m - 1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
 
 # Solve
 optimize = true
+include_snopt()
 @time z̄ = solve(prob, copy(z0),
     nlp = :SNOPT7,
-    tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
+    tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
     time_limit = 60 * 3)
 @show check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
+tfc, tc, h̄ = get_time(ū)
+
 visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
 
+qq1 = copy(x̄[1][1:nq])
+visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
+
+qq1[4] += 0.05
+visualize!(vis, model, [qq1], Δt = h̄[1])
+
+# plot(hcat(state_to_configuration(x̄)...)')
 if optimize
     include_snopt()
 
@@ -290,17 +300,17 @@ else
 end
 
 # Visualize
-# vis = Visualizer()
-# render(vis)
+vis = Visualizer()
+render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
 
-# fh1 = [kinematics_2(model,
-#     state_to_configuration(x_proj)[t], body = :calf_1, mode = :ee)[2] for t = 1:T]
-# fh2 = [kinematics_2(model,
-#     state_to_configuration(x_proj)[t], body = :calf_2, mode = :ee)[2] for t = 1:T]
-#
-# plot(fh1, linetype = :steppost, label = "foot 1")
-# plot!(fh2, linetype = :steppost, label = "foot 2")
+fh1 = [kinematics_2(model,
+    state_to_configuration(x̄)[t], body = :calf_1, mode = :ee)[2] for t = 1:T]
+fh2 = [kinematics_2(model,
+    state_to_configuration(x̄)[t], body = :calf_2, mode = :ee)[2] for t = 1:T]
+
+plot(fh1, linetype = :steppost, label = "foot 1")
+plot!(fh2, linetype = :steppost, label = "foot 2")
 
 # plot(hcat(ū...)[1:4, :]',
 #     linetype = :steppost,
