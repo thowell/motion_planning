@@ -1,8 +1,6 @@
 # Model
 include_model("quadruped")
-
-θ = -pi / 3.25
-q1 = initial_configuration(model, θ)
+model_ft = free_time_model(model)
 
 # Horizon
 T = 26
@@ -11,10 +9,6 @@ T = 26
 tf = 2.5
 h = tf / (T - 1)
 
-u1 = initial_torque(model, q1, h, solver = :newton)[model.idx_u]
-
-model_ft = free_time_model(model)
-
 # Visualize
 # - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
@@ -22,20 +16,29 @@ vis = Visualizer()
 render(vis)
 
 # Configurations
-
 q1 = initial_configuration(model_ft,  θ)
-qM = initial_configuration(model_ft,  -pi / 2.5)
-
-# qM[1] += model_ft.l1
+qM = copy(q1)
 qM[2] += 1.5
 qM[3] += pi
 qM[4] += pi
+qM[5] += pi
 qM[6] += pi
+qM[7] += pi
+qM[8] += pi
+qM[9] += pi
+qM[10] += pi
+qM[11] += pi
 qT = copy(q1)
-qT[1] -= model_ft.l1
+qT[1] -= model_ft.l_torso
 qT[3] += 2.0 * pi
 qT[4] += 2.0 * pi
+qT[5] += 2.0 * pi
 qT[6] += 2.0 * pi
+qT[7] += 2.0 * pi
+qT[8] += 2.0 * pi
+qT[9] += 2.0 * pi
+qT[10] += 2.0 * pi
+qT[11] += 2.0 * pi
 
 visualize!(vis, model_ft, [q1])
 visualize!(vis, model_ft, [qM])
@@ -44,7 +47,6 @@ visualize!(vis, model_ft, [qT])
 q_ref = [linear_interpolation(q1, qM, 14)[1:end-1]...,
     linear_interpolation(qM, qT, 13)...]
 
-# q_ref = linear_interpolation(q1, qM, T)
 visualize!(vis, model_ft, q_ref)
 
 # Bounds
@@ -79,7 +81,7 @@ obj_control = quadratic_time_tracking_objective(
     [zeros(model_ft.n, model_ft.n) for t = 1:T],
     [Diagonal([1.0e-1 * ones(model_ft.nu)..., zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
-    [[copy(u1); zeros(model_ft.m - model_ft.nu)] for t = 1:T],
+    [zeros(model_ft.m) for t = 1:T],
     1.0)
 
 # quadratic velocity penalty
@@ -103,23 +105,23 @@ obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 # obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 #
 # foot 1 height
-l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :leg_1, mode = :ee)[2] - 0.5)^2.0
-l_terminal_fh1(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :leg_1, mode = :ee)[2])^2.0
+l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_1, mode = :ee)[2] - 0.5)^2.0
+l_terminal_fh1(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_1, mode = :ee)[2])^2.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :leg_2, mode = :ee)[2] - 0.5)^2.0
-l_terminal_fh2(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :leg_2, mode = :ee)[2])^2.0
+l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_2, mode = :ee)[2] - 0.5)^2.0
+l_terminal_fh2(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_2, mode = :ee)[2])^2.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 3 height
-l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :leg_3, mode = :ee)[2] - 0.5)^2.0
-l_terminal_fh3(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :leg_3, mode = :ee)[2])^2.0
+l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_3, mode = :ee)[2] - 0.5)^2.0
+l_terminal_fh3(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_3, mode = :ee)[2])^2.0
 obj_fh3 = nonlinear_stage_objective(l_stage_fh3, l_terminal_fh3)
 
 # foot 4 height
-l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :leg_4, mode = :ee)[2] - 0.5)^2.0
-l_terminal_fh4(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :leg_4, mode = :ee)[2])^2.0
+l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_4, mode = :ee)[2] - 0.5)^2.0
+l_terminal_fh4(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_4, mode = :ee)[2])^2.0
 obj_fh4 = nonlinear_stage_objective(l_stage_fh4, l_terminal_fh4)
 
 obj = MultiObjective([obj_penalty,
@@ -150,7 +152,7 @@ prob = trajectory_optimization_problem(model_ft,
                con = con)
 
 # trajectory initialization
-u0 = [[copy(u1); 1.0e-5 * rand(model_ft.m - model_ft.nu - 1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-5 * rand(model_ft.m - 1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)

@@ -126,8 +126,8 @@ idx_s = nu + nc + nb + nc + nb .+ (1:ns)
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
 
-uL = -25.0 * ones(nu) # -16.0 * ones(nu)
-uU = 25.0 * ones(nu) # 16.0 * ones(nu)
+uL = -100.0 * ones(nu) # -16.0 * ones(nu)
+uU = 100.0 * ones(nu) # 16.0 * ones(nu)
 
 function kinematics_1(model::Quadruped, q; body = :torso, mode = :ee)
 	x = q[1]
@@ -818,8 +818,17 @@ function initial_configuration(model::Quadruped, θ)
 	return q1
 end
 
-# include(joinpath(pwd(),"models/visualize.jl"))
-# vis = Visualizer()
-# render(vis)
-# q0 = initial_configuration(model, pi / 7.5)
-# visualize!(vis, model, [q0], Δt = 1.0)
+function initial_configuration(model::Quadruped, θ)
+    q1 = zeros(model.nq)
+    q1[3] = pi / 2.0
+    q1[4] = -θ
+    q1[5] = θ
+    q1[6] = -θ
+    q1[7] = θ
+    q1[8] = -θ
+    q1[9] = θ
+    q1[10] = -θ
+    q1[11] = θ
+    q1[2] = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
+    return q1
+end
