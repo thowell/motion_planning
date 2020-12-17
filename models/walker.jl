@@ -74,8 +74,8 @@ struct Walker{I, T} <: Model{I, T}
 end
 
 # Dimensions
-nq = 2 + 5 + 2             # configuration dimension
-nu = 6 + 1                 # control dimension
+nq = 2 + 5 + 2            # configuration dimension
+nu = 6                    # control dimension
 nc = 4                    # number of contact points
 nf = 2                    # number of parameters for friction cone
 nb = nc * nf
@@ -120,8 +120,8 @@ idx_s = nu + nc + nb + nc + nb .+ (1:ns)
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
 
-uL = -100.0 * ones(nu) # -16.0 * ones(nu)
-uU = 100.0 * ones(nu) # 16.0 * ones(nu)
+uL = -100.0 * ones(nu)
+uU = 100.0 * ones(nu)
 
 function kinematics_1(model::Walker, q; body = :torso, mode = :ee)
 	x = q[1]
@@ -131,14 +131,19 @@ function kinematics_1(model::Walker, q; body = :torso, mode = :ee)
 		l = model.l_torso
 		d = model.d_torso
 		θ = q[3]
+		if mode == :ee
+			return [x - l * sin(θ); z + l * cos(θ)]
+		elseif mode == :com
+			return [x - d * sin(θ); z + d * cos(θ)]
+		end
 	elseif body == :thigh_1
 		l = model.l_thigh1
 		d = model.d_thigh1
-		θ = q[3] + q[4]
+		θ = q[4]
 	elseif body == :thigh_2
 		l = model.l_thigh2
 		d = model.d_thigh2
-		θ = q[3] + q[6]
+		θ = q[6]
 	else
 		@error "incorrect body specification"
 	end
@@ -153,28 +158,22 @@ function kinematics_1(model::Walker, q; body = :torso, mode = :ee)
 end
 
 function jacobian_1(model::Walker, q; body = :torso, mode = :ee)
-	# jac = [1.0 0.0 0 0.0 0.0 0.0 0.0;
-	# 	   0.0 1.0 0 0.0 0.0 0.0 0.0]
 	jac = zeros(eltype(q), 2, model.nq)
 	jac[1, 1] = 1.0
 	jac[2, 2] = 1.0
 	if body == :torso
 		r = mode == :ee ? model.l_torso : model.d_torso
 		θ = q[3]
-		jac[1, 3] = r * cos(θ)
-		jac[2, 3] = r * sin(θ)
+		jac[1, 3] = -r * cos(θ)
+		jac[2, 3] = -r * sin(θ)
 	elseif body == :thigh_1
 		r = mode == :ee ? model.l_thigh1 : model.d_thigh1
-		θ = q[3] + q[4]
-		jac[1, 3] = r * cos(θ)
-		jac[2, 3] = r * sin(θ)
+		θ = q[4]
 		jac[1, 4] = r * cos(θ)
 		jac[2, 4] = r * sin(θ)
 	elseif body == :thigh_2
 		r = mode == :ee ? model.l_thigh2 : model.d_thigh2
-		θ = q[3] + q[6]
-		jac[1, 3] = r * cos(θ)
-		jac[2, 3] = r * sin(θ)
+		θ = q[6]
 		jac[1, 6] = r * cos(θ)
 		jac[2, 6] = r * sin(θ)
 	else
@@ -189,7 +188,6 @@ function kinematics_2(model::Walker, q; body = :calf_1, mode = :ee)
 	if body == :calf_1
 		p = kinematics_1(model, q, body = :thigh_1, mode = :ee)
 
-		θa = q[3] + q[4]
 		θb = q[5]
 
 		lb = model.l_calf1
@@ -197,7 +195,6 @@ function kinematics_2(model::Walker, q; body = :calf_1, mode = :ee)
 	elseif body == :calf_2
 		p = kinematics_1(model, q, body = :thigh_2, mode = :ee)
 
-		θa = q[3] + q[6]
 		θb = q[7]
 
 		lb = model.l_calf2
@@ -207,9 +204,9 @@ function kinematics_2(model::Walker, q; body = :calf_1, mode = :ee)
 	end
 
 	if mode == :ee
-		return p + [lb * sin(θa + θb); -1.0 * lb * cos(θa + θb)]
+		return p + [lb * sin(θb); -1.0 * lb * cos(θb)]
 	elseif mode == :com
-		return p + [db * sin(θa + θb); -1.0 * db * cos(θa + θb)]
+		return p + [db * sin(θb); -1.0 * db * cos(θb)]
 	else
 		@error "incorrect mode specification"
 	end
@@ -220,33 +217,21 @@ function jacobian_2(model::Walker, q; body = :calf_1, mode = :ee)
 	if body == :calf_1
 		jac = jacobian_1(model, q, body = :thigh_1, mode = :ee)
 
-		θa = q[3] + q[4]
 		θb = q[5]
 
 		r = mode == :ee ? model.l_calf1 : model.d_calf1
 
-		jac[1, 3] += r * cos(θa + θb)
-		jac[1, 4] += r * cos(θa + θb)
-		jac[1, 5] += r * cos(θa + θb)
-
-		jac[2, 3] += r * sin(θa + θb)
-		jac[2, 4] += r * sin(θa + θb)
-		jac[2, 5] += r * sin(θa + θb)
+		jac[1, 5] += r * cos(θb)
+		jac[2, 5] += r * sin(θb)
 	elseif body == :calf_2
 		jac = jacobian_1(model, q, body = :thigh_2, mode = :ee)
 
-		θa = q[3] + q[6]
 		θb = q[7]
 
 		r = mode == :ee ? model.l_calf2 : model.d_calf2
 
-		jac[1, 3] += r * cos(θa + θb)
-		jac[1, 6] += r * cos(θa + θb)
-		jac[1, 7] += r * cos(θa + θb)
-
-		jac[2, 3] += r * sin(θa + θb)
-		jac[2, 6] += r * sin(θa + θb)
-		jac[2, 7] += r * sin(θa + θb)
+		jac[1, 7] += r * cos(θb)
+		jac[2, 7] += r * sin(θb)
 	else
 		@error "incorrect body specification"
 	end
@@ -259,7 +244,6 @@ function kinematics_3(model::Walker, q; body = :foot_1, mode = :ee)
 	if body == :foot_1
 		p = kinematics_2(model, q, body = :calf_1, mode = :ee)
 
-		θa = q[3] + q[4] + q[5]
 		θb = q[8]
 
 		lb = model.l_foot1
@@ -267,7 +251,6 @@ function kinematics_3(model::Walker, q; body = :foot_1, mode = :ee)
 	elseif body == :foot_2
 		p = kinematics_2(model, q, body = :calf_2, mode = :ee)
 
-		θa = q[3] + q[6] + q[7]
 		θb = q[9]
 
 		lb = model.l_foot2
@@ -277,9 +260,9 @@ function kinematics_3(model::Walker, q; body = :foot_1, mode = :ee)
 	end
 
 	if mode == :ee
-		return p + [lb * sin(θa + θb); -1.0 * lb * cos(θa + θb)]
+		return p + [lb * sin(θb); -1.0 * lb * cos(θb)]
 	elseif mode == :com
-		return p + [db * sin(θa + θb); -1.0 * db * cos(θa + θb)]
+		return p + [db * sin(θb); -1.0 * db * cos(θb)]
 	else
 		@error "incorrect mode specification"
 	end
@@ -290,39 +273,22 @@ function jacobian_3(model::Walker, q; body = :foot_1, mode = :ee)
 	if body == :foot_1
 		jac = jacobian_2(model, q, body = :calf_1, mode = :ee)
 
-		θa = q[3] + q[4] + q[5]
 		θb = q[8]
 
 		r = mode == :ee ? model.l_foot1 : model.d_foot1
 
-		jac[1, 3] += r * cos(θa + θb)
-		jac[1, 4] += r * cos(θa + θb)
-		jac[1, 5] += r * cos(θa + θb)
-		jac[1, 8] += r * cos(θa + θb)
-
-		jac[2, 3] += r * sin(θa + θb)
-		jac[2, 4] += r * sin(θa + θb)
-		jac[2, 5] += r * sin(θa + θb)
-		jac[2, 8] += r * sin(θa + θb)
+		jac[1, 8] += r * cos(θb)
+		jac[2, 8] += r * sin(θb)
 
 	elseif body == :foot_2
 		jac = jacobian_2(model, q, body = :calf_2, mode = :ee)
 
-		θa = q[3] + q[6] + q[7]
 		θb = q[9]
 
 		r = mode == :ee ? model.l_foot2 : model.d_foot2
 
-		jac[1, 3] += r * cos(θa + θb)
-		jac[1, 6] += r * cos(θa + θb)
-		jac[1, 7] += r * cos(θa + θb)
-		jac[1, 9] += r * cos(θa + θb)
-
-
-		jac[2, 3] += r * sin(θa + θb)
-		jac[2, 6] += r * sin(θa + θb)
-		jac[2, 7] += r * sin(θa + θb)
-		jac[2, 9] += r * sin(θa + θb)
+		jac[1, 9] += r * cos(θb)
+		jac[2, 9] += r * sin(θb)
 
 	else
 		@error "incorrect body specification"
@@ -330,75 +296,6 @@ function jacobian_3(model::Walker, q; body = :foot_1, mode = :ee)
 
 	return jac
 end
-
-# test kinematics
-# q = rand(nq)
-#
-# norm(kinematics_1(model, q, body = :torso, mode = :ee) - [q[1] + model.l_torso * sin(q[3]); q[2] - model.l_torso * cos(q[3])])
-# norm(kinematics_1(model, q, body = :torso, mode = :com) - [q[1] + model.d_torso * sin(q[3]); q[2] - model.d_torso * cos(q[3])])
-# norm(kinematics_1(model, q, body = :thigh_1, mode = :ee) - [q[1] + model.l_thigh1 * sin(q[3] + q[4]); q[2] - model.l_thigh1 * cos(q[3] + q[4])])
-# norm(kinematics_1(model, q, body = :thigh_1, mode = :com) - [q[1] + model.d_thigh1 * sin(q[3] + q[4]); q[2] - model.d_thigh1 * cos(q[3] + q[4])])
-# norm(kinematics_1(model, q, body = :thigh_2, mode = :ee) - [q[1] + model.l_thigh2 * sin(q[3] + q[6]); q[2] - model.l_thigh2 * cos(q[3] + q[6])])
-# norm(kinematics_1(model, q, body = :thigh_2, mode = :com) - [q[1] + model.d_thigh2 * sin(q[3] + q[6]); q[2] - model.d_thigh2 * cos(q[3] + q[6])])
-#
-# norm(kinematics_2(model, q, body = :calf_1, mode = :ee) - [q[1] + model.l_thigh1 * sin(q[3] + q[4]) + model.l_calf1 * sin(q[3] + q[4] + q[5]); q[2] - model.l_thigh1 * cos(q[3] + q[4]) - model.l_calf1 * cos(q[3] + q[4] + q[5])])
-# norm(kinematics_2(model, q, body = :calf_1, mode = :com) - [q[1] + model.l_thigh1 * sin(q[3] + q[4]) + model.d_calf1 * sin(q[3] + q[4] + q[5]); q[2] - model.l_thigh1 * cos(q[3] + q[4]) - model.d_calf1 * cos(q[3] + q[4] + q[5])])
-# norm(kinematics_2(model, q, body = :calf_2, mode = :ee) - [q[1] + model.l_thigh2 * sin(q[3] + q[6]) + model.l_calf2 * sin(q[3] + q[6] + q[7]); q[2] - model.l_thigh2 * cos(q[3] + q[6]) - model.l_calf2 * cos(q[3] + q[6] + q[7])])
-# norm(kinematics_2(model, q, body = :calf_2, mode = :com) - [q[1] + model.l_thigh2 * sin(q[3] + q[6]) + model.d_calf2 * sin(q[3] + q[6] + q[7]); q[2] - model.l_thigh2 * cos(q[3] + q[6]) - model.d_calf2 * cos(q[3] + q[6] + q[7])])
-#
-# norm(kinematics_3(model, q, body = :foot_1, mode = :ee)
-# 	- [q[1] + model.l_thigh1 * sin(q[3] + q[4]) + model.l_calf1 * sin(q[3] + q[4] + q[5]) + model.l_foot1 * sin(q[3] + q[4] + q[5] + q[8]); q[2] - model.l_thigh1 * cos(q[3] + q[4]) - model.l_calf1 * cos(q[3] + q[4] + q[5]) - model.l_foot1 * cos(q[3] + q[4] + q[5] + q[8])])
-# norm(kinematics_3(model, q, body = :foot_1, mode = :com)
-# 	- [q[1] + model.l_thigh1 * sin(q[3] + q[4]) + model.l_calf1 * sin(q[3] + q[4] + q[5]) + model.d_foot1 * sin(q[3] + q[4] + q[5] + q[8]);
-# 	q[2] - model.l_thigh1 * cos(q[3] + q[4]) - model.l_calf1 * cos(q[3] + q[4] + q[5]) - model.d_foot1 * cos(q[3] + q[4] + q[5] + q[8])])
-# norm(kinematics_3(model, q, body = :foot_2, mode = :ee)
-# 	- [q[1] + model.l_thigh2 * sin(q[3] + q[6]) + model.l_calf2 * sin(q[3] + q[6] + q[7]) + model.l_foot2 * sin(q[3] + q[6] + q[7] + q[9]);
-# 	 q[2] - model.l_thigh2 * cos(q[3] + q[6]) - model.l_calf2 * cos(q[3] + q[6] + q[7]) - model.l_foot2 * cos(q[3] + q[6] + q[7] + q[9])])
-# norm(kinematics_3(model, q, body = :foot_2, mode = :com)
-# 	- [q[1] + model.l_thigh2 * sin(q[3] + q[6]) + model.l_calf2 * sin(q[3] + q[6] + q[7]) + model.d_foot2 * sin(q[3] + q[6] + q[7] + q[9]);
-# 	q[2] - model.l_thigh2 * cos(q[3] + q[6]) - model.l_calf2 * cos(q[3] + q[6] + q[7]) - model.d_foot2 * cos(q[3] + q[6] + q[7] + q[9])])
-#
-# k1(z) = kinematics_1(model, z, body = :torso, mode = :ee)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :ee))
-#
-# k1(z) = kinematics_1(model, z, body = :torso, mode = :com)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :torso, mode = :com))
-#
-# k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :ee)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :ee))
-#
-# k1(z) = kinematics_1(model, z, body = :thigh_1, mode = :com)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_1, mode = :com))
-#
-# k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :ee)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :ee))
-#
-# k1(z) = kinematics_1(model, z, body = :thigh_2, mode = :com)
-# norm(ForwardDiff.jacobian(k1,q) - jacobian_1(model, q, body = :thigh_2, mode = :com))
-#
-# k2(z) = kinematics_2(model, z, body = :calf_1, mode = :ee)
-# norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :calf_1, mode = :ee))
-#
-# k2(z) = kinematics_2(model, z, body = :calf_1, mode = :com)
-# norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :calf_1, mode = :com))
-#
-# k2(z) = kinematics_2(model, z, body = :calf_2, mode = :ee)
-# norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :calf_2, mode = :ee))
-#
-# k2(z) = kinematics_2(model, z, body = :calf_2, mode = :com)
-# norm(ForwardDiff.jacobian(k2,q) - jacobian_2(model, q, body = :calf_2, mode = :com))
-#
-# k3(z) = kinematics_3(model, z, body = :foot_1, mode = :ee)
-# norm(ForwardDiff.jacobian(k3,q) - jacobian_3(model, q, body = :foot_1, mode = :ee))
-#
-# k3(z) = kinematics_3(model, z, body = :foot_1, mode = :com)
-# norm(ForwardDiff.jacobian(k3,q) - jacobian_3(model, q, body = :foot_1, mode = :com))
-#
-# k3(z) = kinematics_3(model, z, body = :foot_2, mode = :ee)
-# norm(ForwardDiff.jacobian(k3,q) - jacobian_3(model, q, body = :foot_2, mode = :ee))
-#
-# k3(z) = kinematics_3(model, z, body = :foot_2, mode = :com)
-# norm(ForwardDiff.jacobian(k3,q) - jacobian_3(model, q, body = :foot_2, mode = :com))
 
 # Lagrangian
 
@@ -481,11 +378,6 @@ function dLdq̇(model::Walker, q, q̇)
 	ForwardDiff.gradient(Lq̇, q̇)
 end
 
-# q̇ = rand(nq)
-# lagrangian(model, q, q̇)
-# dLdq(model, q, q̇)
-# dLdq̇(model, q, q̇)
-
 # Methods
 function M_func(model::Walker, q)
 	M = Diagonal([0.0, 0.0,
@@ -525,12 +417,6 @@ function M_func(model::Walker, q)
 	return M
 end
 
-eigen(M_func(model, q))
-q̇ = rand(nq)
-tmp_q(z) = dLdq̇(model, z, q̇)
-tmp_q̇(z) = dLdq̇(model, q, z)
-norm(ForwardDiff.jacobian(tmp_q̇,q̇) - M_func(model, q))
-
 function C_func(model::Walker, q, q̇)
 	tmp_q(z) = dLdq̇(model, z, q̇)
 	tmp_q̇(z) = dLdq̇(model, q, z)
@@ -548,8 +434,7 @@ function ϕ_func(model::Walker, q)
 end
 
 function B_func(model::Walker, q)
-	@SMatrix [0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0 0.0;
-			  0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0;
+	@SMatrix [0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0 0.0;
 			  0.0 0.0 0.0 0.0 0.0 0.0 1.0 0.0 0.0;
@@ -652,7 +537,7 @@ function fd(model::Walker{Discrete, FixedTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{9}(q2⁺) - SVector{9}(q1))
     - M_func(model, q2⁺) * (SVector{9}(q3) - SVector{9}(q2⁺)))
-    + h * (transpose(B_func(model, q3)) * SVector{7}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{6}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{4}(λ)
     + transpose(P_func(model, q3)) * SVector{8}(b))
     - h * C_func(model, q3, (q3 - q2⁺) / h)
@@ -672,7 +557,7 @@ function fd(model::Walker{Discrete, FreeTime}, x⁺, x, u, w, h, t)
     [q2⁺ - q2⁻;
     ((1.0 / h) * (M_func(model, q1) * (SVector{9}(q2⁺) - SVector{9}(q1))
     - M_func(model, q2⁺) * (SVector{9}(q3) - SVector{9}(q2⁺)))
-    + h * (transpose(B_func(model, q3)) * SVector{7}(u_ctrl)
+    + h * (transpose(B_func(model, q3)) * SVector{6}(u_ctrl)
     + transpose(N_func(model, q3)) * SVector{4}(λ)
     + transpose(P_func(model, q3)) * SVector{8}(b))
     - h * C_func(model, q3, (q3 - q2⁺) / h)
@@ -813,8 +698,6 @@ function visualize!(vis, model::Walker, q;
 			settransform!(vis["knee2"], Translation(p_thigh_2))
 			settransform!(vis["hip"], Translation(p))
 			settransform!(vis["torso_top"], Translation(p_torso))
-
-
 		end
 	end
 
