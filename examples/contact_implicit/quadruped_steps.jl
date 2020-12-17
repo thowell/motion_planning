@@ -1,18 +1,12 @@
 # Model
 include_model("quadruped")
 
-include(joinpath(pwd(), "src/objectives/velocity.jl"))
-include(joinpath(pwd(), "src/objectives/nonlinear_stage.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-
-# Visualize
-# - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
+θ = pi / 3.5
 
-
-q1 = zeros(model.nq)
+q1 = initial_configuration(model, θ)
 qT = copy(q1)
 qT[1] = 2.5
 visualize!(vis, model, [q1])
@@ -27,6 +21,8 @@ h = tf / (T - 1)
 # Bounds
 
 # control
+u1 = initial_torque(model, q1, h)[model.idx_u]
+
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] = model.uU
@@ -40,22 +36,22 @@ xl, xu = state_bounds(model, T,
     xT = [qT; qT])
 
 # Objective
+include_objective(["velocity", "nonlinear_stage"])
 q_ref = linear_interpolation(q1, qT, T)
 visualize!(vis, model, q_ref)
 
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
-obj_penalty = PenaltyObjective(1.0e5, model.m)
+obj_penalty = PenaltyObjective(1.0e4, model.m)
 
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 obj_control = quadratic_tracking_objective(
-    [zeros(model.n, model.n) for t = 1:T],
-    [Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
-    [zeros(model.n) for t = 1:T],
-    [zeros(model.m) for t = 1:T]
-    )
+    [Diagonal(1.0e-1 * ones(model.n)) for t = 1:T],
+    [Diagonal([1.0e-2 * ones(model.nu)..., zeros(model.m - model.nu)...]) for t = 1:T-1],
+    [x0[end] for t = 1:T],
+    [[u1; zeros(model.m - model.nu)] for t = 1:T])
 
 # quadratic velocity penalty
 # Σ v' Q v
@@ -68,45 +64,46 @@ obj_velocity = velocity_objective(
 # torso height
 q2_idx = (12:22)
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
-l_stage_torso_h(x, u, t) = 10.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
-l_terminal_torso_h(x) = 0.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
+function l_stage_torso_h(x, u, t)
+    10000.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
+end
+l_terminal_torso_h(x) = 0.0
 obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
-l_stage_torso_lat(x, u, t) = (1.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], q2_idx), body = :torso, mode = :com)[1])^2.0)
-l_terminal_torso_lat(x) = (0.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[T], q2_idx), body = :torso, mode = :com)[1])^2.0)
+function l_stage_torso_lat(x, u, t)
+    1.0 * (kinematics_1(model, view(x, q2_idx), body = :torso, mode = :com)[1] - kinematics_1(model, view(x0[t], q2_idx), body = :torso, mode = :com)[1])^2.0
+end
+l_terminal_torso_lat(x) = 0.0
 obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
-l_stage_fh1(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2] - 0.05)^2.0
-l_terminal_fh1(x) = 0.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_1, mode = :ee)[2])^2.0
+function l_stage_fh1(x, u, t)
+    100.0 * (kinematics_2(model, view(x, q2_idx), body = :calf_1, mode = :ee)[2] - 0.1)^2.0
+end
+l_terminal_fh1(x) = 0.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 1.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2] - 0.05)^2.0
-l_terminal_fh2(x) = 0.0 * (kinematics_2(model, view(x, q2_idx), body = :leg_2, mode = :ee)[2])^2.0
+function l_stage_fh2(x, u, t)
+    100.0 * (kinematics_2(model, view(x, q2_idx), body = :calf_2, mode = :ee)[2] - 0.1)^2.0
+end
+l_terminal_fh2(x) = 0.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 3 height
-l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2] - 0.05)^2.0
-l_terminal_fh3(x) = 0.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_3, mode = :ee)[2])^2.0
+function l_stage_fh3(x, u, t)
+    100.0 * (kinematics_3(model, view(x, q2_idx), body = :calf_3, mode = :ee)[2] - 0.1)^2.0
+end
+l_terminal_fh3(x) = 0.0
 obj_fh3 = nonlinear_stage_objective(l_stage_fh3, l_terminal_fh3)
 
 # foot 4 height
-l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2] - 0.05)^2.0
-l_terminal_fh4(x) = 0.0 * (kinematics_3(model, view(x, q2_idx), body = :leg_4, mode = :ee)[2])^2.0
+function l_stage_fh4(x, u, t)
+    100.0 * (kinematics_3(model, view(x, q2_idx), body = :calf_4, mode = :ee)[2] - 0.1)^2.0
+end
+l_terminal_fh4(x) = 0.0
 obj_fh4 = nonlinear_stage_objective(l_stage_fh4, l_terminal_fh4)
-
-# initial configuration
-# function l_stage_conf(x, u, t)
-#     if t == 1
-#         return (x - [q1; q1])' * Diagonal(1000.0 * ones(model.n)) * (x - [q1; q1])
-#     else
-#         return 0.0
-#     end
-# end
-# l_terminal_conf(x) = (x - [qT; qT])' * Diagonal(10.0 * ones(model.n)) * (x - [qT; qT])
-# obj_conf = nonlinear_stage_objective(l_stage_conf, l_terminal_conf)
 
 obj = MultiObjective([obj_penalty,
                       obj_control,
@@ -119,6 +116,7 @@ obj = MultiObjective([obj_penalty,
                       obj_fh4])
 
 # Constraints
+include_constraints(["contact"])
 con_contact = contact_constraints(model, T)
 con = multiple_constraints([con_contact])
 
@@ -134,7 +132,7 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+u0 = [[u1; 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
