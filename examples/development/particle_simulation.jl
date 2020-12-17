@@ -2,7 +2,7 @@
 include_model("particle")
 
 # Horizon
-T = 101
+T = 201
 
 # Time step
 tf = 1.0
@@ -17,9 +17,9 @@ ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Circle
 θ = range(0, stop = 2 * π, length = T)
-x = range(0.0, stop = 1.0, length = T) #cos.(θ)
-y = range(0.0, stop = 0.0, length = T) #sin.(θ)
-# plot(x, y, ratio = :equal)
+x = cos.(θ)
+y = sin.(θ)
+plot(x, y, ratio = :equal)
 
 # Initial and final states
 q_ref = [[x[t]; y[t]; 1.0] for t = 1:T]

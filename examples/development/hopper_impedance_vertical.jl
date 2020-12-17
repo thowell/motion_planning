@@ -1,5 +1,5 @@
 # Model
-include_model("hopper")
+include_model("hopper_impedance")
 model_ft = free_time_model(model)
 
 # Horizon
@@ -31,7 +31,7 @@ xl, xu = state_bounds(model_ft, T,
 include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
     [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0, 1.0, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
@@ -62,7 +62,7 @@ prob = trajectory_optimization_problem(model_ft,
 
 # Trajectory initialization
 x0 = [[q1; q1] for t = 1:T] # linear interpolation on state
-u0 = [[1.0e-3 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-5 * rand(model_ft.m-1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -88,12 +88,10 @@ if optimize
 
 	@show tf
 	@show h̄[1]
-	@save joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@save joinpath(pwd(), "examples/trajectories/hopper_impedance_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 else
-	@load joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
+	@load joinpath(pwd(), "examples/trajectories/hopper_impedance_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
-
-
 #
 # using Plots
 # plot(hcat(ū...)[1:2, :]',
@@ -115,11 +113,11 @@ end
 #     color = :black,
 # 	label = "")
 #
-# include(joinpath(pwd(), "models/visualize.jl"))
-# vis = Visualizer()
-# render(vis)
-# visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
-#
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h̄[1])
+q_sim = state_to_configuration(x̄)
 # @time z̄ = solve(prob, copy(z̄),
 # 	nlp = :ipopt,
 # 	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 0,

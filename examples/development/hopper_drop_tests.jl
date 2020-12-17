@@ -1,23 +1,25 @@
+include_model("hopper_impedance")
+
 # Simulator
-function dynamics(model::Hopper, v1, q1, q2, q3, u, λ, b, w, h)
+function dynamics(model::HopperImpedance, v1, q1, q2, q3, u, λ, b, w, h)
    (M_func(model, q1) * v1
    - M_func(model, q2) * (SVector{4}(q3) - SVector{4}(q2)) / h
    + h * (transpose(B_func(model, q3)) * SVector{2}(u)
    + transpose(N_func(model, q3)) * SVector{1}(λ)
    + transpose(P_func(model, q3)) * SVector{2}(b)
-   - G_func(model, q2)))
+   - C_func(model, q3, (q3 - q2) / h)))
 end
 
-function maximum_dissipation(model::Hopper, q2, q3, ψ, η, h)
+function maximum_dissipation(model::HopperImpedance, q2, q3, ψ, η, h)
    ψ_stack = ψ[1] * ones(model.nb)
    return P_func(model, q3) * (q3 - q2) / h + ψ_stack - η
 end
 
-function no_slip(model::Hopper, q2, q3, λ, h)
+function no_slip(model::HopperImpedance, q2, q3, λ, h)
    return (λ' * _P_func(model, q3) * (q3 - q2) / h)[1]
 end
 
-function friction_cone(model::Hopper, λ, b)
+function friction_cone(model::HopperImpedance, λ, b)
    return @SVector [model.μ * λ[1] - sum(b)]
 end
 
@@ -42,8 +44,9 @@ function simulator_problem(model, v1, q1, q2, u, w, h; slack_penalty = 1.0e5)
    num_con = model.nq + model.nc + model.nc + model.nb +  3
 
    zl = zeros(num_var)
-   zl[1:model.nq] .= -Inf
+   zl[1:model.nq] = model.qL
    zu = Inf * ones(num_var)
+   zu[1:model.nq] = model.qU
 
    cl = zeros(num_con)
    cu = zeros(num_con)
@@ -145,45 +148,54 @@ function step_contact(model, v1, q1, q2, u, w, h)
    return z[1:model.nq]
 end
 
-h = h̄[1]
-q_sim = [q_proj[1], q_proj[2]]
-v_sim = [(q_proj[2] - q_proj[1]) / h]
+model = HopperImpedance{Discrete, FixedTime}(n, m, d,
+			   mb, Jb, mf,
+			   μ, 150.0, r0, g,
+			   qL, qU,
+			   uL, uU,
+			   nq,
+		       nu,
+		       nc,
+		       nf,
+		       nb,
+		   	   ns,
+		       idx_u,
+		       idx_λ,
+		       idx_b,
+		       idx_ψ,
+		       idx_η,
+		       idx_s)
+tf = 5.0
+T = 251
+h = tf / (T - 1)
+t_sim = range(0.0, stop = tf, length = T)
+
+q1 = zeros(model.nq)
+q1[2] = 1.5
+# q1[3] = pi / 100.0
+q1[4] = model.r0
+q_sim = [q1, q1]
+v_sim = [(q_sim[end] - q_sim[end-1]) / h]
 
 for t = 1:T-1
-   # d x rate
-   _q_sim = [q_sim[end-1], q_sim[end]]
-   _v_sim = [v_sim[end]]
+	println("t: $(t_sim[t])")
+	q = step_contact(model,
+		v_sim[end], q_sim[end-1], q_sim[end], zeros(model.nu), zeros(model.d), h)
+	v = (q - q_sim[end]) / h
 
-   d = 1
-   for i = 1:d
-	   _h = h / convert(Float64, d)
-	   _q = step_contact(model,
-		   _v_sim[end], _q_sim[end-1], _q_sim[end], u_proj[t][model.idx_u], zeros(model.d), _h)
-	   _v = (_q - _q_sim[end]) / _h
-
-	   push!(_q_sim, _q)
-	   push!(_v_sim, _v)
-   end
-
-   push!(q_sim, _q_sim[end])
-   push!(v_sim, _v_sim[end])
-
-   # same rate
-   # push!(q_sim, step_contact(model,
-   # 	v_sim[end], q_sim[end-1], q_sim[end], ū[t][model.idx_u], zeros(model.d), h))
-   # push!(v_sim, (q_sim[end] - q_sim[end-1]) / h)
+	push!(q_sim, q)
+	push!(v_sim, v)
 end
 
-plot(hcat(q_proj...)',
-   color = :red,
-   width = 2.0,
-   label = "")
-plot!(hcat(q_sim...)',
-   color = :black,
-   width = 1.0,
-   label = "")
+plot(hcat(q_sim...)[1:4, :]',
+	label = ["x" "z" "t" "r"],
+	legend = :bottomleft)
 
-plot(hcat(v_sim...)',
-   color = :black,
-   width = 1.0,
-   label = "")
+ϕ = [ϕ_func(model, q) for q in q_sim]
+plot(t_sim[1:length(ϕ)-1], hcat(ϕ[2:end]...)',
+	label = "sdf")
+
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, q_sim, Δt = h)
