@@ -9,7 +9,6 @@ render(vis)
 
 # Horizon
 T = 26
-Tm = 13
 
 # Time step
 tf = 2.5
@@ -20,16 +19,13 @@ h = tf / (T - 1)
 # 2: z pos
 # 3: torso angle (rel. to downward vertical)
 # 4: thigh 1 angle (rel. to downward vertical)
-# 5: calf 1 (rel. to thigh 1)
+# 5: calf 1 (rel. to downward vertical)
 # 6: thigh 2 (rel. to downward vertical)
-# 7: calf 2 (rel. to thigh 2)
-# 8: foot 1 (rel. to calf 1)
-# 9: foot 2 (rel. to calf 2)
+# 7: calf 2 (rel. to downward vertical)
+# 8: foot 1 (rel. to downward vertical)
+# 9: foot 2 (rel. to downward vertical)
 
 q1 = zeros(model.nq)
-q1[3] = pi
-q1[4] = -pi
-q1[6] = -pi
 q1[8] = pi / 2.0
 q1[9] = pi / 2.0
 q1[2] = model.l_thigh1 + model.l_calf1
@@ -38,28 +34,6 @@ qT = copy(q1)
 qT[1] = 1.0
 q_ref = linear_interpolation(q1, qT, T)
 visualize!(vis, model, q_ref, Δt = h)
-
-# zh = 0.15
-# foot_2_x = [range(foot_2_1[1], stop = foot_2_M[1], length = Tm)...,
-#     [foot_2_M[1] for t = 1:Tm-1]...]
-# foot_2_z = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x).^2.0)
-#     ./ abs(foot_2_1[1])^2.0) .+ 1.0e-8)
-#
-# foot_1_x = [[foot_1_M[1] for t = 1:Tm-1]...,
-#     range(foot_1_M[1], stop = foot_1_T[1], length = Tm)...]
-# foot_1_z = sqrt.((zh^2.0) * (1.0 .- ((foot_1_x .- abs(foot_1_T[1] / 2.0)).^2.0)
-#     ./ abs(foot_1_T[1] / 2.0)^2.0) .+ 1.0e-8)
-#
-# using Plots
-# plot(foot_2_x, foot_2_z)
-# plot!(foot_1_x, foot_1_z, aspect_ratio = :equal)
-#
-# t = range(0.0, stop = tf, length = T)
-# plot(t, foot_2_x)
-# plot!(t, foot_1_x)
-#
-# plot(t, foot_2_z)
-# plot!(t, foot_1_z)
 
 # Bounds
 
@@ -88,19 +62,19 @@ include_objective(["velocity", "nonlinear_stage"])
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
-obj_penalty = PenaltyObjective(1.0e4, model.m)
+obj_penalty = PenaltyObjective(1.0e5, model.m)
 
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 obj_control = quadratic_tracking_objective(
-    [Diagonal(1.0 * ones(model.n)) for t = 1:T],
-    [Diagonal([1.0e-1 * ones(model.nu)..., 0.0 * ones(model.m - model.nu)...]) for t = 1:T-1],
+    [Diagonal(1.0e-3 * ones(model.n)) for t = 1:T],
+    [Diagonal([1.0e-5 * ones(model.nu)..., 0.0 * ones(model.m - model.nu)...]) for t = 1:T-1],
     [x0[end] for t = 1:T],
     [[u1; zeros(model.m - model.nu)] for t = 1:T-1])
 
 # quadratic velocity penalty
 # Σ v' Q v
-q_v = 10.0 * ones(model.nq)
+q_v = 1.0e-1 * ones(model.nq)
 obj_velocity = velocity_objective(
     [Diagonal(q_v) for t = 1:T-1],
     model.nq,
@@ -119,7 +93,7 @@ obj_th = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 
 # torso lateral
 function l_stage_torso_lat(x, u, t)
-    return 0.0 * (kinematics_1(model,
+    return 1.0 * (kinematics_1(model,
         view(x, 9 .+ (1:9)), body = :torso, mode = :com)[1]
 		- kinematics_1(model,
 	        view(x0[t], 9 .+ (1:9)), body = :torso, mode = :com)[1])
@@ -198,41 +172,40 @@ optimize = true
 include_snopt()
 @time z̄ = solve(prob, copy(z0),
     nlp = :SNOPT7,
-    tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
+    tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
     time_limit = 60 * 3)
 @show check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
 
-# plot(hcat(state_to_configuration(x̄)...)')
-# if optimize
-#     include_snopt()
-#
-# 	@time z̄ = solve(prob, copy(z0),
-# 		nlp = :SNOPT7,
-# 		tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
-# 		time_limit = 60 * 3)
-# 	@show check_slack(z̄, prob)
-# 	x̄, ū = unpack(z̄, prob)
-#     tfc, tc, h̄ = get_time(ū)
-#
-# 	# projection
-# 	# Q = [Diagonal(ones(model.n)) for t = 1:T]
-# 	# R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
-# 	# x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
-#     #
-# 	# @show tfc
-# 	# @show h̄[1]
-# 	# @save joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
-# else
-# 	# @load joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
-# end
+if optimize
+    include_snopt()
+
+	@time z̄ = solve(prob, copy(z0),
+		nlp = :SNOPT7,
+		tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
+		time_limit = 60 * 3)
+	@show check_slack(z̄, prob)
+	x̄, ū = unpack(z̄, prob)
+    tfc, tc, h̄ = get_time(ū)
+
+	projection
+	Q = [Diagonal(ones(model.n)) for t = 1:T]
+	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+
+	@show tfc
+	@show h̄[1]
+	@save joinpath(pwd(), "examples/trajectories/walker_steps.jld2") x̄ ū h̄ x_proj u_proj
+else
+	@load joinpath(pwd(), "examples/trajectories/walker_steps.jld2") x̄ ū h̄ x_proj u_proj
+end
 
 # Visualize
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
+visualize!(vis, model, state_to_configuration(x̄), Δt = h)
 
 fh1 = [kinematics_2(model,
     state_to_configuration(x̄)[t], body = :calf_1, mode = :ee)[2] for t = 1:T]

@@ -19,20 +19,20 @@ h = tf / (T - 1)
 # Configurations
 # 1: x pos
 # 2: z pos
-# 3: torso angle (rel. to downward vertical)
+# 3: torso angle (rel. to upward vertical)
 # 4: thigh 1 angle (rel. to downward vertical)
-# 5: calf 1 (rel. to thigh 1)
+# 5: calf 1 (rel. to downward vertical)
 # 6: thigh 2 (rel. to downward vertical)
-# 7: calf 2 (rel. to thigh 2)
+# 7: calf 2 (rel. to downward vertical)
 
-function initial_configuration_1(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh_2)
+function initial_configuration(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh_2)
     q1 = zeros(model.nq)
     q1[3] = θ_torso
     q1[4] = θ_thigh_1
     q1[5] = θ_leg_1
-    z1 = model.l_thigh1 * cos(q1[3] + q1[4]) + model.l_calf1 * cos(q1[3] + q1[4] + q1[5])
+    z1 = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
     q1[6] = θ_thigh_2
-    q1[7] = -1.0 * acos((z1 - model.l_thigh2 * cos(q1[3] + q1[6])) / model.l_calf2) - q1[3] - q1[6] #-pi / 20.0
+    q1[7] = -1.0 * acos((z1 - model.l_thigh2 * cos(q1[6])) / model.l_calf2)
     q1[2] = z1
 
     p1 = kinematics_2(model, q1, body = :calf_1, mode = :ee)
@@ -59,9 +59,8 @@ function initial_configuration_1(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh
 
     return q1, qM, qT
 end
-
-q1, qM, qT = initial_configuration_1(model, pi - pi / 50.0, -pi + pi / 10.0, -pi / 15.0, -pi - pi / 75.0)
-qq_ref = linear_interpolation(q1, qM, T)
+q1, qM, qT = initial_configuration(model, -pi / 100.0, pi / 10.0, -pi / 25.0, -pi / 25.0)
+# qq_ref = linear_interpolation(q1, qM, T)
 visualize!(vis, model, [q1], Δt = h)
 
 foot_2_1 = kinematics_2(model, q1, body = :calf_2, mode = :ee)
@@ -71,7 +70,7 @@ foot_1_M = kinematics_2(model, qM, body = :calf_1, mode = :ee)
 foot_1_T = kinematics_2(model, qT, body = :calf_1, mode = :ee)
 
 
-zh = 0.15
+zh = 0.1
 foot_2_x = [range(foot_2_1[1], stop = foot_2_M[1], length = Tm)...,
     [foot_2_M[1] for t = 1:Tm-1]...]
 foot_2_z = sqrt.((zh^2.0) * (1.0 .- ((foot_2_x).^2.0)
@@ -143,11 +142,11 @@ obj_penalty = PenaltyObjective(1.0e5, model.m - 1)
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 x_torso = zeros(model.n)
-x_torso[3] = 10.0
-x_torso[10] = 10.0
+# x_torso[3] = 10.0
+# x_torso[10] = 10.0
 obj_control = quadratic_time_tracking_objective(
     [Diagonal(x_torso) for t = 1:T],
-    [Diagonal([1.0 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal([1.0e-1 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
     [x0[t] for t = 1:T],
     [zeros(model.m) for t = 1:T-1],
     1.0)
@@ -165,7 +164,7 @@ obj_velocity = velocity_objective(
 # torso height
 t_h = kinematics_1(model, q1, body = :torso, mode = :com)[2]
 function l_stage_torso_h(x, u, t)
-    return 10.0 * (kinematics_1(model,
+    return 10000.0 * (kinematics_1(model,
             view(x, 8:14), body = :torso, mode = :com)[2] - t_h)^2.0
 end
 
@@ -184,9 +183,9 @@ obj_tl = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 
 # foot 1 height
 function l_stage_fh1(x, u, t)
-    return (1000.0 * (kinematics_2(model,
+    return (10000.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_1, mode = :ee)[2] - foot_1_z[t])^2.0
-        + 1000.0 * (kinematics_2(model,
+        + 10000.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_1, mode = :ee)[2] - foot_1_z[t])^2.0)
 end
 l_terminal_fh1(x) = 0.0
@@ -204,9 +203,9 @@ obj_fl1 = nonlinear_stage_objective(l_stage_fl1, l_terminal_fl1)
 
 # foot 2 height
 function l_stage_fh2(x, u, t)
-    return (100.0 * (kinematics_2(model,
+    return (10000.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_2, mode = :ee)[2] - foot_2_z[t])^2.0
-        + 100.0 * (kinematics_2(model,
+        + 10000.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_2, mode = :ee)[2] - foot_2_z[t])^2.0)
 end
 l_terminal_fh2(x) = 0.0
@@ -251,52 +250,34 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [[1.0e-4 * rand(model.m - 1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-5 * rand(model.m - 1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
 
 # Solve
-optimize = true
-include_snopt()
-@time z̄ = solve(prob, copy(z0),
-    nlp = :SNOPT7,
-    tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
-    time_limit = 60 * 3)
-@show check_slack(z̄, prob)
-x̄, ū = unpack(z̄, prob)
-tfc, tc, h̄ = get_time(ū)
 
-visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
-
-qq1 = copy(x̄[1][1:nq])
-visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
-
-qq1[4] += 0.05
-visualize!(vis, model, [qq1], Δt = h̄[1])
-
-# plot(hcat(state_to_configuration(x̄)...)')
 if optimize
     include_snopt()
 
 	@time z̄ = solve(prob, copy(z0),
 		nlp = :SNOPT7,
-		tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
+		tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
 		time_limit = 60 * 3)
 	@show check_slack(z̄, prob)
 	x̄, ū = unpack(z̄, prob)
     tfc, tc, h̄ = get_time(ū)
 
 	# projection
-	# Q = [Diagonal(ones(model.n)) for t = 1:T]
-	# R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
-	# x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
-    #
-	# @show tfc
-	# @show h̄[1]
-	# @save joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	Q = [Diagonal(ones(model.n)) for t = 1:T]
+	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+
+	@show tfc
+	@show h̄[1]
+	@save joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
 else
-	# @load joinpath(@__DIR__, "biped_gait_no_slip.jld2") x̄ ū h̄ x_proj u_proj
+	@load joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 # Visualize
@@ -312,27 +293,27 @@ fh2 = [kinematics_2(model,
 plot(fh1, linetype = :steppost, label = "foot 1")
 plot!(fh2, linetype = :steppost, label = "foot 2")
 
-# plot(hcat(ū...)[1:4, :]',
-#     linetype = :steppost,
-#     label = "",
-#     color = :red,
-#     width = 2.0)
-#
-# plot!(hcat(u_proj...)[1:4, :]',
-#     linetype = :steppost,
-#     label = "",
-#     color = :black)
-#
+plot(hcat(ū...)[1:4, :]',
+    linetype = :steppost,
+    label = "",
+    color = :red,
+    width = 2.0)
+
+plot!(hcat(u_proj...)[1:4, :]',
+    linetype = :steppost,
+    label = "",
+    color = :black)
+
 # plot(hcat(u_proj...)[5:6, :]',
 #     linetype = :steppost,
 #     label = "",
 #     width = 2.0)
-#
-# plot(hcat(state_to_configuration(x̄)...)',
-#     color = :red,
-#     width = 2.0,
-#     label = "")
-#
-# plot!(hcat(state_to_configuration(x_proj)...)',
-#     color = :black,
-#     label = "")
+
+plot(hcat(state_to_configuration(x̄)...)',
+    color = :red,
+    width = 2.0,
+    label = "")
+
+plot!(hcat(state_to_configuration(x_proj)...)',
+    color = :black,
+    label = "")

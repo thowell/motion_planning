@@ -11,26 +11,8 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 
-# Configurations
-# 1: x pos
-# 2: z pos
-# 3: torso angle (rel. to downward vertical)
-# 4: thigh 1 angle (rel. to downward vertical)
-# 5: calf 1 (rel. to thigh 1)
-# 6: thigh 2 (rel. to downward vertical)
-# 7: calf 2 (rel. to thigh 2)
-# θ = pi / 12.5
-# q1 = initial_configuration(model, θ) # generate initial config from θ
-# qT = copy(q1)
-# qT[1] += 1.0
-# q1[3] -= pi / 30.0
-# q1[4] += pi / 20.0
-# q1[5] -= pi / 10.0
-# q1, qT = loop_configurations(model, θ)
-# qT[1] += 1.0
 
-θ = -pi / 5.0
-q1 = initial_configuration(model, θ)
+q1 = zeros(model.nq)
 qT = copy(q1)
 qT[1] = 2.5
 visualize!(vis, model, [q1])
@@ -45,7 +27,6 @@ h = tf / (T - 1)
 # Bounds
 
 # control
-# u = (τ1..4, λ1..2, β1..4, ψ1..2, η1...4, s1)
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] = model.uU
