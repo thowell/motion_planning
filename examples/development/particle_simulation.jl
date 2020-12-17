@@ -30,7 +30,7 @@ xl, xu = state_bounds(model, T,
     xT = [q_ref[T]; q_ref[T]])
 
 # Objective
-# obj_penalty = PenaltyObjective(1.0e5, model.m)
+obj_penalty = PenaltyObjective(1.0e5, model.m)
 obj_track = quadratic_tracking_objective(
     [Diagonal(1000.0 * ones(model.n)) for t = 1:T],
     [Diagonal([1.0e-1 * ones(model.nu); zeros(model.m - model.nu)]) for t = 1:T-1],
@@ -145,8 +145,8 @@ mutable struct MOISimulator <: MOI.AbstractNLPEvaluator
 end
 
 function simulator_problem(model, v1, q1, q2, u, w, h; slack_penalty = 1.0e5)
-	num_var = model.nq + model.nc + model.nb + 0 * model.nc + 0 *model.nb + model.ns
-	num_con = model.nq + model.nc + 0 * model.nc + model.nb +  1 #3
+	num_var = model.nq + model.nc + model.nb + model.nc + model.nb + model.ns
+	num_con = model.nq + model.nc + model.nc + model.nb +  3
 
 	zl = zeros(num_var)
 	zl[1:model.nq] .= -Inf
@@ -258,11 +258,11 @@ q_sim = [q_proj[1], q_proj[2]]
 v_sim = [(q_proj[2] - q_proj[1]) / h]
 
 for t = 1:T-1
-	# 2x rate
+	# d x rate
 	_q_sim = [q_sim[end-1], q_sim[end]]
 	_v_sim = [v_sim[end]]
 
-	d = 4
+	d = 10
 	for i = 1:d
 		_h = h / convert(Float64, d)
 		_q = step_contact(model,
