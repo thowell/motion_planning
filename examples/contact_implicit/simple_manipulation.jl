@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/simple_manipulator.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("simple_manipulator")
 
 # Horizon
 T = 11
@@ -15,7 +15,7 @@ _ul[model.idx_u] .= -Inf
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-q1 = [pi / 2.5, -2.0 * pi / 2.5, 0.75, 0.0]
+q1 = [pi / 2.5, -2.0 * pi / 2.5, 0.5, 0.0]
 qT = [pi / 2.5, -2.0 * pi / 2.5, 1.5, 0.0]
 
 x1 = [q1; q1]
@@ -29,22 +29,23 @@ x_ref = configuration_to_state(q_ref)
 Qq = Diagonal([1.0, 1.0, 1.0, 1.0])
 Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
 QT = cat(0.5 * Qq, Diagonal([10.0, 10.0, 100.0, 1.0]), dims = (1, 2))
-R = Diagonal([1.0e-1, 1.0e-1, zeros(model.m - model.nu)...])
+R = Diagonal([1.0e-3, 1.0e-3, zeros(model.m - model.nu)...])
 
 obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
     [x_ref[t] for t = 1:T],
-    [zeros(model.m) for t = 1:T]
-    )
-obj_penalty = PenaltyObjective(100.0, model.m)
+    [zeros(model.m) for t = 1:T])
+
+obj_penalty = PenaltyObjective(1.0e3, model.m)
 obj = MultiObjective([obj_tracking, obj_penalty])
 
 # Constraints
+include_constraints("contact")
 con_contact = contact_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -52,8 +53,7 @@ prob = problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_contact
-               )
+               con = con_contact)
 
 # Trajectory initialization
 x0 = deepcopy(x_ref) # linear interpolation on state
@@ -71,5 +71,8 @@ x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
+render(vis)
+visualize!(vis, model,
+    state_to_configuration([[x̄[1] for i = 1:5]...,x̄..., [x̄[end] for i = 1:5]...]),
+    Δt = h)
 open(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h)

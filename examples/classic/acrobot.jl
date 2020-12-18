@@ -8,8 +8,6 @@ T = 101
 tf = 5.0
 h = tf / (T - 1)
 
-# Bounds
-
 # ul <= u <= uu
 ul, uu = control_bounds(model, T, -10.0, 10.0)
 

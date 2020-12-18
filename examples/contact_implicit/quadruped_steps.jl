@@ -8,7 +8,8 @@ render(vis)
 
 q1 = initial_configuration(model, θ)
 qT = copy(q1)
-qT[1] = 2.5
+q1[1] = -1.0
+qT[1] = 1.0
 visualize!(vis, model, [q1])
 
 # Horizon
@@ -38,8 +39,8 @@ xl, xu = state_bounds(model, T,
 # Objective
 include_objective(["velocity", "nonlinear_stage"])
 q_ref = linear_interpolation(q1, qT, T)
+render(vis)
 visualize!(vis, model, q_ref)
-
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable

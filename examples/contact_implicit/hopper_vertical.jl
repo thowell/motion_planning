@@ -115,11 +115,14 @@ end
 #     color = :black,
 # 	label = "")
 #
-# include(joinpath(pwd(), "models/visualize.jl"))
-# vis = Visualizer()
-# render(vis)
-# visualize!(vis, model_ft, state_to_configuration(x_proj), Δt = h̄[1])
-#
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model_ft,
+	state_to_configuration([x_proj..., ([x_proj[2:end] for i = 1:5]...)...]),
+	Δt = h̄[1],
+	scenario = :vertical)
+open(vis)
 # @time z̄ = solve(prob, copy(z̄),
 # 	nlp = :ipopt,
 # 	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 0,

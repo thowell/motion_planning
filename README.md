@@ -1,32 +1,23 @@
 # Direct Motion Planning
 
-## classic examples
-- [X] double integrator
-- [X] acrobot
-- [ ] robotic arm
-- [ ] quadrotor
-
 ## contact-implicit trajectory optimization examples
 - update models: impulse -> force
-- [X] particle
 - [X] simple manipulation
 - [X] cyberdrift
 - [X] cyberjump
-- [X] box drop
 - [X] box on corner
-- [X] raibert hopper (2D)
-- [X] raibert hopper (2D) vertical gait
-- [X] raibert hopper (2D) flip
+- [X] hopper (2D) vertical gait
+- [X] (2D) flip
 - [ ] simple walker (2D)
 - [X] hopper (3D)
 - [ ] hopper (3D) wall scaling
-- [X] miniature golf
-- [ ] ball-in-cup robot arm
-- [ ] ball-in-cup quadrotor
+- [ ] miniature golf (fix RBD dep.)
+- [ ] ball-in-cup robot arm (move over from old script)
+- [ ] ball-in-cup quadrotor (move over from old script)
 - [X] biped (2D)
 - [X] quadruped (2D)
-- [X] quadruped (2D) over box
-- [X] quadruped (2D) backflip
+- [ ] quadruped (2D) over box
+- [ ] quadruped (2D) backflip
 - [ ] quadruped (3D)
 - [ ] ant (3D)
 - [ ] snake (3D)
@@ -34,8 +25,6 @@
 
 ## direct policy optimization examples
 We provide the [examples](src/examples/direct_policy_optimization) from [Direct Policy Optimization using Deterministic Sampling and Collocation](https://arxiv.org/abs/2010.08506). Optimizing the policies requires [SNOPT](https://en.wikipedia.org/wiki/SNOPT) and resources for its installation are available [here](src/solvers/snopt.jl). The trajectories and policies from these examples have been saved and can be loaded in order to run the policy simulations and visualizations.
-
-- update: discrete disturbance dynamics, plots
 
 LQR
 - [X] double integrator
@@ -48,6 +37,26 @@ motion planning
 - [X] rocket
 - [X] quadrotor
 - [X] biped
+
+(need to update: discrete disturbance dynamics, plots)
+
+## classic examples
+
+<img src="examples/animations/acrobot.gif" alt="drawing" width="200"/>
+
+- [X] double integrator
+- [X] acrobot
+- [ ] robotic arm
+- [ ] quadrotor
+
+## simulation
+
+<img src="examples/animations/box_drop.gif" alt="drawing" width="200"/>
+
+we simulate objects / robots that experience contact (i.e., impact and Couloumb friction) using time-stepping techniques, discrete mechanics, nonlinear complementarity, and collocation
+
+- [X] particle
+- [X] box drop
 
 ## installation
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
@@ -64,8 +73,8 @@ pkg> add https://github.com/thowell/DirectMotionPlanning.jl
 - [ ] parallelize objective + constraint evaluations
 - [ ] tests
 - [ ] visualization dependencies
-	- [ ] select default background
-	- [ ] set default views
+	- [X] select default background
+	- [X] set default views
 - [X] nonlinear objective (stage wise)
 - [X] constraints (stage wise)
 - [X] discrete dynamics parameterization

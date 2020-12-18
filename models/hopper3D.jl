@@ -2,7 +2,7 @@
     hopper 3D
         orientation representation: modified rodrigues parameters
 		similar to Raibert hopper, all mass is located at the body
-		x = (px, py, pz, tx, ty, tz, r)
+		s = (px, py, pz, tx, ty, tz, r)
 """
 struct Hopper3D{I, T} <: Model{I, T}
     n::Int
@@ -165,13 +165,15 @@ model = Hopper3D{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::Hopper3D, q;
 	Δt = 0.1)
 
+	default_background!(vis)
+
 	r_foot = 0.05
 	setobject!(vis["body"], Sphere(Point3f0(0),
 	   convert(Float32, 0.1)),
 	   MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
 	setobject!(vis["foot"], Sphere(Point3f0(0),
 	   convert(Float32, r_foot)),
-	   MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+	   MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
 
 	r_leg = 0.5 * r_foot
 	n_leg = 100

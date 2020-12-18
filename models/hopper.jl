@@ -1,8 +1,8 @@
 """
     Hopper
     	model inspired by "Dynamically Stable Legged Locomotion"
-		x = (y, z, t, r)
-			y - lateral position
+		s = (x, z, t, r)
+			x - lateral position
 			z - vertical position
 			t - body orientation
 			r - leg length
@@ -212,9 +212,13 @@ model = Hopper{Discrete, FixedTime}(n, m, d,
 		       idx_s)
 
 # Visualization
-function visualize!(vis, model::Hopper, q; Δt = 0.1)
+function visualize!(vis, model::Hopper, q;
+		Δt = 0.1, scenario = :hop)
+
     r_foot = 0.05
     r_leg = 0.5 * r_foot
+
+	default_background!(vis)
 
     setobject!(vis["body"], Sphere(Point3f0(0),
         convert(Float32, 0.1)),
@@ -258,6 +262,15 @@ function visualize!(vis, model::Hopper, q; Δt = 0.1)
             end
         end
     end
+
+	if scenario == :flip
+		settransform!(vis["/Cameras/default"],
+			compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+	elseif scenario == :vertical
+		settransform!(vis["/Cameras/default"],
+			compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+
+	end
 
     MeshCat.setanimation!(vis, anim)
 end

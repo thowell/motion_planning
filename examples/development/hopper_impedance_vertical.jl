@@ -1,6 +1,6 @@
 # Model
 include_model("hopper_impedance")
-model_ft = free_time_model(model)
+model_ft = free_time_model(no_slip_model(model))
 
 # Horizon
 T = 101
@@ -19,8 +19,7 @@ _ul[end] = 0.5 * h
 ul, uu = control_bounds(model_ft, T, _ul, _uu)
 
 # Initial and final states
-z_h = 0.25
-q1 = [0.0, 0.5 + z_h, 0.0, 0.25]
+q1 = [0.0, 1.0, 0.0, 0.5]
 
 xl, xu = state_bounds(model_ft, T,
 		[model_ft.qL; model_ft.qL],
@@ -30,8 +29,8 @@ xl, xu = state_bounds(model_ft, T,
 # Objective
 include_objective("velocity")
 obj_tracking = quadratic_time_tracking_objective(
-    [Diagonal(zeros(model_ft.n)) for t = 1:T],
-    [Diagonal([1.0e-1, 1.0e-1, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal(ones(model_ft.n)) for t = 1:T],
+    [Diagonal([1.0e-1, 1.0e-3, zeros(model_ft.m - model_ft.nu - 1)..., 0.0]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
@@ -44,9 +43,9 @@ obj_velocity = velocity_objective(
 obj = MultiObjective([obj_tracking, obj_contact_penalty, obj_velocity])
 
 # Constraints
-include_constraints(["free_time", "contact", "loop"])
+include_constraints(["free_time", "contact_no_slip", "loop"])
 con_free_time = free_time_constraints(T)
-con_contact = contact_constraints(model_ft, T)
+con_contact = contact_no_slip_constraints(model_ft, T)
 con_loop = loop_constraints(model, (1:model.n), 1, T)
 con = multiple_constraints([con_free_time, con_contact, con_loop])
 
@@ -117,7 +116,15 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h̄[1])
-q_sim = state_to_configuration(x̄)
+q_sim = state_to_configuration(x_proj)
+
+plot(hcat(q_sim...)[1:4, :]',
+	label = ["x" "z" "t" "r"],
+	legend = :bottomleft)
+
+ϕ = [ϕ_func(model, q) for q in q_sim]
+plot(hcat(ϕ[2:end]...)',
+	label = "sdf")
 # @time z̄ = solve(prob, copy(z̄),
 # 	nlp = :ipopt,
 # 	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 0,

@@ -4,7 +4,6 @@ include_model("double_integrator")
 # Horizon
 T = 11
 
-# Bounds
 tf = 1.0
 h0 = tf / (T-1) # timestep
 
