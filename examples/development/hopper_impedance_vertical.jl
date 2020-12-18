@@ -92,26 +92,26 @@ if optimize
 else
 	@load joinpath(pwd(), "examples/trajectories/hopper_impedance_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
-#
-# using Plots
-# plot(hcat(ū...)[1:2, :]',
-#     linetype = :steppost,
-#     label = "",
-#     color = :red,
-#     width = 2.0)
-#
-# plot!(hcat(u_proj...)[1:2, :]',
-#     linetype = :steppost,
-#     label = "", color = :black)
-#
-# plot(hcat(state_to_configuration(x̄)...)',
-#     color = :red,
-#     width = 2.0,
-# 	label = "")
-#
-# plot!(hcat(state_to_configuration(x_proj)...)',
-#     color = :black,
-# 	label = "")
+
+using Plots
+plot(hcat(ū...)[1:2, :]',
+    linetype = :steppost,
+    label = "",
+    color = :red,
+    width = 2.0)
+
+plot!(hcat(u_proj...)[1:2, :]',
+    linetype = :steppost,
+    label = "", color = :black)
+
+plot(hcat(state_to_configuration(x̄)...)',
+    color = :red,
+    width = 2.0,
+	label = "")
+
+plot!(hcat(state_to_configuration(x_proj)...)',
+    color = :black,
+	label = "")
 #
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
