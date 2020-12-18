@@ -69,14 +69,14 @@ function simulator_problem(model, v1, q1, q2, u, w, h; slack_penalty = 1.0e5)
 	   w,
 	   h)
 end
-prob_sim = simulator_problem(model, ones(nq), ones(nq), ones(nq), zeros(nu), ones(nq), h)
-z0 = rand(prob_sim.num_var)
+# prob_sim = simulator_problem(model, ones(nq), ones(nq), ones(nq), zeros(nu), ones(nq), h)
+# z0 = rand(prob_sim.num_var)
 
 function MOI.eval_objective(prob::MOISimulator, x)
    return prob.slack_penalty * x[prob.num_var]
 end
 
-MOI.eval_objective(prob_sim, z0)
+# MOI.eval_objective(prob_sim, z0)
 
 function MOI.eval_objective_gradient(prob::MOISimulator, grad_f, x)
    grad_f .= 0.0
@@ -84,8 +84,8 @@ function MOI.eval_objective_gradient(prob::MOISimulator, grad_f, x)
    return nothing
 end
 
-∇obj = zeros(prob_sim.num_var)
-MOI.eval_objective_gradient(prob_sim, ∇obj, z0)
+# ∇obj = zeros(prob_sim.num_var)
+# MOI.eval_objective_gradient(prob_sim, ∇obj, z0)
 
 function MOI.eval_constraint(prob::MOISimulator, g, x)
    model = prob.model
@@ -109,9 +109,9 @@ function MOI.eval_constraint(prob::MOISimulator, g, x)
 
    return nothing
 end
-prob_sim.h
-c0 = zeros(prob_sim.num_con)
-MOI.eval_constraint(prob_sim, c0, z0)
+# prob_sim.h
+# c0 = zeros(prob_sim.num_con)
+# MOI.eval_constraint(prob_sim, c0, z0)
 
 function MOI.eval_constraint_jacobian(prob::MOISimulator, jac, x)
    con!(g, z) = MOI.eval_constraint(prob, g, z)
@@ -119,8 +119,8 @@ function MOI.eval_constraint_jacobian(prob::MOISimulator, jac, x)
    return nothing
 end
 
-∇c0 = vec(zeros(prob_sim.num_con, prob_sim.num_var))
-MOI.eval_constraint_jacobian(prob_sim, ∇c0, z0)
+# ∇c0 = vec(zeros(prob_sim.num_con, prob_sim.num_var))
+# MOI.eval_constraint_jacobian(prob_sim, ∇c0, z0)
 
 function sparsity_jacobian(prob::MOISimulator)
    row = []
@@ -134,9 +134,9 @@ function sparsity_jacobian(prob::MOISimulator)
    return collect(zip(row, col))
 end
 
-sparsity_jacobian(prob_sim)
-
-@time solve(prob_sim, z0)
+# sparsity_jacobian(prob_sim)
+#
+# @time solve(prob_sim, z0)
 
 function step_contact(model, v1, q1, q2, u, w, h)
    prob = simulator_problem(model, v1, q1, q2, u, w, h)
@@ -171,7 +171,7 @@ h = tf / (T - 1)
 t_sim = range(0.0, stop = tf, length = T)
 
 q1 = zeros(model.nq)
-q1[2] = 1.5
+q1[2] = 1.0
 # q1[3] = pi / 100.0
 q1[4] = model.r0
 q_sim = [q1, q1]

@@ -140,7 +140,10 @@ model = Particle{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::Particle, q;
 	Δt = 0.1, r = 0.25)
 
-    setobject!(vis["particle"], Rect(Vec(0, 0, 0),Vec(2r, 2r, 2r)))
+	default_background!(vis)
+    setobject!(vis["particle"],
+		Rect(Vec(0, 0, 0),Vec(2r, 2r, 2r)),
+		MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0, 1.0)))
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
@@ -150,8 +153,8 @@ function visualize!(vis, model::Particle, q;
         end
     end
 
-    # settransform!(vis["/Cameras/default"],
-	# compose(Translation(-1, -1, 0),
-	# LinearMap(RotZ(pi/2))))
+	settransform!(vis["/Cameras/default"],
+	    compose(Translation(-2.5, 7.5, 1.0),LinearMap(RotZ(0.0))))
+
     MeshCat.setanimation!(vis, anim)
 end

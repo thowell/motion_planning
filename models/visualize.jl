@@ -56,3 +56,10 @@ function select_material(material_path::String)
     mtl = read(mtl_file, String)
     return mtl
 end
+
+function default_background!(vis)
+    setvisible!(vis["/Background"], true)
+    setprop!(vis["/Background"], "top_color", RGBA(1.0, 1.0, 1.0, 1.0))
+    setprop!(vis["/Background"], "bottom_color", RGBA(1.0, 1.0, 1.0, 1.0))
+    setvisible!(vis["/Axes"], false)
+end

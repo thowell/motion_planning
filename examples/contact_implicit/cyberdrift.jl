@@ -1,16 +1,13 @@
-include(joinpath(pwd(), "models/cybertruck.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
-include(joinpath(pwd(), "src/constraints/obstacles.jl"))
-include(joinpath(pwd(), "src/constraints/control_complementarity.jl"))
+# Model
+include_model("cybertruck")
 
 # Horizon
-T = 11
+T = 26
 
 # Time step
 tf = 1.0
 h = tf / (T-1)
 
-# Bounds
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] = [Inf; 1.0]
 _ul = zeros(model.m)
@@ -23,32 +20,33 @@ q1 = [0.0, 1.0, 0.0, -1.0 * pi / 2.0]
 qT = [3.0, 0.0, 0.0, pi / 2.0]
 
 x1 = [q1; q1]
+xT = [qT; qT]
 
 xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
 Qq = Diagonal(ones(model.nq))
 Q = cat(0.5 * Qq, 0.5 * Qq, dims = (1, 2))
-QT = cat(0.5 * Qq, 10.0 * Diagonal(ones(model.nq)), dims = (1, 2))
-R = Diagonal([1.0e-1 * ones(model.nu)..., zeros(model.m - model.nu)...])
+QT = cat(10000.0 * Qq, 10000.0 * Diagonal(ones(model.nq)), dims = (1, 2))
+R = Diagonal([1.0e-3 * ones(model.nu)..., zeros(model.m - model.nu)...])
 
 obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
-    [[zeros(model.nq); qT] for t = 1:T],
-    [zeros(model.m) for t = 1:T]
-    )
+    [xT for t = 1:T],
+    [zeros(model.m) for t = 1:T])
 
-obj_penalty = PenaltyObjective(100.0, model.m)
+obj_penalty = PenaltyObjective(1.0e5, model.m)
 obj = MultiObjective([obj_tracking, obj_penalty])
 
 # Constraints
+include_constraints(["obstacles", "control_complementarity", "contact"])
 p_car1 = [3.0, 0.65]
 p_car2 = [3.0, -0.65]
 
 function obstacles!(c, x)
-    c[1] = circle_obs(x[1], x[2], p_car1[1], p_car1[2], 0.6)
-    c[2] = circle_obs(x[1], x[2], p_car2[1], p_car2[2], 0.6)
+    c[1] = circle_obs(x[1], x[2], p_car1[1], p_car1[2], 0.5)
+    c[2] = circle_obs(x[1], x[2], p_car2[1], p_car2[2], 0.5)
     nothing
 end
 
@@ -73,14 +71,13 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con
-               )
+               con = con)
 
 # Trajectory initialization
 q_ref = linear_interpolation(q1, qT, T)
 x_ref = configuration_to_state(q_ref)
-x0 = deepcopy(x_ref) #linear_interpolation(x1, x1, T) # linear interpolation on state
-u0 = [1.0e-5 * rand(model.m) for t = 1:T-1] # random controls
+x0 = deepcopy(x_ref)
+u0 = [1.0e-4 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -90,7 +87,7 @@ z0 = pack(x0, u0, prob)
 include_snopt()
 @time z̄ = solve(prob, copy(z0),
     nlp = :SNOPT7,
-    tol = 1.0e-3, c_tol = 1.0e-3)
+    tol = 1.0e-5, c_tol = 1.0e-5)
 
 check_slack(z̄, prob)
 
@@ -98,21 +95,7 @@ x̄, ū = unpack(z̄, prob)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
-render(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h)
-
-# add parked cars
-obj_path = joinpath(pwd(),"models/cybertruck/cybertruck.obj")
-mtl_path = joinpath(pwd(),"models/cybertruck/cybertruck.mtl")
-
-ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale = 0.1)
-
-setobject!(vis["cybertruck_park1"], ctm)
-settransform!(vis["cybertruck_park1"],
-    compose(Translation([p_car1[1]; p_car1[2]; 0.0]),
-    LinearMap(RotZ(pi + pi / 2) * RotX(pi / 2.0))))
-
-setobject!(vis["cybertruck_park2"], ctm)
-settransform!(vis["cybertruck_park2"],
-    compose(Translation([3.0; -0.65; 0.0]),
-    LinearMap(RotZ(pi + pi / 2) * RotX(pi / 2.0))))
+open(vis)
+visualize!(vis, model,
+    state_to_configuration([[x̄[1] for i = 1:10]...,x̄..., [x̄[end] for i = 1:10]...]),
+    Δt = h)

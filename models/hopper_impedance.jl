@@ -56,8 +56,8 @@ g = 9.81 # gravity
 μ = 1.0  # coefficient of friction
 mb = 1.0 # body mass
 mf = 0.1  # leg mass
-Jb = 0.1 # body inertia
-k0 = 350.0 #375.0
+Jb = 0.25 # body inertia
+k0 = 500.0 # 375.0
 r0 = 0.5
 
 n = 2 * nq
@@ -235,11 +235,11 @@ end
 qL = -Inf * ones(nq)
 qU = Inf * ones(nq)
 qL[2] = 0.0
-qL[4] = 0.1 *r0
+qL[4] = 0.0 * r0
 qU[4] = 2.0 * r0
 
 uL = -1000.0 * ones(nu)
-uU = 1000.0 * ones(nu)
+uU = [1000.0; 0.0]
 
 model = HopperImpedance{Discrete, FixedTime}(n, m, d,
 			   mb, Jb, mf,

@@ -116,7 +116,9 @@ model = CYBERTRUCK{Discrete, FixedTime}(n, m, d,
   				   idx_s)
 
 function visualize!(vis, model::CYBERTRUCK, q;
-		Δt = 0.1)
+		Δt = 0.1, scenario = :pp)
+
+	default_background!(vis)
 
     obj_path = joinpath(pwd(), "models/cybertruck/cybertruck.obj")
     mtl_path = joinpath(pwd(), "models/cybertruck/cybertruck.mtl")
@@ -133,6 +135,26 @@ function visualize!(vis, model::CYBERTRUCK, q;
 				LinearMap(RotZ(q[t][4] + pi) * RotY(0.0) * RotX(pi / 2.0))))
         end
     end
-    # settransform!(vis["/Cameras/default"], compose(Translation(-1, -1, 0),LinearMap(RotZ(pi/2))))
+	
+	if scenario == :pp
+		settransform!(vis["/Cameras/default"],
+			compose(Translation(2.0, 0.0, 1.0),LinearMap(RotZ(0.0))))
+		# add parked cars
+		obj_path = joinpath(pwd(),"models/cybertruck/cybertruck.obj")
+		mtl_path = joinpath(pwd(),"models/cybertruck/cybertruck.mtl")
+
+		ctm = ModifiedMeshFileObject(obj_path, mtl_path, scale = 0.1)
+
+		setobject!(vis["cybertruck_park1"], ctm)
+		settransform!(vis["cybertruck_park1"],
+		    compose(Translation([p_car1[1]; p_car1[2]; 0.0]),
+		    LinearMap(RotZ(pi + pi / 2) * RotX(pi / 2.0))))
+
+		setobject!(vis["cybertruck_park2"], ctm)
+		settransform!(vis["cybertruck_park2"],
+		    compose(Translation([3.0; -0.65; 0.0]),
+		    LinearMap(RotZ(pi + pi / 2) * RotX(pi / 2.0))))
+	end
+
     MeshCat.setanimation!(vis, anim)
 end

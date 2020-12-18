@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/box.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("box")
 
 # Horizon
 T = 26
@@ -11,7 +11,7 @@ h = tf / (T-1)
 # Bounds
 
 _uu = Inf * ones(model.m)
-_uu[model.idx_u] .= 0.0
+_uu[model.idx_u] .= 0.0 # set control to zero
 _ul = zeros(model.m)
 ul, uu = control_bounds(model, T, _ul, _uu)
 
@@ -28,7 +28,7 @@ x1 = [q1; q2]
 xl, xu = state_bounds(model, T, x1 = x1)
 
 # Objective
-obj = PenaltyObjective(1000.0, model.m)
+obj = PenaltyObjective(1.0e5, model.m)
 
 # Constraints
 con_contact = contact_constraints(model, T)
@@ -42,8 +42,7 @@ prob = trajectory_optimization_problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_contact
-               )
+               con = con_contact)
 
 # Trajectory initialization
 x0 = [0.01 * rand(model.n) for t = 1:T] #linear_interpolation(x1, x1, T) # linear interpolation on state
@@ -55,7 +54,7 @@ z0 = pack(x0, u0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time z̄ = solve(prob, copy(z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time z̄ = solve(prob, copy(z0), tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
@@ -64,3 +63,4 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h)
+settransform!(vis["/Cameras/default"], compose(Translation(1.0, 1.0, 3.0), LinearMap(RotZ(0.0))))

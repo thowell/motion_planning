@@ -1,5 +1,5 @@
-include(joinpath(pwd(), "models/box.jl"))
-include(joinpath(pwd(), "src/constraints/contact.jl"))
+# Model
+include_model("box")
 
 # Horizon
 T = 26
@@ -7,8 +7,6 @@ T = 26
 # Time step
 tf = 2.5
 h = tf / (T-1)
-
-# Bounds
 
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
@@ -39,16 +37,16 @@ obj_tracking = quadratic_tracking_objective(
     [t < T ? Q : QT for t = 1:T],
     [R for t = 1:T-1],
     [[zeros(model.nq); qT] for t = 1:T],
-    [zeros(model.m) for t = 1:T]
-    )
+    [zeros(model.m) for t = 1:T])
 
 obj = MultiObjective([obj_tracking, obj_penalty])
 
 # Constraints
+include_constraints("contact")
 con_contact = contact_constraints(model, T)
 
 # Problem
-prob = problem(model,
+prob = trajectory_optimization_problem(model,
                obj,
                T,
                h = h,
@@ -56,8 +54,7 @@ prob = problem(model,
                xu = xu,
                ul = ul,
                uu = uu,
-               con = con_contact
-               )
+               con = con_contact)
 
 # Trajectory initialization
 x0 = linear_interpolation(x1, [qT; qT], T) # linear interpolation on state
@@ -69,7 +66,8 @@ z0 = pack(x0, u0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 
-@time z̄ = solve(prob, copy(z0), tol = 1.0e-3, c_tol = 1.0e-3)
+@time z̄ = solve(prob, copy(z0),
+    tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 check_slack(z̄, prob)
 
@@ -78,5 +76,8 @@ x̄, ū = unpack(z̄, prob)
 # Visualize
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
+render(vis)
+visualize!(vis, model,
+    state_to_configuration([[x̄[1] for i = 1:10]...,x̄..., [x̄[end] for i = 1:10]...]),
+    Δt = h)
 open(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h)

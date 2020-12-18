@@ -59,4 +59,8 @@ x̄, ū = unpack(z̄, prob)
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h)
+visualize!(vis, model,
+    state_to_configuration(x̄),
+    Δt = h)
+
+open(vis)

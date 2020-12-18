@@ -80,6 +80,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
         solver.options["print_level"] = mapl
+        # solver.options["linear_solver"] = "ma57"
     elseif nlp == :SNOPT7
         # solver = SNOPT7.Optimizer(
         #                           Major_feasibility_tolerance = c_tol,

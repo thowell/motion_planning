@@ -195,6 +195,8 @@ model = Box{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::Box, q;
         Δt = 0.1)
 
+	default_background!(vis)
+
     setobject!(vis["box"], GeometryBasics.Rect(Vec(-1.0 * model.r,
 		-1.0 * model.r,
 		-1.0 * model.r),
@@ -203,7 +205,7 @@ function visualize!(vis, model::Box, q;
     for i = 1:model.n_corners
         setobject!(vis["corner$i"], GeometryBasics.Sphere(Point3f0(0),
             convert(Float32, 0.05)),
-            MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
+            MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
     end
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))

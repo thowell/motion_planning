@@ -638,6 +638,7 @@ model = Quadruped{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::Quadruped, q;
       r = 0.035, Δt = 0.1)
 
+	default_background!(vis)
 
 	torso = Cylinder(Point3f0(0.0, 0.0, 0.0), Point3f0(0.0, 0.0, model.l_torso),
 		convert(Float32, 0.025))
@@ -782,24 +783,12 @@ function visualize!(vis, model::Quadruped, q;
 		end
 	end
 
+	settransform!(vis["/Cameras/default"],
+	    compose(Translation(0.0, 0.0, -1.0), LinearMap(RotZ(-pi / 2.0))))
+
 	MeshCat.setanimation!(vis, anim)
 end
 
-# urdf = joinpath(pwd(), "models/Quadruped/urdf/Quadruped_float.urdf")
-# mechanism = parse_urdf(urdf, floating=false)
-# state = MechanismState(mechanism)
-# state_cache = StateCache(mechanism)
-# result = DynamicsResult(mechanism)
-# result_cache = DynamicsResultCache(mechanism)
-#
-# q = zeros(model.nq)
-# q_f = copy(q)
-# q_f[3] = - pi
-# q_f[4] = - pi / 2.0
-# q_f[5] = - pi / 2.0
-# set_configuration!(state, q)
-# mass_matrix(state)
-# M_func(model, q)
 function initial_configuration(model::Quadruped, θ)
 	q1 = zeros(model.nq)
 	q1[3] = pi / 2.0

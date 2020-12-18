@@ -105,4 +105,7 @@ plot(t[1:end-1], h̄, linetype=:steppost)
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h̄[1])
+visualize!(vis, model_ft,
+	state_to_configuration([[x̄[1] for i = 1:50]...,x̄..., [x̄[end] for i = 1:50]...]),
+	Δt = h̄[1],
+	scenario = :flip)

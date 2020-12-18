@@ -3,7 +3,6 @@ include_model("biped")
 model = free_time_model(model)
 
 # Visualize
-# - Pkg.add any external deps from visualize.jl
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
@@ -13,7 +12,7 @@ T = 51
 Tm = 26
 
 # Time step
-tf = 2.0
+tf = 2.5
 h = tf / (T - 1)
 
 # Configurations
@@ -25,51 +24,17 @@ h = tf / (T - 1)
 # 6: thigh 2 (rel. to downward vertical)
 # 7: calf 2 (rel. to downward vertical)
 
-function initial_configuration(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh_2)
-    q1 = zeros(model.nq)
-    q1[3] = θ_torso
-    q1[4] = θ_thigh_1
-    q1[5] = θ_leg_1
-    z1 = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
-    q1[6] = θ_thigh_2
-    q1[7] = -1.0 * acos((z1 - model.l_thigh2 * cos(q1[6])) / model.l_calf2)
-    q1[2] = z1
-
-    p1 = kinematics_2(model, q1, body = :calf_1, mode = :ee)
-    p2 = kinematics_2(model, q1, body = :calf_2, mode = :ee)
-    @show stride = abs(p1[1] - p2[1])
-
-    q1[1] = -1.0 * p1[1]
-
-    qM = copy(q1)
-    qM[4] = q1[6]
-    qM[5] = q1[7]
-    qM[6] = q1[4]
-    qM[7] = q1[5]
-    qM[1] = abs(p2[1])
-
-    pM_1 = kinematics_2(model, qM, body = :calf_1, mode = :ee)
-    pM_2 = kinematics_2(model, qM, body = :calf_2, mode = :ee)
-
-    qT = copy(q1)
-    qT[1] = 2 * stride
-
-    pT_1 = kinematics_2(model, qT, body = :calf_1, mode = :ee)
-    pT_2 = kinematics_2(model, qT, body = :calf_2, mode = :ee)
-
-    return q1, qM, qT
-end
 q1, qM, qT = initial_configuration(model, -pi / 100.0, pi / 10.0, -pi / 25.0, -pi / 25.0)
-# qq_ref = linear_interpolation(q1, qM, T)
 visualize!(vis, model, [q1], Δt = h)
 
+# feet positions
 foot_2_1 = kinematics_2(model, q1, body = :calf_2, mode = :ee)
 foot_2_M = kinematics_2(model, qM, body = :calf_2, mode = :ee)
 
 foot_1_M = kinematics_2(model, qM, body = :calf_1, mode = :ee)
 foot_1_T = kinematics_2(model, qT, body = :calf_1, mode = :ee)
 
-
+# feet trajectories
 zh = 0.1
 foot_2_x = [range(foot_2_1[1], stop = foot_2_M[1], length = Tm)...,
     [foot_2_M[1] for t = 1:Tm-1]...]
@@ -102,11 +67,10 @@ _uu[model.idx_u] .= Inf
 _uu[end] = 2.0 * h
 _ul = zeros(model.m)
 _ul[model.idx_u] .= -Inf
-_ul[end] = 0.1 * h
+_ul[end] = 0.25 * h
 ul, uu = control_bounds(model, T, _ul, _uu)
 
-# u1 = initial_torque(model, q1, h)[model.idx_u]
-
+# state
 xl, xu = state_bounds(model, T,
     -Inf * ones(model.n), Inf * ones(model.n),
     x1 = [Inf * ones(model.nq); q1],
@@ -121,8 +85,6 @@ for t = 1:T
     xu[t][3] = q1[3] + pi / 20.0
     xu[t][10] = q1[3] + pi / 20.0
 end
-
-# plot(hcat(q_ref...)')
 
 # Objective
 include_objective(["velocity", "nonlinear_stage"])
@@ -141,20 +103,18 @@ obj_penalty = PenaltyObjective(1.0e5, model.m - 1)
 
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
-x_torso = zeros(model.n)
-# x_torso[3] = 10.0
-# x_torso[10] = 10.0
+
 obj_control = quadratic_time_tracking_objective(
-    [Diagonal(x_torso) for t = 1:T],
-    [Diagonal([1.0e-1 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
+    [Diagonal(1.0e-1 * ones(model.n)) for t = 1:T],
+    [Diagonal([1.0e-3 * ones(model.nu)..., 0.0 * ones(model.m - model.nu - 1)..., 0.0]) for t = 1:T-1],
     [x0[t] for t = 1:T],
     [zeros(model.m) for t = 1:T-1],
     1.0)
 
 # quadratic velocity penalty
 # Σ v' Q v
-q_v = 1.0 * ones(model.nq)
-q_v[3] = 10.0
+q_v = 5.0 * ones(model.nq)
+q_v[3] = 100.0
 obj_velocity = velocity_objective(
     [Diagonal(q_v) for t = 1:T-1],
     model.nq,
@@ -193,9 +153,9 @@ obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 1 lateral
 function l_stage_fl1(x, u, t)
-    return (100.0 * (kinematics_2(model,
+    return (1000.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_1, mode = :ee)[1] - foot_1_x[t])^2.0
-        + 100.0 * (kinematics_2(model,
+        + 1000.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_1, mode = :ee)[1] - foot_1_x[t])^2.0)
 end
 l_terminal_fl1(x) = 0.0
@@ -213,9 +173,9 @@ obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 2 lateral
 function l_stage_fl2(x, u, t)
-    return (100.0 * (kinematics_2(model,
+    return (1000.0 * (kinematics_2(model,
         view(x, 1:7), body = :calf_2, mode = :ee)[2] - foot_2_x[t])^2.0
-        + 100.0 * (kinematics_2(model,
+        + 1000.0 * (kinematics_2(model,
             view(x, 8:14), body = :calf_2, mode = :ee)[2] - foot_2_x[t])^2.0)
 end
 l_terminal_fl2(x) = 0.0
@@ -242,7 +202,6 @@ con = multiple_constraints([con_contact, con_free_time, con_loop])
 prob = trajectory_optimization_problem(model,
                obj,
                T,
-               # h = h,
                xl = xl,
                xu = xu,
                ul = ul,
@@ -257,7 +216,7 @@ z0 = pack(x0, u0, prob)
 
 # Solve
 
-if optimize
+if true
     include_snopt()
 
 	@time z̄ = solve(prob, copy(z0),
@@ -268,23 +227,39 @@ if optimize
 	x̄, ū = unpack(z̄, prob)
     tfc, tc, h̄ = get_time(ū)
 
-	# projection
-	Q = [Diagonal(ones(model.n)) for t = 1:T]
-	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
-	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
-
-	@show tfc
-	@show h̄[1]
-	@save joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
-else
-	@load joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+# 	# projection
+# 	Q = [Diagonal(ones(model.n)) for t = 1:T]
+# 	R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+# 	x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+#
+# 	@show tfc
+# 	@show h̄[1]
+# 	@save joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
+# else
+# 	@load joinpath(pwd(), "examples/trajectories/biped_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
 
 # Visualize
 vis = Visualizer()
 render(vis)
 visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
+q_vis = state_to_configuration(x̄)
+len_stride = x̄[end][1] - x̄[1][1]
+for i = 1:4
+	for t = 1:T-1
+		_q = Array(copy(state_to_configuration(x̄)[t+1]))
+		_q[1] += i * len_stride
+		push!(q_vis, _q)
+	end
+end
+visualize!(vis, model, q_vis, Δt = h̄[1])
 
+# projection
+Q = [Diagonal(ones(model.n)) for t = 1:T]
+R = [Diagonal(0.1 * ones(model.m)) for t = 1:T-1]
+x_proj, u_proj = lqr_projection(model, x̄, ū, h̄[1], Q, R)
+
+# Feet trajectories
 fh1 = [kinematics_2(model,
     state_to_configuration(x̄)[t], body = :calf_1, mode = :ee)[2] for t = 1:T]
 fh2 = [kinematics_2(model,
@@ -293,6 +268,7 @@ fh2 = [kinematics_2(model,
 plot(fh1, linetype = :steppost, label = "foot 1")
 plot!(fh2, linetype = :steppost, label = "foot 2")
 
+# Controls
 plot(hcat(ū...)[1:4, :]',
     linetype = :steppost,
     label = "",
@@ -309,6 +285,7 @@ plot!(hcat(u_proj...)[1:4, :]',
 #     label = "",
 #     width = 2.0)
 
+# States
 plot(hcat(state_to_configuration(x̄)...)',
     color = :red,
     width = 2.0,

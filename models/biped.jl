@@ -467,6 +467,8 @@ model = Biped{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::Biped, q;
       r = 0.035, Δt = 0.1)
 
+	default_background!(vis)
+
 	torso = Cylinder(Point3f0(0.0, 0.0, 0.0), Point3f0(0.0, 0.0, model.l_torso),
 		convert(Float32, 0.025))
 	setobject!(vis["torso"], torso,
@@ -550,5 +552,43 @@ function visualize!(vis, model::Biped, q;
 		end
 	end
 
+	settransform!(vis["/Cameras/default"],
+	   compose(Translation(0.0 , 1.0 , -1.0), LinearMap(RotZ(-pi / 2.0))))
+
 	MeshCat.setanimation!(vis, anim)
+end
+
+function initial_configuration(model, θ_torso, θ_thigh_1, θ_leg_1, θ_thigh_2)
+    q1 = zeros(model.nq)
+    q1[3] = θ_torso
+    q1[4] = θ_thigh_1
+    q1[5] = θ_leg_1
+    z1 = model.l_thigh1 * cos(q1[4]) + model.l_calf1 * cos(q1[5])
+    q1[6] = θ_thigh_2
+    q1[7] = -1.0 * acos((z1 - model.l_thigh2 * cos(q1[6])) / model.l_calf2)
+    q1[2] = z1
+
+    p1 = kinematics_2(model, q1, body = :calf_1, mode = :ee)
+    p2 = kinematics_2(model, q1, body = :calf_2, mode = :ee)
+    @show stride = abs(p1[1] - p2[1])
+
+    q1[1] = -1.0 * p1[1]
+
+    qM = copy(q1)
+    qM[4] = q1[6]
+    qM[5] = q1[7]
+    qM[6] = q1[4]
+    qM[7] = q1[5]
+    qM[1] = abs(p2[1])
+
+    pM_1 = kinematics_2(model, qM, body = :calf_1, mode = :ee)
+    pM_2 = kinematics_2(model, qM, body = :calf_2, mode = :ee)
+
+    qT = copy(q1)
+    qT[1] = 2 * stride
+
+    pT_1 = kinematics_2(model, qT, body = :calf_1, mode = :ee)
+    pT_2 = kinematics_2(model, qT, body = :calf_2, mode = :ee)
+
+    return q1, qM, qT
 end

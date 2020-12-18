@@ -201,6 +201,8 @@ model = RRParticle{Discrete, FixedTime}(n, m, d,
 function visualize!(vis, model::RRParticle, q;
 		Δt = 0.1, r = 0.1, cybertruck = true, x_offset = 0.5)
 
+	default_background!(vis)
+
     l1 = Cylinder(Point3f0(0, 0, 0),
 		Point3f0(0, 0, model.l1),
 		convert(Float32, 0.025))
@@ -214,7 +216,7 @@ function visualize!(vis, model::RRParticle, q;
         MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
     setobject!(vis["ee"], Sphere(Point3f0(0),
         convert(Float32, 0.05)),
-        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+        MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
 
     if cybertruck
         obj_path = joinpath(pwd(), "models/cybertruck/cybertruck.obj")
@@ -244,6 +246,9 @@ function visualize!(vis, model::RRParticle, q;
             settransform!(vis["ee"], Translation(p_ee))
         end
     end
-    # settransform!(vis["/Cameras/default"], compose(Translation(-1, -1, 0),LinearMap(RotZ(pi/2))))
+	
+	settransform!(vis["/Cameras/default"],
+	    compose(Translation(1.0, 0.0, -1.0),LinearMap(RotZ(-pi / 2.0))))
+
     MeshCat.setanimation!(vis, anim)
 end

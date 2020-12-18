@@ -90,6 +90,7 @@ function visualize!(vis, model::Acrobot, x;
         color=RGBA(0.0, 0.0, 0.0, 1.0),
         r = 0.1, Δt = 0.1)
 
+    default_background!(vis)
 
     i = 1
     l1 = Cylinder(Point3f0(0.0, 0.0, 0.0), Point3f0(0.0, 0.0, model.l1),
@@ -101,10 +102,10 @@ function visualize!(vis, model::Acrobot, x;
 
     setobject!(vis["elbow$i"], Sphere(Point3f0(0.0),
         convert(Float32, 0.05)),
-        MeshPhongMaterial(color = color))
+        MeshPhongMaterial(color = RGBA(0.0, 1.0, 0.0, 1.0)))
     setobject!(vis["ee$i"], Sphere(Point3f0(0.0),
         convert(Float32, 0.05)),
-        MeshPhongMaterial(color = color))
+        MeshPhongMaterial(color = RGBA(0.0, 1.0, 0.0, 1.0)))
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 
@@ -123,8 +124,8 @@ function visualize!(vis, model::Acrobot, x;
         end
     end
 
-    # settransform!(vis["/Cameras/default"],
-    #    compose(Translation(0.0 , 0.0 , 0.0), LinearMap(RotZ(pi / 2.0))))
+    settransform!(vis["/Cameras/default"],
+       compose(Translation(0.0 , 1.0 , -1.0), LinearMap(RotZ(pi / 2.0))))
 
     MeshCat.setanimation!(vis, anim)
 end
