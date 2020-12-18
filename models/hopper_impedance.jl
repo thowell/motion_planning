@@ -57,7 +57,7 @@ g = 9.81 # gravity
 mb = 1.0 # body mass
 mf = 0.1  # leg mass
 Jb = 0.1 # body inertia
-k0 = 375.0
+k0 = 350.0 #375.0
 r0 = 0.5
 
 n = 2 * nq
@@ -147,7 +147,7 @@ end
 function B_func(::HopperImpedance, q)
 	# Diagonal(@SVector ones(4))
 	@SMatrix [0.0 0.0 1.0 0.0;
-              0.0 0.0 0.0 1.0]
+              -sin(q[3]) cos(q[3]) 0.0 1.0]
  end
 
 function fd(model::HopperImpedance{Discrete, FixedTime}, x⁺, x, u, w, h, t)
