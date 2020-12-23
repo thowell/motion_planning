@@ -6,7 +6,7 @@ model_ft = free_time_model(model)
 T = 26
 
 # Time step
-tf = 2.5
+tf = 1.0
 h = tf / (T - 1)
 
 # Visualize
@@ -16,9 +16,10 @@ vis = Visualizer()
 render(vis)
 
 # Configurations
+θ = pi / 3.25
 q1 = initial_configuration(model_ft,  θ)
 qM = copy(q1)
-qM[2] += 1.5
+qM[2] += 2.5
 qM[3] += pi
 qM[4] += pi
 qM[5] += pi
@@ -79,7 +80,7 @@ obj_penalty = PenaltyObjective(1.0e5, model_ft.m - 1)
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
 obj_control = quadratic_time_tracking_objective(
     [zeros(model_ft.n, model_ft.n) for t = 1:T],
-    [Diagonal([1.0e-1 * ones(model_ft.nu)..., zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
+    [Diagonal([0.1 * ones(model_ft.nu)..., zeros(model_ft.m - model_ft.nu)...]) for t = 1:T-1],
     [zeros(model_ft.n) for t = 1:T],
     [zeros(model_ft.m) for t = 1:T],
     1.0)
@@ -87,7 +88,7 @@ obj_control = quadratic_time_tracking_objective(
 # quadratic velocity penalty
 # Σ v' Q v
 obj_velocity = velocity_objective(
-    [Diagonal(1.0 * ones(model_ft.nq)) for t = 1:T-1],
+    [Diagonal(10.0 * ones(model_ft.nq)) for t = 1:T-1],
     model_ft.nq,
     h = h,
     idx_angle = collect([3, 4, 5, 6, 7, 8, 9, 10, 11]))
@@ -95,7 +96,7 @@ obj_velocity = velocity_objective(
 # torso height
 q2_idx = (12:22)
 t_h = kinematics_1(model_ft, qM, body = :torso, mode = :com)[2]
-l_stage_torso_h(x, u, t) = 100.0 * (kinematics_1(model_ft, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
+l_stage_torso_h(x, u, t) = 1000.0 * (kinematics_1(model_ft, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
 l_terminal_torso_h(x) = 0.0 * (kinematics_1(model_ft, view(x, q2_idx), body = :torso, mode = :com)[2] - t_h)^2.0
 obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 #
@@ -105,22 +106,22 @@ obj_torso_h = nonlinear_stage_objective(l_stage_torso_h, l_terminal_torso_h)
 # obj_torso_lat = nonlinear_stage_objective(l_stage_torso_lat, l_terminal_torso_lat)
 #
 # foot 1 height
-l_stage_fh1(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_1, mode = :ee)[2] - 0.5)^2.0
+l_stage_fh1(x, u, t) = 1000.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_1, mode = :ee)[2] - 0.5)^2.0
 l_terminal_fh1(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_1, mode = :ee)[2])^2.0
 obj_fh1 = nonlinear_stage_objective(l_stage_fh1, l_terminal_fh1)
 
 # foot 2 height
-l_stage_fh2(x, u, t) = 10.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_2, mode = :ee)[2] - 0.5)^2.0
+l_stage_fh2(x, u, t) = 1000.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_2, mode = :ee)[2] - 0.5)^2.0
 l_terminal_fh2(x) = 0.0 * (kinematics_2(model_ft, view(x, q2_idx), body = :calf_2, mode = :ee)[2])^2.0
 obj_fh2 = nonlinear_stage_objective(l_stage_fh2, l_terminal_fh2)
 
 # foot 3 height
-l_stage_fh3(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_3, mode = :ee)[2] - 0.5)^2.0
+l_stage_fh3(x, u, t) = 100.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_3, mode = :ee)[2] - 0.5)^2.0
 l_terminal_fh3(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_3, mode = :ee)[2])^2.0
 obj_fh3 = nonlinear_stage_objective(l_stage_fh3, l_terminal_fh3)
 
 # foot 4 height
-l_stage_fh4(x, u, t) = 1.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_4, mode = :ee)[2] - 0.5)^2.0
+l_stage_fh4(x, u, t) = 100.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_4, mode = :ee)[2] - 0.5)^2.0
 l_terminal_fh4(x) = 0.0 * (kinematics_3(model_ft, view(x, q2_idx), body = :calf_4, mode = :ee)[2])^2.0
 obj_fh4 = nonlinear_stage_objective(l_stage_fh4, l_terminal_fh4)
 
@@ -152,11 +153,11 @@ prob = trajectory_optimization_problem(model_ft,
                con = con)
 
 # trajectory initialization
-u0 = [[1.0e-5 * rand(model_ft.m - 1); h] for t = 1:T-1] # random controls
+u0 = [[1.0e-3 * rand(model_ft.m - 1); h] for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
-z0 .+= 1.0e-5 * randn(prob.num_var)
+z0 .+= 1.0e-3 * randn(prob.num_var)
 
 # Solve
 include_snopt()
@@ -175,14 +176,15 @@ check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 tf, t, h̄ = get_time(ū)
 
+@save joinpath(pwd(), "examples/trajectories/quadruped_backflip.jld2") x̄ ū h̄
+
 # Visualize
 visualize!(vis, model_ft, state_to_configuration(x̄), Δt = h̄[1])
 
-visualize!(vis, model_ft, [[state_to_configuration(x̄)[1] for i = 1:5]..., state_to_configuration(x̄)..., [state_to_configuration(x̄)[end] for i = 1:5]...], Δt = ū[1][end])
-
-# setobject!(vis["box"], HyperRectangle(Vec(0.0, 0.0, 0.0), Vec(0.5, 1.0, 0.25)))
-# settransform!(vis["box"], Translation(1.0, -0.5, 0))
-# # open(vis)
+visualize!(vis, model_ft, 
+	[[state_to_configuration(x̄)[1] for i = 1:10]..., state_to_configuration(x̄)..., [state_to_configuration(x̄)[end] for i = 1:10]...],
+	Δt = ū[1][end])
+open(vis)
 using Plots
 plot(t[1:end-1], hcat(ū...)[model_ft.idx_u, :]', linetype = :steppost,
 	width = 2.0, label = "", xlabel= "time (s)", ylabel = "control")
