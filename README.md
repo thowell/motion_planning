@@ -1,6 +1,9 @@
 # Direct Motion Planning
 
 ## contact-implicit trajectory optimization examples
+
+<img src="examples/animations/quadruped_backflip.gif" alt="drawing" width="200"/>
+
 - update models: impulse -> force
 - [X] simple manipulation
 - [X] cyberdrift
