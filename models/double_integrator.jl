@@ -22,10 +22,25 @@ end
 n, m, d = 2, 1, 2
 model = DoubleIntegrator{Discrete, FixedTime}(n, m, d)
 
+# """
+#     continuous-time double integrator
+# """
+# struct DoubleIntegratorContinuous{I, T} <: Model{I, T}
+#     n::Int
+#     m::Int
+#     d::Int
+# end
+#
+# function f(model::DoubleIntegrator{Continuous, FixedTime}, x, u, w)
+#     [x[2] + w[1]; u[1] + w[2]]
+# end
+#
+# model_con = DoubleIntegratorContinuous{Midpoint, FixedTime}(n, m, d)
+
 # visualization
 function visualize!(vis, model::DoubleIntegrator, x;
-        color=RGBA(0.0, 0.0, 0.0, 1.0),
-        r = 0.25, Δt = 0.1)
+        color = RGBA(0.0, 0.0, 0.0, 1.0),
+        r = 0.1, Δt = 0.1)
 
     default_background!(vis)
 
@@ -37,7 +52,7 @@ function visualize!(vis, model::DoubleIntegrator, x;
 
     T = length(x)
     for t = 1:T
-        pos = [x[1]; 0.0; 0.0]
+        pos = [x[t][1]; 0.0; 0.0]
 
         MeshCat.atframe(anim,t) do
             settransform!(vis["particle"], Translation(pos))
@@ -45,7 +60,7 @@ function visualize!(vis, model::DoubleIntegrator, x;
     end
 
     settransform!(vis["/Cameras/default"],
-       compose(Translation(0.0 , 1.0 , -1.0), LinearMap(RotZ(pi / 2.0))))
+       compose(Translation(0.0 , 1.0 , -1.0), LinearMap(RotZ(-pi / 2.0))))
 
     MeshCat.setanimation!(vis, anim)
 end
