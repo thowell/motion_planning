@@ -1,4 +1,4 @@
-name = "DirectMotionPlanning"
+name = "motion_planning"
 uuid = "fea9640e-5dc0-4e0a-ae80-75dc83c77833"
 authors = ["Taylor Howell <thowell@stanford.edu>"]
 version = "0.0.1"
