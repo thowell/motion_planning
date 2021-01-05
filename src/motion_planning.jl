@@ -1,4 +1,4 @@
-module DirectMotionPlanning
+module motion_planning
 
 using LinearAlgebra, ForwardDiff, FiniteDiff, StaticArrays, SparseArrays
 using MathOptInterface, Ipopt

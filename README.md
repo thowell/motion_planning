@@ -1,24 +1,23 @@
-# Direct Motion Planning
+# motion_planning
 
 ## contact-implicit trajectory optimization examples
 
-<img src="examples/animations/quadruped_backflip.gif" alt="drawing" width="200"/>
+<img src="examples/animations/hopper_flip.gif" alt="drawing" width="200"/>
 
-- update models: impulse -> force
 - [X] simple manipulation
 - [X] cyberdrift
 - [X] cyberjump
 - [X] box on corner
 - [X] hopper (2D) vertical gait
-- [X] (2D) flip
-- [ ] simple walker (2D)
+- [X] hopper (2D) flip
+- [ ] simple walker (2D) (add model)
 - [X] hopper (3D)
 - [ ] hopper (3D) wall scaling
 - [ ] miniature golf (fix RBD dep.)
 - [ ] ball-in-cup robot arm (move over from old script)
 - [ ] ball-in-cup quadrotor (move over from old script)
 - [X] biped (2D)
-- [X] quadruped (2D)
+- [X] quadruped (2D) (modify model)
 - [ ] quadruped (2D) over box
 - [ ] quadruped (2D) backflip
 - [ ] quadruped (3D)
@@ -64,7 +63,7 @@ we simulate objects / robots that experience contact (i.e., impact and Couloumb 
 ## installation
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 ```julia
-pkg> add https://github.com/thowell/DirectMotionPlanning.jl
+pkg> add https://github.com/thowell/motion_planning.jl
 ```
 
 ## TODO

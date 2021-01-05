@@ -21,3 +21,31 @@ end
 
 n, m, d = 2, 1, 2
 model = DoubleIntegrator{Discrete, FixedTime}(n, m, d)
+
+# visualization
+function visualize!(vis, model::DoubleIntegrator, x;
+        color=RGBA(0.0, 0.0, 0.0, 1.0),
+        r = 0.25, Δt = 0.1)
+
+    default_background!(vis)
+
+    setobject!(vis["particle"], Sphere(Point3f0(0.0),
+        convert(Float32, r)),
+        MeshPhongMaterial(color = color))
+
+    anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
+
+    T = length(x)
+    for t = 1:T
+        pos = [x[1]; 0.0; 0.0]
+
+        MeshCat.atframe(anim,t) do
+            settransform!(vis["particle"], Translation(pos))
+        end
+    end
+
+    settransform!(vis["/Cameras/default"],
+       compose(Translation(0.0 , 1.0 , -1.0), LinearMap(RotZ(pi / 2.0))))
+
+    MeshCat.setanimation!(vis, anim)
+end
