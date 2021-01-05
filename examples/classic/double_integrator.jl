@@ -8,7 +8,7 @@ tf = 1.0
 h0 = tf / (T-1) # timestep
 
 # Initial and final states
-x1 = [1.0; 1.0]
+x1 = [1.0; 0.0]
 xT = [0.0; 0.0]
 
 xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
@@ -16,7 +16,7 @@ xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 # Objective
 obj = quadratic_tracking_objective(
         [t < T ? Diagonal(ones(model.n)) : Diagonal(ones(model.n)) for t = 1:T],
-        [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1],
+        [Diagonal(1.0 * ones(model.m)) for t = 1:T-1],
         [xT for t = 1:T],
 		[zeros(model.m) for t = 1:T])
 
@@ -42,3 +42,8 @@ using Plots
 x, u = unpack(z, prob)
 plot(hcat(x...)', width = 2.0)
 plot(hcat(u...)', width = 2.0, linetype = :steppost)
+
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, x, Δt = 1.0)
