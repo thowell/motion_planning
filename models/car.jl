@@ -16,5 +16,5 @@ function f(model::Car, x, u, w)
               u[2]]
 end
 
-n, m, d = 3, 2, 0
+n, m, d = 3, 2, 3
 model = Car{Midpoint, FixedTime}(n, m, d)

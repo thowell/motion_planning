@@ -4,8 +4,8 @@ include(joinpath(@__DIR__, "car_obstacles.jl"))
 # Additive noise model
 model = additive_noise_model(model)
 
-function fd(model::Car, x⁺, x, u, w, h, t)
-    midpoint_implicit(model, x⁺, x, u, w, h) - w
+function fd(model::Model{Midpoint, FixedTime}, x⁺, x, u, w, h, t)
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
 end
 
 # Nominal solution
@@ -13,9 +13,6 @@ x̄, ū = unpack(z̄, prob)
 prob_nom = prob.prob
 
 # DPO
-N = 2 * model.n
-D = 2 * model.d
-
 β = 1.0
 δ = 1.0e-3
 
@@ -41,7 +38,7 @@ prob_sample = [trajectory_optimization(
 				ul = ul,
 				uu = uu,
 				dynamics = false,
-				con = con_obstacles) for i = 1:N]
+				con = con_obstacles) for i = 1:2 * model.n]
 
 # Sample objective
 Q = [(t < T ? Diagonal([10.0; 10.0; 1.0])
@@ -61,19 +58,17 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K = tvlqr(model, x̄, ū, h, Q, R)
+K, P = tvlqr(model, x̄, ū, h, Q, R)
 
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-optimize = true
-
-if optimize
+if true
 	include_snopt()
-	z , info = solve(prob_dpo, copy(z0),
+	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-3, c_tol = 1.0e-3,
-		time_limit = 60 * 10)
+		time_limit = 60 * 2)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")
