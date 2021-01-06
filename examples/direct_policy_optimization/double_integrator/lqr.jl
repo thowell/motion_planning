@@ -25,8 +25,6 @@ prob_nom = trajectory_optimization(
 			uu = uu)
 
 # DPO
-Nn = 2 * model.n
-
 β = 1.0
 δ = 1.0
 
@@ -46,7 +44,7 @@ prob_sample = [trajectory_optimization(
 				T,
 				dynamics = false,
 				xl = state_bounds(model, T, x1 = x1[i])[1],
-				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:Nn]
+				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:2 * model.n]
 
 # Sample objective
 Q = [Diagonal(ones(model.n)) for t = 1:T]
