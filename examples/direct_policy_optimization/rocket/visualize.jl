@@ -4,12 +4,11 @@ vis = Visualizer()
 render(vis)
 
 x̄, ū = unpack(z̄_nom, prob_nominal)
+x, u = unpack(z, prob_nominal)
 
 t_nominal = range(0, stop = sum([ū[t][end] for t = 1:T-1]), length = T)
-plot(t_nominal[1:end-1], hcat(ū...)[1:end-1, :]', linetype=:steppost)
+plot(t_nominal[1:end-1], hcat(ū...)[1:end-1, :]', linetype = :steppost)
 @show sum([ū[t][end] for t = 1:T-1]) # works when 2.72
-
-visualize!(vis, model_nom, x̄, Δt = ū[1][end])
 
 # COM traj
 xx_nom = [x̄[t][1] for t = 1:T]
@@ -158,3 +157,98 @@ plot(plt_nom_slosh,plt_dpo_slosh,layout=(2,1))
 
 plot(t_nom,hcat(X_nom...)[1:6,:]',color=:cyan,label=["y" "z" "ϕ"])
 plot!(t_nom_sample, hcat(X_nom_sample...)[1:6,:]',color=:orange,label=["y" "z" "ϕ"])
+
+
+# Ghost plot
+vis = Visualizer()
+render(vis)
+default_background!(vis)
+
+com_traj_nom = hcat([[-1.0 * x̄[t][1]; 0.26; x̄[t][2]] for t = 1:T]...)
+pts_nom = collect(eachcol(com_traj_nom))
+material_nom = LineBasicMaterial(color = goldenrod_color, linewidth = 2.0)
+setobject!(vis["com_traj_nom"], Object(PointCloud(pts_nom), material_nom, "Line"))
+
+com_traj_dpo = hcat([[-1.0 * x[t][1]; 0.265; x[t][2]] for t = 1:T]...)
+pts_dpo = collect(eachcol(com_traj_dpo))
+material_dpo = LineBasicMaterial(color = red_color, linewidth = 2.0)
+setobject!(vis["com_traj_dpo"], Object(PointCloud(pts_dpo), material_dpo, "Line"))
+
+settransform!(vis["/Cameras/default"], compose(Translation(0.0, 15.0, -1.0),
+	LinearMap(RotZ(pi / 2.0))))
+
+body = Cylinder(Point3f0(0.0, 0.0, -1.0 * model_sl.l1),
+	Point3f0(0.0, 0.0, 3.0 * model_sl.l1),
+	convert(Float32, 0.25))
+pad = Cylinder(Point3f0(0.0, 0.0, -0.1),
+	Point3f0(0.0, 0.0, 0.1),
+	convert(Float32, 0.5))
+setobject!(vis["pad"], pad,
+	MeshPhongMaterial(color = RGBA(220.0 / 255.0, 220.0 / 255.0, 220.0 / 255.0, 1.0)))
+
+u_norm = [u[t][1:2] ./ 20.0 for t = 1:T-1]
+
+t = 1
+setobject!(vis["rocket1"], body,
+	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+settransform!(vis["rocket1"],
+	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+	LinearMap(RotY(x[t][3]))))
+setobject!(vis["thrust1"],
+	Cylinder(Point3f0(0.0, 0.0, 0.0),
+	Point3f0(0.0, 0.0, norm(u_norm[t])),
+	convert(Float32, 0.1)),
+	MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+p = k_thruster(model_sl, x[t])
+settransform!(vis["thrust1"], cable_transform([-1.0 * p[1]; 0.0; p[2]],
+ 	[-1.0 * p[1] + u_norm[t][1]; 0.0; p[2] - u_norm[t][2]]))
+t = 7
+setobject!(vis["rocket2"], body,
+	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+settransform!(vis["rocket2"],
+	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+	LinearMap(RotY(x[t][3]))))
+setobject!(vis["thrust2"],
+	Cylinder(Point3f0(0.0, 0.0, 0.0),
+	Point3f0(0.0, 0.0, norm(u_norm[t])),
+	convert(Float32, 0.1)),
+	MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+p = k_thruster(model_sl, x[t])
+settransform!(vis["thrust2"], cable_transform([-1.0 * p[1]; 0.0; p[2]],
+ 	[-1.0 * p[1] + u_norm[t][1]; 0.0; p[2] - u_norm[t][2]]))
+t = 15
+setobject!(vis["rocket3"], body,
+	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+settransform!(vis["rocket3"],
+	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+	LinearMap(RotY(x[t][3]))))
+setobject!(vis["thrust3"],
+	Cylinder(Point3f0(0.0, 0.0, 0.0),
+	Point3f0(0.0, 0.0, norm(u_norm[t])),
+	convert(Float32, 0.1)),
+	MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+p = k_thruster(model_sl, x[t])
+settransform!(vis["thrust3"], cable_transform([-1.0 * p[1]; 0.0; p[2]],
+ 	[-1.0 * p[1] + u_norm[t][1]; 0.0; p[2] - u_norm[t][2]]))
+t = 25
+setobject!(vis["rocket4"], body,
+	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+settransform!(vis["rocket4"],
+	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+	LinearMap(RotY(x[t][3]))))
+setobject!(vis["thrust4"],
+	Cylinder(Point3f0(0.0, 0.0, 0.0),
+	Point3f0(0.0, 0.0, norm(u_norm[t])),
+	convert(Float32, 0.1)),
+	MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+p = k_thruster(model_sl, x[t])
+settransform!(vis["thrust4"], cable_transform([-1.0 * p[1]; 0.0; p[2]],
+ 	[-1.0 * p[1] + u_norm[t][1]; 0.0; p[2] - u_norm[t][2]]))
+t = T
+setobject!(vis["rocket5"], body,
+	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+settransform!(vis["rocket5"],
+	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+	LinearMap(RotY(x[t][3]))))
+
+open(vis)

@@ -54,7 +54,7 @@ function simulate(
             _u = u[1]
         end
 
-        push!(z_rollout, rk3(model, z, _u, zeros(model.d), dt_sim))
+        push!(z_rollout, fd(model, z, _u, zeros(model.d), dt_sim, 0))
         push!(u_rollout, u)
 
         if _norm == 2
@@ -77,6 +77,9 @@ function simulate(
     return z_rollout, u_rollout, J / (T_sim - 1), Jx / (T_sim - 1), Ju / (T_sim - 1)
 end
 
+using Random
+Random.seed!(1)
+
 # Nominal trajectories
 x̄_nominal, ū_nominal = unpack(z̄_nominal, prob_nominal)
 x̄_friction, ū_friction = unpack(z̄_friction, prob_friction)
@@ -84,11 +87,11 @@ x̄_dpo, ū_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
 
 # Policies
 K_nominal, P_nominal = tvlqr(model,
-	x̄_nominal, [ū_nominal[t][1:1] for t = 1:T-1],
- 	Q, [R[t][1:1, 1:1] for t = 1:T-1], h)
-K_friction, P_friction = tvlqr(model, x̄_friction, [ū_friction[t][1:1] for t = 1:T-1],
- 	Q, [R[t][1:1, 1:1] for t = 1:T-1],
-	h)
+	x̄_nominal, [ū_nominal[t][1:1] for t = 1:T-1], h,
+ 	Q, [R[t][1:1, 1:1] for t = 1:T-1])
+K_friction, P_friction = tvlqr(model,
+	x̄_friction, [ū_friction[t][1:1] for t = 1:T-1], h,
+ 	Q, [R[t][1:1, 1:1] for t = 1:T-1])
 θ = get_policy(z, prob_dpo)
 
 # Simulation
@@ -101,7 +104,8 @@ w = rand(W, T_sim)
 W0 = Distributions.MvNormal(zeros(model.n), Diagonal(1.0e-5 * ones(model.n)))
 w0 = rand(W0, 1)
 
-model_sim = model_friction
+model_sim = CartpoleFriction{RK3, FixedTime}(4, 7, 4, 1.0, 0.2, 0.5, 9.81, 0.1)
+
 μ_sim = 0.1
 
 t_sim = range(0, stop = tf, length = T_sim)

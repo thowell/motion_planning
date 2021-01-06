@@ -53,7 +53,7 @@ model_slosh = RocketSlosh{Midpoint, FixedTime}(n_slosh, m, d, g, m1 - m2, l1, J,
 
 function k_thruster(model::Rocket, x)
 	y, z, θ = x[1:3]
-	px = y + model.l1 * sin(θ)
+	py = y + model.l1 * sin(θ)
 	pz = z - model.l1 * cos(θ)
 
 	return [py;
@@ -131,6 +131,8 @@ end
 function visualize!(vis, model::Rocket, x;
        Δt = 0.1, r_rocket = 0.1, r_pad = 0.25)
 
+	default_background!(vis)
+
 	obj_rocket = joinpath(pwd(), "models/rocket/space_x_booster.obj")
 	mtl_rocket = joinpath(pwd(), "models/rocket/space_x_booster.mtl")
 
@@ -160,8 +162,36 @@ function visualize!(vis, model::Rocket, x;
         end
     end
 
-    # settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
-	# 	LinearMap(RotZ(pi / 2.0))))
+    settransform!(vis["/Cameras/default"], compose(Translation(0.0, 25.0, -1.0),
+		LinearMap(RotZ(-pi / 2.0))))
+
+    MeshCat.setanimation!(vis, anim)
+end
+
+function visualize_simple!(vis, model::Rocket, x;
+       Δt = 0.1)
+
+	default_background!(vis)
+
+	l1 = Cylinder(Point3f0(0.0, 0.0, -1.0 * model.l1),
+		Point3f0(0.0, 0.0, 3.0 * model.l1),
+		convert(Float32, 0.25))
+
+    setobject!(vis["rocket"], l1,
+		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+
+   	anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
+
+    for t = 1:length(x)
+        MeshCat.atframe(anim,t) do
+			settransform!(vis["rocket"],
+				compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+				LinearMap(RotY(x[t][3]))))
+        end
+    end
+
+    settransform!(vis["/Cameras/default"], compose(Translation(0.0, 25.0, -1.0),
+		LinearMap(RotZ(pi / 2.0))))
 
     MeshCat.setanimation!(vis, anim)
 end

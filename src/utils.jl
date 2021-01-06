@@ -122,4 +122,4 @@ end
 # colors
 goldenrod_color = RGBA(0.7686, 0.7647, 0.1333, 1.0)
 red_color = RGBA(1.0, 0.0, 0.1529, 1.0)
-darkslateblue = RGBA(0.1333, 0.2784, 0.5882, 1.0)
+darkslateblue_color = RGBA(0.1333, 0.2784, 0.5882, 1.0)

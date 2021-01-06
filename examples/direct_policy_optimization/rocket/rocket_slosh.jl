@@ -81,9 +81,7 @@ u0 = [ones(model_sl.m) for t = 1:T-1] # random controls
 z0_slosh = pack(x0_slosh, u0, prob_slosh)
 
 # Solve
-optimize = true
-
-if optimize
+if true
 	include_snopt()
     @time z̄_slosh , info = solve(prob_slosh, copy(z0_slosh),
 		nlp = :SNOPT7,
