@@ -6,7 +6,7 @@ x̄, ū = unpack(z̄, prob)
 t_nominal = range(0, stop = tf_nom, length = T)
 plot(t_nominal, hcat(x̄...)', width = 2.0)
 plot(t_nominal[1:end-1], hcat(ū...)[1:1, :]',
-	linetype = :steppost, width = 2.0, color = :purple)
+	linetype = :steppost, width = 2.0, color = goldenrod_color)
 
 # DPO solution
 x, u = unpack(z, prob_dpo.prob.prob.nom)
@@ -14,4 +14,4 @@ x, u = unpack(z, prob_dpo.prob.prob.nom)
 t_dpo = range(0, stop = tf_dpo, length = T)
 plot(t_dpo, hcat(x...)', width = 2.0)
 plot(t_dpo[1:end-1], hcat(u...)[1:1, :]',
-	linetype = :steppost, width = 2.0, color = :orange)
+	linetype = :steppost, width = 2.0, color = red_color)

@@ -1,4 +1,4 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+include_dpo()
 include(joinpath(@__DIR__, "car_obstacles.jl"))
 
 # Additive noise model

@@ -1,14 +1,16 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+include_dpo()
 include(joinpath(@__DIR__, "pendulum_minimum_time.jl"))
+
+function fd(model::Pendulum{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+	h = u[end]
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+end
 
 # Nominal solution
 x̄, ū = unpack(z̄, prob)
 prob_nom = prob.prob
 
 # DPO
-N = 2 * model.n
-D = 2 * model.d
-
 β = 1.0
 δ = 5.0e-3
 
@@ -34,7 +36,7 @@ prob_sample = [trajectory_optimization(
 				ul = ul,
 				uu = uu,
 				dynamics = false,
-				con = con_free_time) for i = 1:N]
+				con = con_free_time) for i = 1:2 * model.n]
 
 # Sample objective
 Q = [(t < T ? Diagonal(10.0 * ones(model.n))
@@ -54,19 +56,17 @@ prob_dpo = dpo_problem(
 	sample)
 
 # TVLQR policy
-K, P = tvlqr(model, x̄, ū, Q, R, 0.0)
+K, P = tvlqr(model, x̄, ū, 0.0, Q, R)
 
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-optimize = true
-
-if optimize
+if true
 	include_snopt() # set path
-	z , info = solve(prob_dpo, copy(z0),
-		nlp = :SNOPT7, # NOTE: doesn't work as well with Ipopt
+	z, info = solve(prob_dpo, copy(z0),
+		nlp = :SNOPT7,
 		tol = 1.0e-3, c_tol = 1.0e-3,
-		time_limit = 60 * 10)
+		time_limit = 60 * 2)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")

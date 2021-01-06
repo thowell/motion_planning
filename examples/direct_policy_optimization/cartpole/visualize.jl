@@ -7,26 +7,31 @@ x̄_friction, ū_friction = unpack(z̄_friction, prob_friction)
 # Plots results
 s_friction_nominal = [ū_friction[t][7] for t = 1:T-1]
 @assert norm(s_friction_nominal, Inf) < 1.0e-4
-# b_friction_nominal = [(ū_friction[t][2] - ū_friction[t][3]) for t = 1:T-1]
 
 t_nominal = range(0, stop = h * (T - 1), length = T)
 
 # Control
 plt = plot(t_nominal[1:T-1], hcat(ū_nominal...)[1:1, :]',
-    color = :cyan, width=2.0,
-    title = "Cartpole", xlabel = "time (s)", ylabel = "control", label = "nominal",
-    legend = :topright, linetype = :steppost)
-plt = plot!(t_nominal[1:T-1], hcat(ū_friction...)[1:1, :]', color = :magenta,
-    width = 2.0, label = "nominal (friction)", linetype = :steppost)
+    color = darkslateblue_color, width=2.0,
+    title = "Cartpole",
+	xlabel = "time (s)",
+	ylabel = "control",
+	label = "no friction",
+    legend = :topright,
+	linetype = :steppost)
+plt = plot!(t_nominal[1:T-1], hcat(ū_friction...)[1:1, :]',
+	color = goldenrod_color,
+    width = 2.0, label = "friction",
+	linetype = :steppost)
 
 # States
 plt = plot(t_nominal, hcat(x̄_nominal...)[1:4, :]',
-    color = :cyan, width = 2.0, xlabel = "time (s)",
+    color = darkslateblue_color, width = 2.0, xlabel = "time (s)",
     ylabel = "state", label = "", title = "Cartpole",
 	legend = :topright)
 
 plt = plot!(t_nominal, hcat(x̄_friction...)[1:4,:]',
-    color = :magenta, width = 2.0, label = "")
+    color = goldenrod_color, width = 2.0, label = "")
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
@@ -39,58 +44,40 @@ x_dpo, u_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
 s_dpo = [u_dpo[t][7] for t = 1:T-1]
 @assert norm(s_dpo, Inf) < 1.0e-4
 
-x_sample = []
-u_sample = []
-for i = 1:N
-	x, u = unpack(z[prob_dpo.prob.idx.sample[i]],
-		prob_dpo.prob.prob.sample[i])
-	push!(x_sample, x)
-	push!(u_sample, u)
-end
-
 # Control
 plt = plot(t_nominal[1:T-1], hcat(u_dpo...)[1:1, :]',
-    color = :orange, width=2.0,
-    title = "Cartpole", xlabel = "time (s)", ylabel = "control", label = "nominal",
+    color = red_color, width = 2.0,
+    title = "Cartpole",
+	xlabel = "time (s)", ylabel = "control", label = "dpo",
     legend = :topright, linetype = :steppost)
 
 # States
 plt = plot(t_nominal, hcat(x_dpo...)[1:4, :]',
-    color = :orange, width = 2.0, xlabel = "time (s)",
-    ylabel = "state", label = "", title = "Cartpole",
+    color = red_color, width = 2.0, xlabel = "time (s)",
+    ylabel = "state", label = "dpo", title = "Cartpole",
 	legend = :topright)
 
-#TODO: update plots for paper
-#
-# plt_tvlqr_nom = plot(t_nominal,hcat(X_nominal...)[1:2,:]',legend=:topleft,color=:red,
-#     label=["nominal (no friction)" ""],
-#     width=2.0,xlabel="time",title="Cartpole",ylabel="state",ylims=(-1,5))
-# plt_tvlqr_nom = plot!(t_sim_nominal,hcat(z_tvlqr...)[1:2,:]',color=:purple,
-#     label=["tvlqr" ""],width=2.0)
-# savefig(plt_tvlqr_nom,joinpath(@__DIR__,"results/cartpole_friction_tvlqr_nom_sim.png"))
-#
-#
-# z_tvlqr_friction, u_tvlqr_friction, J_tvlqr_friction, Jx_tvlqr_friction, Ju_tvlqr_friction = simulate_cartpole_friction(K_friction_nominal,
-#     X_friction_nominal,U_friction_nominal,
-#     model_sim,Q_lqr,R_lqr,T_sim,Δt,X_friction_nominal[1],w,ul=ul_friction,uu=uu_friction,friction=true,
-#     μ=μ_sim)
-# plt_tvlqr_friction = plot(t_nominal,hcat(X_friction_nominal...)[1:2,:]',
-#     color=:red,label=["nominal (sample)" ""],
-#     width=2.0,xlabel="time",title="Cartpole",ylabel="state",legend=:topleft)
-# plt_tvlqr_friction = plot!(t_sim_nominal,hcat(z_tvlqr_friction...)[1:2,:]',
-#     color=:magenta,label=["tvlqr" ""],width=2.0)
-# savefig(plt_tvlqr_friction,joinpath(@__DIR__,"results/cartpole_friction_tvlqr_friction_sim.png"))
-#
-# z_sample, u_sample, J_sample, Jx_sample, Ju_sample = simulate_cartpole_friction(K_sample,
-#     X_nom_sample,U_nom_sample,
-#     model_sim,Q_lqr,R_lqr,T_sim,Δt,X_nom_sample[1],w,ul=ul_friction,uu=uu_friction,friction=true,
-#     μ=μ_sim)
-#
-# plt_sample = plot(t_sample,hcat(X_nom_sample...)[1:2,:]',legend=:bottom,color=:red,
-#     label=["nominal (sample)" ""],
-#     width=2.0,xlabel="time",title="Cartpole",ylabel="state")
-# plt_sample = plot!(t_sim_nominal,hcat(z_sample...)[1:2,:]',color=:orange,
-#     label=["sample" ""],width=2.0,legend=:topleft)
+# Plots
+plt_lqr_nom = plot(t_nominal, hcat(x̄_nominal...)[1:2, :]',
+	legend = :topleft, color = darkslateblue_color,
+    label = ["reference (no friction)" ""],
+    width = 2.0, xlabel = "time",
+	title = "Cartpole", ylabel = "state", ylims = (-1, 5))
+plt_lqr_nom = plot!(t_sim, hcat(z_lqr...)[1:2,:]', color = :black,
+    label=["lqr" ""], width = 1.0)
+
+plt_lqr_friction = plot(t_nominal, hcat(x̄_friction...)[1:2,:]',
+    color = goldenrod_color, label = ["reference (friction)" ""],
+    width=2.0,xlabel="time",title="Cartpole",ylabel="state",legend=:topleft)
+plt_tvlqr_friction = plot!(t_sim, hcat(z_lqr_fr...)[1:2,:]',
+    color = :black, label = ["lqr" ""], width = 1.0)
+
+plt_dpo = plot(t_nominal, hcat(x_dpo...)[1:2,:]',
+	legend=:topleft, color = red_color,
+    label=["reference" ""],
+    width = 2.0, xlabel = "time", title = "Cartpole", ylabel = "state")
+plt_dpo = plot!(t_sim, hcat(z_dpo...)[1:2,:]', color=:black,
+    label=["dpo" ""], width = 1.0)
 # savefig(plt_sample,joinpath(@__DIR__,"results/cartpole_friction_sample_sim.png"))
 #
 # # z_sample_c, u_sample_c, J_sample_c, Jx_sample_c, Ju_sample_c = simulate_cartpole_friction(K_sample_coefficients,

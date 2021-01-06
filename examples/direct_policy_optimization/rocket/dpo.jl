@@ -1,11 +1,13 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+include_dpo()
 include(joinpath(@__DIR__, "rocket_nominal.jl"))
 include(joinpath(@__DIR__, "rocket_slosh.jl"))
 
-# DPO
-N = 2 * model_sl.n
-D = 2 * model_sl.d
+function fd(model::RocketSlosh{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+	h = u[end]
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+end
 
+# DPO
 β = 1.0
 δ = 1.0e-3
 
@@ -38,7 +40,7 @@ prob_sample = [trajectory_optimization(
 				uu = uu,
 				dynamics = false,
 				con = con_free_time
-				) for i = 1:N]
+				) for i = 1:2 * model_sl.n]
 
 # Sample objective
 Q = [(t < T ? Diagonal(100.0 * ones(model_nom.n))
@@ -68,7 +70,7 @@ K, P = tvlqr(model_nom, x̄_nom, ū_nom, 0.0, Q, R)
 z0 = zeros(prob_dpo.num_var)
 z0[prob_dpo.prob.idx.nom] = copy(z̄_nom)
 z0[prob_dpo.prob.idx.mean] = copy(z̄_slosh)
-for i = 1:N
+for i = 1:2 * model_sl.n
 	z0[prob_dpo.prob.idx.sample[i]] = copy(z̄_slosh)
 end
 for t = 1:T-1
@@ -76,11 +78,9 @@ for t = 1:T-1
 end
 
 # Solve
-optimize = true
-
-if optimize
+if true
 	include_snopt()
-	z , info = solve(prob_dpo, copy(z0),
+	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
 		time_limit = 60 * 60)
@@ -89,3 +89,5 @@ else
 	println("Loading solution...")
     @load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
+
+model_sl

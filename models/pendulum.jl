@@ -21,5 +21,5 @@ function k(model::Pendulum, x)
               -1.0 * model.lc * cos(x[1])]
 end
 
-n, m, d = 2, 1, 0
+n, m, d = 2, 1, 2
 model = Pendulum{Midpoint, FixedTime}(n, m, d, 1.0, 0.1, 0.5, 9.81)
