@@ -18,7 +18,7 @@ function Altro.initialize!(solver::Altro.iLQRSolver)
     Altro.set_verbosity!(solver)
     Altro.clear_cache!(solver)
 
-    solver.ρ[1] = solver.opts.bp_reg_initial
+    solver.ρ[1] , info = solver.opts.bp_reg_initial
     solver.dρ[1] = 0.0
 
     # Initial rollout
@@ -68,7 +68,7 @@ add_constraint!(cons, FC(m, model.nc, model), 1:T-1)
 add_constraint!(cons, NS(n, model.nc, model, h), 2:T)
 
 # Create and solve problem
-opts = SolverOptions(
+opts , info = solverOptions(
     cost_tolerance_intermediate = 1.0e-2,
     penalty_scaling = 10.0,
     penalty_initial = 1.0,
@@ -214,7 +214,7 @@ function run_hopper_MPC(prob_mpc, opts_mpc, Z_track,
         # Log the results and performance
         iters[i,1] = iterations(solver_mpc)
 
-        times[i,1] = solver_mpc.stats.tsolve
+        times[i,1] , info = solver_mpc.stats.tsolve
     end
 
     @warn "solve success"
@@ -222,7 +222,7 @@ function run_hopper_MPC(prob_mpc, opts_mpc, Z_track,
 end
 
 Random.seed!(1)
-opts_mpc = SolverOptions(
+opts_mpc , info = solverOptions(
     cost_tolerance = 1.0e-4,
     cost_tolerance_intermediate = 1.0e-4,
     constraint_tolerance = 1.0e-2,

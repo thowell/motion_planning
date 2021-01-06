@@ -85,7 +85,7 @@ z0 = pack(x0, u0, prob)
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
 include_snopt()
-@time z̄ = solve(prob, copy(z0),
+@time z̄ , info = solve(prob, copy(z0),
     nlp = :SNOPT7,
     tol = 1.0e-5, c_tol = 1.0e-5)
 

@@ -41,7 +41,7 @@ u0 = random_controls(model, T, 0.001) # random controls
 z0 = pack(x0, u0, prob)
 
 # Solve
-@time z = solve(prob, copy(z0))
+@time z , info = solve(prob, copy(z0))
 
 # Visualize
 using Plots

@@ -12,8 +12,7 @@ T = 51
 ul, uu = control_bounds(model, T, 0.0, 0.0)
 
 # Initial and final states
-x0 = zeros(model.n)
-xl, xu = state_bounds(model, T, x0, x0)
+xl, xu = state_bounds(model, T, zeros(model.n), zeros(model.n))
 
 # Problem
 prob_nom = trajectory_optimization(
@@ -26,11 +25,10 @@ prob_nom = trajectory_optimization(
 			uu = uu)
 
 # DPO
-N = 2 * model.n
-D = 2 * model.d
+Nn = 2 * model.n
 
 β = 1.0
-δ = 10.0
+δ = 1.0
 
 x1 = resample(ones(model.n), Diagonal(ones(model.n)), β)
 
@@ -48,7 +46,7 @@ prob_sample = [trajectory_optimization(
 				T,
 				dynamics = false,
 				xl = state_bounds(model, T, x1 = x1[i])[1],
-				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:N]
+				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:Nn]
 
 # Sample objective
 Q = [Diagonal(ones(model.n)) for t = 1:T]
@@ -69,16 +67,19 @@ prob_dpo = dpo_problem(
 z0 = ones(prob_dpo.num_var)
 
 # Solve
-optimize = true
-
-if optimize
-	z = solve(prob_dpo, copy(z0),
-		tol = 1.0e-8, c_tol = 1.0e-8)
+if true
+	include_snopt()
+	z, info = solve(prob_dpo, copy(z0),
+		tol = 1.0e-7, c_tol = 1.0e-7,
+		nlp = :SNOPT7)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")
 	@load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
+
+# DPO policy
+θ = get_policy(z, prob_dpo)
 
 # TVLQR policy
 A, B = get_dynamics(model)
@@ -86,9 +87,6 @@ K, P = tvlqr(
 	[A for t = 1:T-1],
 	[B for t = 1:T-1],
 	Q, R)
-
-# DPO policy
-θ = get_policy(z, prob_dpo)
 
 # Policy difference
 policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]

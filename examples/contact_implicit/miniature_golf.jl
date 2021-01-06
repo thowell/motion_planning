@@ -72,7 +72,7 @@ u0 = [[u_ref[1:model.nu]; 1.0e-5 * rand(model.m - model.nu)] for t = 1:T-1] # ra
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
 
-@time z̄ = solve(prob, copy(z0),
+@time z̄ , info = solve(prob, copy(z0),
 	c_tol = 1.0e-3, tol = 1.0e-3, max_iter = 1000)
 
 check_slack(z̄, prob)

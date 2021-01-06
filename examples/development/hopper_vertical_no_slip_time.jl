@@ -138,7 +138,7 @@ z0 = pack(x0, u0, prob)
 optimize = true
 if optimize
 	include_snopt()
-	@time z̄ = solve(prob, copy(z0),
+	@time z̄ , info = solve(prob, copy(z0),
 		nlp = :ipopt,
 		tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5,
 		time_limit = 60)

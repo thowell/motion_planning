@@ -79,7 +79,7 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
         solver.options["max_iter"] = max_iter
         solver.options["tol"] = tol
         solver.options["constr_viol_tol"] = c_tol
-        solver.options["print_level"] = mapl
+        # solver.options["print_level"] = mapl
         # solver.options["linear_solver"] = "ma57"
     elseif nlp == :SNOPT7
         # solver = SNOPT7.Optimizer(
@@ -118,6 +118,9 @@ function solve(prob::MOI.AbstractNLPEvaluator, x0;
     MOI.set(solver, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     MOI.optimize!(solver)
 
+    # Solver info
+    info = [] #TODO add info from solve
+
     # Get the solution
-    return MOI.get(solver, MOI.VariablePrimal(), x)
+    return MOI.get(solver, MOI.VariablePrimal(), x), info
 end

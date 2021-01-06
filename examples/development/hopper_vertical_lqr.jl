@@ -73,7 +73,7 @@ z0 = pack(x0, u0, prob)
 optimize = true
 if optimize
 	# include_snopt()
-	@time z̄ = solve(prob, copy(z0),
+	@time z̄ , info = solve(prob, copy(z0),
 		nlp = :ipopt,
 		tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
 		time_limit = 60)
@@ -392,7 +392,7 @@ visualize!(vis, model_ft, state_to_configuration(x_sim), Δt = h̄[1])
 # function step_contact(model, v1, q1, q2, u, w, h)
 #     prob = simulator_problem(model, v1, q1, q2, u, w, h)
 #     z0 = [copy(q2); 1.0e-5 * ones(model.nc + model.nb + model.nc + model.nb + model.ns)]
-#     @time z = solve(prob, copy(z0), tol = 1.0e-8, c_tol = 1.0e-8, mapl = 0)
+#     @time z , info = solve(prob, copy(z0), tol = 1.0e-8, c_tol = 1.0e-8, mapl = 0)
 #
 #     @assert z[end] < 1.0e-8
 #

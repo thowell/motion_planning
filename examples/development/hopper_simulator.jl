@@ -139,7 +139,7 @@ end
 function step_contact(model, v1, q1, q2, u, w, h)
    prob = simulator_problem(model, v1, q1, q2, u, w, h)
    z0 = [copy(q2); 1.0e-5 * ones(model.nc + model.nb + model.nc + model.nb + model.ns)]
-   @time z = solve(prob, copy(z0), tol = 1.0e-7, c_tol = 1.0e-7, mapl = 0)
+   @time z , info = solve(prob, copy(z0), tol = 1.0e-7, c_tol = 1.0e-7, mapl = 0)
 
    @assert z[end] < 1.0e-5
 

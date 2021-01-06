@@ -73,7 +73,7 @@ z0 = pack(x0, u0, prob)
 optimize = true
 if optimize
 	# include_snopt()
-	@time z̄ = solve(prob, copy(z0),
+	@time z̄ , info = solve(prob, copy(z0),
 		nlp = :ipopt,
 		tol = 1.0e-5, c_tol = 1.0e-5, mapl = 5,
 		time_limit = 60)
@@ -123,7 +123,7 @@ visualize!(vis, model_ft,
 	Δt = h̄[1],
 	scenario = :vertical)
 open(vis)
-# @time z̄ = solve(prob, copy(z̄),
+# @time z̄ , info = solve(prob, copy(z̄),
 # 	nlp = :ipopt,
 # 	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 0,
 # 	time_limit = 60)
@@ -149,7 +149,7 @@ open(vis)
 # # prob_track.primal_bounds[1][1:model.n] = z_track[1:model.n]
 # # prob_track.primal_bounds[2][1:model.n] = z_track[1:model.n]
 #
-# @time z_sol = solve(prob_track, copy(z_track),
+# @time z_sol , info = solve(prob_track, copy(z_track),
 # 	nlp = :ipopt,
 # 	tol = 1.0e-5, c_tol = 1.0e-5, mapl = 0,
 # 	time_limit = 60)

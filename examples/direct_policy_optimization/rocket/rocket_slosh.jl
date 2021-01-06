@@ -85,7 +85,7 @@ optimize = true
 
 if optimize
 	include_snopt()
-    @time z̄_slosh = solve(prob_slosh, copy(z0_slosh),
+    @time z̄_slosh , info = solve(prob_slosh, copy(z0_slosh),
 		nlp = :SNOPT7,
 		time_limit = 60 * 10)
     @save joinpath(@__DIR__, "sol_slosh.jld2") z̄_slosh
