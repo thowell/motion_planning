@@ -162,12 +162,12 @@ z0 .+= 1.0e-3 * randn(prob.num_var)
 # Solve
 include_snopt()
 
-@time z̄ = solve(prob, copy(z0),
+@time z̄ , info = solve(prob, copy(z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3,
     time_limit = 60 * 3, mapl = 5)
 
-# @time z̄ = solve(prob, copy(z̄ .+ 1.0e-3 * rand(prob.num_var)),
+# @time z̄ , info = solve(prob, copy(z̄ .+ 1.0e-3 * rand(prob.num_var)),
 #     nlp = :SNOPT7,
 #     tol = 1.0e-3, c_tol = 1.0e-3,
 #     time_limit = 60 * 30, mapl = 5)

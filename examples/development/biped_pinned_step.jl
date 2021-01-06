@@ -101,7 +101,7 @@ z0 = pack(x0, u0, prob)
 # Solve nominal problem
 include_snopt()
 
-@time z̄ = solve(prob, copy(z0),
+@time z̄ , info = solve(prob, copy(z0),
     nlp = :SNOPT7,
     tol = 1.0e-3, c_tol = 1.0e-3,
     time_limit = 60 * 2)

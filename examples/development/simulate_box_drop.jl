@@ -46,7 +46,7 @@ function step_contact(model, x1, u1, h)
     # Pack trajectories into vector
     z0 = pack(x0, u0, prob)
 
-    @time z = solve(prob, copy(z0), tol = 1.0e-5, c_tol = 1.0e-5)
+    @time z , info = solve(prob, copy(z0), tol = 1.0e-5, c_tol = 1.0e-5)
 
     @assert check_slack(z, prob) < 1.0e-4
     x, u = unpack(z, prob)

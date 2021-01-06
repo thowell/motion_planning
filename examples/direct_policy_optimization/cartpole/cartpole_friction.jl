@@ -78,9 +78,9 @@ z0 = pack(x0, u0, prob_nominal)
 optimize = true
 
 if optimize
-    @time z̄_nominal = solve(prob_nominal, copy(z0),
+    @time z̄_nominal , info = solve(prob_nominal, copy(z0),
         tol = 1.0e-5, c_tol = 1.0e-5)
-    @time z̄_friction = solve(prob_friction, copy(z0),
+    @time z̄_friction , info = solve(prob_friction, copy(z0),
         tol = 1.0e-5, c_tol = 1.0e-5)
     @save joinpath(@__DIR__, "sol_to.jld2") z̄_nominal z̄_friction
 else

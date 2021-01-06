@@ -82,7 +82,7 @@ optimize = true
 
 if optimize
 	include_snopt()
-	z = solve(prob_dpo, copy(z0),
+	z , info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
 		time_limit = 60 * 60)

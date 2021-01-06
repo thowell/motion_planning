@@ -268,7 +268,7 @@ f_al(z0, al)
 _c0 = zero(z0)
 g_al!(_c0, z0, al)
 _c0
-@time x_sol_al, sol = solve(copy(z0), al,
+@time x_sol_al, sol , info = solve(copy(z0), al,
     alg = :BFGS, max_iter = 2, c_tol = 1.0e-2)
 
 # Visualize

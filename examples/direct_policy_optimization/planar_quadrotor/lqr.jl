@@ -42,7 +42,7 @@ u0 = [0.1 * ones(model.m) for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob)
 
 # Solve for nominal trajectory
-z̄ = solve(prob, copy(z0))
+z̄ , info = solve(prob, copy(z0))
 x̄, ū = unpack(z̄, prob)
 
 # using Plots
@@ -117,7 +117,7 @@ optimize = true
 
 if optimize
 	include_snopt()
-	z = solve(prob_dpo, copy(z0),
+	z , info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-7, c_tol = 1.0e-7,
 		time_limit = 60 * 20)

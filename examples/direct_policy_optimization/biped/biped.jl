@@ -92,7 +92,7 @@ optimize = true
 
 if optimize
 	include_snopt()
-	@time z̄ = solve(prob, copy(z0),
+	@time z̄ , info = solve(prob, copy(z0),
 		nlp = :SNOPT7,
 		time_limit = 60 * 10)
 	@save joinpath(@__DIR__, "sol_to.jld2") z̄

@@ -10,5 +10,7 @@ posz = 0.8 .+ 0.2 .* sin.(θ)
 
 ee_positions = hcat([[0.0; posy[t]; posz[t]] for t = 1:100]...)
 points = collect(eachcol(ee_positions))
-material = LineBasicMaterial(color=colorant"orange", linewidth=6.0)
+material = LineBasicMaterial(color=colorant"orange", linewidth=10.0)
 setobject!(vis["ee path"], Object(PointCloud(points), material, "Line"))
+
+ 

@@ -118,7 +118,7 @@ al = augmented_lagrangian(n, m,
     xl = xl, xu = xu, ρ0 = 10.0, s = 10.0,
     idx_ineq = idx_ineq)
 
-@time x_sol_al, sol = solve(copy(z0), al,
+@time x_sol_al, sol , info = solve(copy(z0), al,
     alg = :MomentumGradientDescent, max_iter = 20, c_tol = 1.0e-2)
 
 # Visualize

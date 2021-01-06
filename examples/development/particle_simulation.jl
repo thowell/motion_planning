@@ -62,7 +62,7 @@ z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-@time z̄ = solve(prob, copy(z0), tol = 1.0e-4, c_tol = 1.0e-4, mapl = 5)
+@time z̄ , info = solve(prob, copy(z0), tol = 1.0e-4, c_tol = 1.0e-4, mapl = 5)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
@@ -245,7 +245,7 @@ sparsity_jacobian(prob_sim)
 function step_contact(model, v1, q1, q2, u, w, h)
     prob = simulator_problem(model, v1, q1, q2, u, w, h)
     z0 = [copy(q2); 1.0e-5 * ones(model.nc + model.nb + model.nc + model.nb + model.ns)]
-    @time z = solve(prob, copy(z0), tol = 1.0e-6, c_tol = 1.0e-6, mapl = 0)
+    @time z , info = solve(prob, copy(z0), tol = 1.0e-6, c_tol = 1.0e-6, mapl = 0)
 
     @assert z[end] < 1.0e-5
 

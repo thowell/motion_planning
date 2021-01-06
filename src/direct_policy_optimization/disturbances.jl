@@ -1,14 +1,14 @@
 struct Disturbances
-	W
-	w
+	D # covariance matrix
+	w # deterministically sample disturbance input
 end
 
-function disturbances(W)
-	T = length(W)
-	d = size(W[1], 1)
+function disturbances(D)
+	T = length(D)
+	d = size(D[1], 1)
 	w = []
 	for t = 1:T
-		_w = Array(sqrt(W[t]))
+		_w = Array(sqrt(D[t]))
 		tmp = []
 		for i = 1:d
 			push!(tmp, _w[:, i])
@@ -18,5 +18,5 @@ function disturbances(W)
 		push!(w, tmp)
 	end
 
-	return Disturbances(W, w)
+	return Disturbances(D, w)
 end

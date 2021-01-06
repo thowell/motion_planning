@@ -72,7 +72,7 @@ z0 = pack(x0, u0, prob)
 # Solve nominal problem
 optimize = true
 if optimize
-    @time z̄ = solve(prob, copy(z0))
+    @time z̄ , info = solve(prob, copy(z0))
     @save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
     println("Loading solution...")
