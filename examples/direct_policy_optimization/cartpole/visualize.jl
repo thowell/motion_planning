@@ -28,6 +28,12 @@ plt = plot(t_nominal, hcat(x̄_nominal...)[1:4, :]',
 plt = plot!(t_nominal, hcat(x̄_friction...)[1:4,:]',
     color = :magenta, width = 2.0, label = "")
 
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+# open(vis)
+visualize!(vis, model_nominal, x̄_nominal, Δt = h)
+
 # DPO
 x_dpo, u_dpo = unpack(z[prob_dpo.prob.idx.nom], prob_dpo.prob.prob.nom)
 s_dpo = [u_dpo[t][7] for t = 1:T-1]

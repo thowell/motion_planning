@@ -4,7 +4,7 @@ include_model("cartpole")
 
 model_nominal = CartpoleFriction{Midpoint, FixedTime}(n, m, d,
     1.0, 0.2, 0.5, 9.81, 0.0)
-model_friction = CartpoleFriction{Midpoint, FixedTime}(n, m, d, 
+model_friction = CartpoleFriction{Midpoint, FixedTime}(n, m, d,
     1.0, 0.2, 0.5, 9.81, μ0)
 
 # Horizon
@@ -75,12 +75,10 @@ u0 = [ones(model_nominal.m) for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob_nominal)
 
 # Solve nominal problem
-optimize = true
-
 if optimize
-    @time z̄_nominal , info = solve(prob_nominal, copy(z0),
+    @time z̄_nominal, info = solve(prob_nominal, copy(z0),
         tol = 1.0e-5, c_tol = 1.0e-5)
-    @time z̄_friction , info = solve(prob_friction, copy(z0),
+    @time z̄_friction, info = solve(prob_friction, copy(z0),
         tol = 1.0e-5, c_tol = 1.0e-5)
     @save joinpath(@__DIR__, "sol_to.jld2") z̄_nominal z̄_friction
 else
