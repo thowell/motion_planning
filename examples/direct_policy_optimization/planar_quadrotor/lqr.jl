@@ -42,26 +42,23 @@ u0 = [0.1 * ones(model.m) for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob)
 
 # Solve for nominal trajectory
-z̄ , info = solve(prob, copy(z0))
+z̄, info = solve(prob, copy(z0))
 x̄, ū = unpack(z̄, prob)
 
-# using Plots
-# plot(hcat(x̄...)')
-# plot(hcat(ū...)', linetype = :steppost)
+using Plots
+plot(hcat(x̄...)')
+plot(hcat(ū...)', linetype = :steppost)
 
 # DPO
 
 # Linear model
 A, B = jacobians(model, x̄, ū, h)
 
-function fd(model::Quadrotor2D, x⁺, x, u, w, h, t)
+function fd(model::Quadrotor2D{Midpoint, FixedTime}, x⁺, x, u, w, h, t)
     x⁺ - A[t] * x - B[t] * u - w
 end
 
 # DPO
-N = 2 * model.n
-D = 2 * model.d
-
 β = 1.0
 δ = 1.0e-1
 
@@ -91,7 +88,7 @@ prob_sample = [trajectory_optimization(
 				T,
 				dynamics = false,
 				xl = state_bounds(model, T, x1 = x1[i])[1],
-				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:N]
+				xu = state_bounds(model, T, x1 = x1[i])[2]) for i = 1:2 * model.n]
 
 # Sample objective
 Q = [(t < T ? Diagonal(10.0 * ones(model.n))
@@ -113,25 +110,23 @@ prob_dpo = dpo_problem(
 z0 = ones(prob_dpo.num_var)
 
 # Solve
-optimize = true
-
-if optimize
+if true
 	include_snopt()
-	z , info = solve(prob_dpo, copy(z0),
+	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-7, c_tol = 1.0e-7,
-		time_limit = 60 * 20)
+		time_limit = 60 * 2)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")
     @load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
 
-# TVLQR policy
-K, P = tvlqr(A, B, Q, R)
-
 # DPO policy
 θ = get_policy(z, prob_dpo)
+
+# TVLQR policy
+K, P = tvlqr(A, B, Q, R)
 
 # Policy difference
 policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
