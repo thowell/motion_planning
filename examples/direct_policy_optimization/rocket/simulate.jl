@@ -11,6 +11,9 @@ model_sim = model_slosh = RocketSlosh{RK3, FixedTime}(n_slosh, m, n_slosh, g, m1
 x1_sim = copy(x1_slosh)
 T_sim = 10 * T
 
+using Random
+Random.seed!(1)
+
 W = Distributions.MvNormal(zeros(model_sim.n),
 	Diagonal(1.0e-5 * ones(model_sim.n)))
 w = rand(W, T_sim)

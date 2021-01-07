@@ -18,6 +18,9 @@ model_sim = Quadrotor{RK3, FixedTime}(n, m, d,
 x1_sim = copy(x1)
 T_sim = 10 * T
 
+using Random
+Random.seed!(1)
+
 W = Distributions.MvNormal(zeros(model_sim.n),
 	Diagonal(1.0e-5 * ones(model_sim.n)))
 w = rand(W, T_sim)
@@ -27,6 +30,7 @@ W0 = Distributions.MvNormal(zeros(model_sim.n),
 w0 = rand(W0, 1)
 
 z0_sim = vec(copy(x1_sim) + w0)
+
 
 tf_nom = sum([ū[t][end] for t = 1:T-1])
 t_nom = range(0, stop = tf_nom, length = T)

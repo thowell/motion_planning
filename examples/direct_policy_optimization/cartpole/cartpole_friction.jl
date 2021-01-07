@@ -75,7 +75,7 @@ u0 = [ones(model_nominal.m) for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob_nominal)
 
 # Solve nominal problem
-if true
+if false
     @time z̄_nominal, info = solve(prob_nominal, copy(z0),
         tol = 1.0e-5, c_tol = 1.0e-5)
     @time z̄_friction, info = solve(prob_friction, copy(z0),
