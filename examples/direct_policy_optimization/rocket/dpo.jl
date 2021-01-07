@@ -83,7 +83,7 @@ for t = 1:T-1
 end
 
 # Solve
-if true # set to true to reoptimize
+if false # set to true to reoptimize
 	include_snopt()
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
@@ -94,3 +94,6 @@ else
 	println("Loading solution...")
     @load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
+
+x, u = unpack(z, prob_dpo.prob.prob.nom)
+@show sum([u[t][end] for t = 1:T-1]) # ~2.91

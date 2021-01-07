@@ -3,33 +3,23 @@ include(joinpath(@__DIR__, "quadrotor_broken_propeller.jl"))
 include(joinpath(pwd(), "models/visualize.jl"))
 
 x̄, ū = unpack(z̄, prob)
+x, u = unpack(z, prob)
+
 
 @show sum([ū[t][end] for t = 1:T-1])
 t_nominal = [0.0, [sum([ū[i][end] for i = 1:t]) for t = 1:T-1]...]
+@show sum([u[t][end] for t = 1:T-1])
+t_dpo = [0.0, [sum([u[i][end] for i = 1:t]) for t = 1:T-1]...]
+
 plot(t_nominal, hcat(x̄...)[1:3,:]', linetype=:steppost, width = 2.0)
 plot(t_nominal[1:end-1], hcat(ū...)', linetype=:steppost, width = 2.0)
+
+plot(t_dpo, hcat(x...)[1:3,:]', linetype=:steppost, width = 2.0)
+plot(t_dpo[1:end-1], hcat(u...)', linetype=:steppost, width = 2.0)
 
 vis = Visualizer()
 open(vis)
 visualize!(vis, model, x̄, Δt = ū[1][end])
-
-
-
-
-# Unpack solutions
-X_nom_sample, U_nom_sample, H_nom_sample, X_sample, U_sample, H_sample = unpack(Z_sample_sol,prob_sample)
-
-K_sample = [reshape(Z_sample_sol[prob_sample.idx_K[t]],model.nu,model.nx) for t = 1:T-1]
-# Time trajectories
-t_nominal = zeros(T)
-t_sample = zeros(T)
-for t = 2:T
-    t_nominal[t] = t_nominal[t-1] + H_nom[t-1]
-    t_sample[t] = t_sample[t-1] + H_nom_sample[t-1]
-end
-
-display("time (nominal): $(sum(H_nom))s")
-display("time (sample): $(sum(H_nom_sample))s")
 
 # # Plots results
 using Plots
@@ -201,23 +191,23 @@ using PGFPlots
 const PGF = PGFPlots
 
 # TO trajectory
-p_u1_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(U_nom...)[1,:],
-    mark="",style="const plot, color=cyan, line width=2pt, solid")
-p_u2_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(U_nom...)[2,:],
-    mark="",style="const plot, color=cyan, line width=2pt, solid")
-p_u3_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(U_nom...)[3,:],
-    mark="",style="const plot, color=cyan, line width=2pt, solid")
-p_u4_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(U_nom...)[4,:],
-    mark="",style="const plot, color=cyan, line width=2pt, solid")
+p_u1_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(ū...)[1,:],
+    mark="none",style="const plot, color=cyan, line width=2pt, solid")
+p_u2_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(ū...)[2,:],
+    mark="none",style="const plot, color=cyan, line width=2pt, solid")
+p_u3_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(ū...)[3,:],
+    mark="none",style="const plot, color=cyan, line width=2pt, solid")
+p_u4_nom = PGF.Plots.Linear(t_nom[1:end-1],hcat(ū...)[4,:],
+    mark="none",style="const plot, color=cyan, line width=2pt, solid")
 
-p_u1_dpo = PGF.Plots.Linear(t_nom_sample[1:end-1],hcat(U_nom_sample...)[1,:],
-    mark="",style="const plot, color=orange, line width=2pt, solid")
-p_u2_dpo = PGF.Plots.Linear(t_nom_sample[1:end-1],hcat(U_nom_sample...)[2,:],
-    mark="",style="const plot, color=orange, line width=2pt, solid")
-p_u3_dpo = PGF.Plots.Linear(t_nom_sample[1:end-1],hcat(U_nom_sample...)[3,:],
-    mark="",style="const plot, color=orange, line width=2pt, solid")
-p_u4_dpo = PGF.Plots.Linear(t_nom_sample[1:end-1],hcat(U_nom_sample...)[4,:],
-    mark="",style="const plot, color=orange, line width=2pt, solid")
+p_u1_dpo = PGF.Plots.Linear(t_dpo[1:end-1],hcat(u...)[1,:],
+    mark="none",style="const plot, color=orange, line width=2pt, solid")
+p_u2_dpo = PGF.Plots.Linear(t_dpo[1:end-1],hcat(u...)[2,:],
+    mark="none",style="const plot, color=orange, line width=2pt, solid")
+p_u3_dpo = PGF.Plots.Linear(t_dpo[1:end-1],hcat(u...)[3,:],
+    mark="none",style="const plot, color=orange, line width=2pt, solid")
+p_u4_dpo = PGF.Plots.Linear(t_dpo[1:end-1],hcat(u...)[4,:],
+    mark="none",style="const plot, color=orange, line width=2pt, solid")
 
 
 a1 = Axis([p_u1_nom;p_u1_dpo
@@ -250,13 +240,13 @@ a4 = Axis([p_u4_nom;p_u4_dpo
 	)
 
 # Save to tikz format
-dir = joinpath(@__DIR__,"results")
+dir = joinpath(pwd(), "examples/direct_policy_optimization/figures")
 PGF.save(joinpath(dir,"quad_prop_u1.tikz"), a1, include_preamble=false)
 PGF.save(joinpath(dir,"quad_prop_u2.tikz"), a2, include_preamble=false)
 PGF.save(joinpath(dir,"quad_prop_u3.tikz"), a3, include_preamble=false)
 PGF.save(joinpath(dir,"quad_prop_u4.tikz"), a4, include_preamble=false)
 
-# #
+
 # # visualize
 visualize!(vis,model,z_tvlqr,Δt=dt_sim_nom)
 visualize!(vis,model,z_sample4,Δt=dt_sim_sample)

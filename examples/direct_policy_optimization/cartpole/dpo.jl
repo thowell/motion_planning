@@ -65,7 +65,7 @@ K, P = tvlqr(model,
 z0 = pack(z̄_friction, K, prob_dpo)
 
 # Solve
-if true
+if false
 	include_snopt()
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
