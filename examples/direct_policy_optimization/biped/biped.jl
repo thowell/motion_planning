@@ -88,7 +88,7 @@ u0 = [ones(model.m) for t = 1:T-1]
 z0 = pack(x0, u0, prob)
 
 # Solve
-if true
+if false
 	include_snopt()
 	@time z̄, info = solve(prob, copy(z0),
 		nlp = :SNOPT7,

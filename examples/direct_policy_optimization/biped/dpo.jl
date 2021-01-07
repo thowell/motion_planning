@@ -74,3 +74,5 @@ else
 	println("Loading solution...")
 	@load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
+
+@save joinpath(@__DIR__, "sol_dpo.jld2") z

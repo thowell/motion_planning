@@ -38,9 +38,7 @@ motion planning
 - [X] cart-pole
 - [X] rocket
 - [X] quadrotor
-- [X] biped
-
-(need to update: discrete disturbance dynamics, plots)
+- [ ] biped (currently broken, check previous commits)
 
 ## classic examples
 
