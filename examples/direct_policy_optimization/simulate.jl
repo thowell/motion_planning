@@ -1,7 +1,7 @@
 """
     simulate linear feedback policy
 """
-function _simulate(
+function simulate(
         model,
         policy, K,
         z_nom, u_nom,

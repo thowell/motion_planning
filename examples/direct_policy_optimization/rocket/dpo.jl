@@ -83,7 +83,7 @@ for t = 1:T-1
 end
 
 # Solve
-if true
+if false # set to true to reoptimize
 	include_snopt()
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,

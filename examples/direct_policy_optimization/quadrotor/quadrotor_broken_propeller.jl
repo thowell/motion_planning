@@ -2,6 +2,11 @@
 include_model("quadrotor")
 model = free_time_model(additive_noise_model(model))
 
+function fd(model::Quadrotor{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+	h = u[end]
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+end
+
 # Horizon
 T = 31
 
@@ -77,10 +82,8 @@ u0 = [[copy(u_ref[1:4]); h0] for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob)
 
 # Solve
-optimize = true
-
-if optimize
-    @time z̄ , info = solve(prob, copy(z0))
+if false
+    @time z̄, info = solve(prob, copy(z0))
     @save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
     println("Loading solution...")
