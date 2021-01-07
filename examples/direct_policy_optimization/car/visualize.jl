@@ -74,3 +74,88 @@ a = Axis([
 
 # Save to tikz format
 PGF.save(joinpath(@__DIR__, "car_obstacles.tikz"), a, include_preamble = false)
+
+
+# Animation
+vis = Visualizer()
+open(vis)
+default_background!(vis)
+
+for i = 1:4
+    cyl = Cylinder(Point3f0(circles[i][1],circles[i][2],0),Point3f0(circles[i][1],circles[i][2],0.1),convert(Float32,0.035))
+    setobject!(vis["cyl$i"],cyl,MeshPhongMaterial(color=RGBA(0,0,0,1.0)))
+end
+
+q_to = deepcopy(x̄)
+
+# interpolate traj
+T = length(q_to)
+T_sim = 5 * T
+times = [(t - 1) * h for t = 1:T-1]
+tf = h * (T-1)
+t_sim = range(0, stop = tf, length = T_sim)
+t_ctrl = range(0, stop = tf, length = T)
+dt_sim = tf / (T_sim - 1)
+A_state = hcat(q_to...)
+z_cubic = zero(q_to[1])
+
+for t = 1:T_sim
+	for i = 1:length(q_to[1])
+		interp_cubic = CubicSplineInterpolation(t_ctrl, A_state[i,:])
+		z_cubic[i] = interp_cubic(t_sim[t])
+	end
+	setobject!(vis["traj_to$t"],
+		Cylinder(Point3f0(0.0, 0.0, -0.001),
+			Point3f0(0.0, 0.0, 0.0),
+			convert(Float32,0.065)),
+			MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
+
+		# HyperSphere(Point3f0(0),
+		# convert(Float32,0.075)),
+		# MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
+	settransform!(vis["traj_to$t"], Translation((z_cubic[1],z_cubic[2],0.0)))
+	setvisible!(vis["traj_to$t"],false)
+end
+
+q_dpo = deepcopy(x)
+A_state = hcat(q_dpo...)
+z_cubic = zero(q_dpo[1])
+for t = 1:T_sim
+	for i = 1:length(q_dpo[1])
+		interp_cubic = CubicSplineInterpolation(t_ctrl, A_state[i,:])
+		z_cubic[i] = interp_cubic(t_sim[t])
+	end
+	setobject!(vis["traj_dpo$t"], Cylinder(Point3f0(0.0, 0.0, -0.001),
+		Point3f0(0.0, 0.0, 0.0),
+		convert(Float32,0.065)),
+		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,1.0)))
+	settransform!(vis["traj_dpo$t"], Translation((z_cubic[1],z_cubic[2],0.0)))
+	setvisible!(vis["traj_dpo$t"],true)
+end
+
+q = x
+obj_path = joinpath(pwd(),"/home/taylor/Research/direct_policy_optimization/dynamics/cybertruck/cybertruck.obj")
+mtl_path = joinpath(pwd(),"/home/taylor/Research/direct_policy_optimization/dynamics/cybertruck/cybertruck.mtl")
+
+ctm = ModifiedMeshFileObject(obj_path,mtl_path,scale=0.05)
+t = 1
+setobject!(vis["ct1"],ctm)
+settransform!(vis["ct1"], compose(Translation([q[t][1];q[t][2];0.0]),LinearMap(RotZ(q[t][3]+pi)*RotX(pi/2.0))))
+setvisible!(vis["ct1"],true)
+t = 1
+setobject!(vis["ct2"],ctm)
+settransform!(vis["ct2"], compose(Translation([q[t][1];q[t][2];0.0]),LinearMap(RotZ(q[t][3]+pi)*RotX(pi/2.0))))
+setvisible!(vis["ct2"],true)
+t = 20#17#20
+setobject!(vis["ct3"],ctm)
+settransform!(vis["ct3"], compose(Translation([q[t][1];q[t][2];0.0]),LinearMap(RotZ(q[t][3]+pi)*RotX(pi/2.0))))
+setvisible!(vis["ct3"],true)
+
+t = 34#36#34
+setobject!(vis["ct4"],ctm)
+settransform!(vis["ct4"], compose(Translation([q[t][1];q[t][2];0.0]),LinearMap(RotZ(q[t][3]+pi)*RotX(pi/2.0))))
+setvisible!(vis["ct4"],true)
+t = T
+setobject!(vis["ct5"],ctm)
+settransform!(vis["ct5"], compose(Translation([q[t][1];q[t][2];0.0]),LinearMap(RotZ(q[t][3]+pi)*RotX(pi/2.0))))
+setvisible!(vis["ct5"],true)
