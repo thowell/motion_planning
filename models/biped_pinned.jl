@@ -11,7 +11,7 @@ function f(model::BipedPinned, x, u, w)
     biped_f(x) + biped_g(x) * view(u, 1:4)
 end
 
-n, m, d = 10, 4, 0
+n, m, d = 10, 4, 10
 model = BipedPinned{Midpoint, FixedTime}(n, m, d, 0.2755, 0.288)
 
 function kinematics(model::BipedPinned, q)

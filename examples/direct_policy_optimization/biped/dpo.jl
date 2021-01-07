@@ -1,5 +1,10 @@
-include(joinpath(pwd(), "src/direct_policy_optimization/dpo.jl"))
+include_dpo()
 include(joinpath(@__DIR__, "biped.jl"))
+
+function fd(model::BipedPinned{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+	h = u[end]
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+end
 
 # Nominal solution
 x̄, ū = unpack(z̄, prob)

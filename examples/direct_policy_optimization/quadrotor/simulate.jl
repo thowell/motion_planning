@@ -1,4 +1,3 @@
-include(joinpath(@__DIR__, "dpo.jl"))
 include(joinpath(pwd(), "examples/direct_policy_optimization/simulate.jl"))
 
 # Unpack trajectories
@@ -7,7 +6,15 @@ x, u = unpack(z, prob)
 θ = get_policy(z, prob_dpo)
 
 # Simulation setup
-model_sim = model
+model_sim = Quadrotor{RK3, FixedTime}(n, m, d,
+                  mass,
+                  J,
+                  Jinv,
+                  g,
+                  L,
+                  kf,
+                  km)
+
 x1_sim = copy(x1)
 T_sim = 10 * T
 
@@ -33,7 +40,7 @@ dt_sim_nom = tf_nom / (T_sim - 1)
 dt_sim_dpo = tf_dpo / (T_sim - 1)
 
 # Simulate
-z_tvlqr1, u_tvlqr1, J_tvlqr1, Jx_tvlqr1, Ju_tvlqr1 = _simulate(
+z_lqr1, u_lqr1, J_lqr1, Jx_lqr1, Ju_lqr1 = simulate(
 	model_sim,
 	policy, K,
     x̄, ū,
@@ -45,7 +52,7 @@ z_tvlqr1, u_tvlqr1, J_tvlqr1, Jx_tvlqr1, Ju_tvlqr1 = _simulate(
 	ul = ul_nom, uu = uu1,
 	u_idx = (1:model.m - 1))
 
-z_tvlqr2, u_tvlqr2, J_tvlqr2, Jx_tvlqr2, Ju_tvlqr2 = _simulate(
+z_lqr2, u_lqr2, J_lqr2, Jx_lqr2, Ju_lqr2 = simulate(
 	model_sim,
 	policy,
 	K,
@@ -59,7 +66,7 @@ z_tvlqr2, u_tvlqr2, J_tvlqr2, Jx_tvlqr2, Ju_tvlqr2 = _simulate(
 	uu = uu2,
 	u_idx = (1:model.m - 1))
 
-z_tvlqr3, u_tvlqr3, J_tvlqr3, Jx_tvlqr3, Ju_tvlqr3 = _simulate(
+z_lqr3, u_lqr3, J_lqr3, Jx_lqr3, Ju_lqr3 = simulate(
 	model_sim,
 	policy, K,
     x̄, ū,
@@ -71,7 +78,7 @@ z_tvlqr3, u_tvlqr3, J_tvlqr3, Jx_tvlqr3, Ju_tvlqr3 = _simulate(
 	ul = ul_nom, uu = uu3,
 	u_idx = (1:model.m - 1))
 
-z_tvlqr4, u_tvlqr4, J_tvlqr4, Jx_tvlqr4, Ju_tvlqr4 = _simulate(
+z_lqr4, u_lqr4, J_lqr4, Jx_lqr4, Ju_lqr4 = simulate(
 	model_sim,
 	policy, K,
     x̄, ū,
@@ -82,7 +89,7 @@ z_tvlqr4, u_tvlqr4, J_tvlqr4, Jx_tvlqr4, Ju_tvlqr4 = _simulate(
 	ul = ul_nom, uu = uu4,
 	u_idx = (1:model.m - 1))
 
-z_dpo1, u_dpo1, J_dpo1, Jx_dpo1, Ju_dpo1 = _simulate(
+z_dpo1, u_dpo1, J_dpo1, Jx_dpo1, Ju_dpo1 = simulate(
 	model_sim,
 	policy, θ,
     x, u,
@@ -93,7 +100,7 @@ z_dpo1, u_dpo1, J_dpo1, Jx_dpo1, Ju_dpo1 = _simulate(
 	ul = ul_nom, uu = uu1,
 	u_idx = (1:model.m - 1))
 
-z_dpo2, u_dpo2, J_dpo2, Jx_dpo2, Ju_dpo2 = _simulate(
+z_dpo2, u_dpo2, J_dpo2, Jx_dpo2, Ju_dpo2 = simulate(
 	model_sim,
 	policy, θ,
     x, u,
@@ -104,7 +111,7 @@ z_dpo2, u_dpo2, J_dpo2, Jx_dpo2, Ju_dpo2 = _simulate(
 	ul = ul_nom, uu = uu2,
 	u_idx = (1:model.m - 1))
 
-z_dpo3, u_dpo3, J_dpo3, Jx_dpo3, Ju_dpo3 = _simulate(
+z_dpo3, u_dpo3, J_dpo3, Jx_dpo3, Ju_dpo3 = simulate(
 	model_sim,
 	policy, θ,
     x, u,
@@ -115,7 +122,7 @@ z_dpo3, u_dpo3, J_dpo3, Jx_dpo3, Ju_dpo3 = _simulate(
 	ul = ul_nom, uu = uu3,
 	u_idx = (1:model.m - 1))
 
-z_dpo4, u_dpo4, J_dpo4, Jx_dpo4, Ju_dpo4 = _simulate(
+z_dpo4, u_dpo4, J_dpo4, Jx_dpo4, Ju_dpo4 = simulate(
 	model_sim,
 	policy, θ,
     x, u,
@@ -127,13 +134,13 @@ z_dpo4, u_dpo4, J_dpo4, Jx_dpo4, Ju_dpo4 = _simulate(
 	u_idx = (1:model.m - 1))
 
 # state tracking
-(Jx_tvlqr1 + Jx_tvlqr2 + Jx_tvlqr3 + Jx_tvlqr4) / 4.0
+(Jx_lqr1 + Jx_lqr2 + Jx_lqr3 + Jx_lqr4) / 4.0
 (Jx_dpo1 + Jx_dpo2 + Jx_dpo3 + Jx_dpo4) / 4.0
 
 # control tracking
-(Ju_tvlqr1 + Ju_tvlqr2 + Ju_tvlqr3 + Ju_tvlqr4) / 4.0
+(Ju_lqr1 + Ju_lqr2 + Ju_lqr3 + Ju_lqr4) / 4.0
 (Ju_dpo1 + Ju_dpo2 + Ju_dpo3 + Ju_dpo4) / 4.0
 
 # objective value
-(J_tvlqr1 + J_tvlqr2 + J_tvlqr3 + J_tvlqr4) / 4.0
+(J_lqr1 + J_lqr2 + J_lqr3 + J_lqr4) / 4.0
 (J_dpo1 + J_dpo2 + J_dpo3 + J_dpo4) / 4.0

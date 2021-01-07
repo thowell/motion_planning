@@ -77,7 +77,7 @@ u0 = [ones(model_nom.m) for t = 1:T-1] # random controls
 z0 = pack(x0, u0, prob_nominal)
 
 # Solve
-if true
+if false # set to true to reoptimize
 	include_snopt()
     @time z̄_nom , info = solve(prob_nominal, copy(z0),
 		nlp = :SNOPT7,

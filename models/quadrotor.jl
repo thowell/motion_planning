@@ -59,7 +59,7 @@ function f(model::Quadrotor, z, u, w)
                    model.Jinv * (τ - cross(ω, model.J * ω))])
 end
 
-n, m, d = 12, 4, 0
+n, m, d = 12, 4, 12
 
 mass = 0.5
 J = Diagonal(@SVector[0.0023, 0.0023, 0.004])

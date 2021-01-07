@@ -1,4 +1,3 @@
-include(joinpath(@__DIR__, "dpo.jl"))
 include(joinpath(pwd(), "examples/direct_policy_optimization/simulate.jl"))
 
 # Unpack trajectories
@@ -7,7 +6,8 @@ x, u = unpack(z, prob_dpo.prob.prob.nom)
 Θ = get_policy(z, prob_dpo)
 
 # Simulation setup
-model_sim = model_sl
+model_sim = model_slosh = RocketSlosh{RK3, FixedTime}(n_slosh, m, n_slosh, g, m1 - m2, l1, J, m2, l2, l3)
+
 x1_sim = copy(x1_slosh)
 T_sim = 10 * T
 
@@ -33,7 +33,7 @@ dt_sim_nom = tf_nom / (T_sim - 1)
 dt_sim_dpo = tf_dpo / (T_sim - 1)
 
 # Simulate
-z_tvlqr, u_tvlqr, J_tvlqr, Jx_tvlqr, Ju_tvlqr = _simulate(
+z_lqr, u_lqr, J_lqr, Jx_lqr, Ju_lqr = simulate(
 	model_sim,
 	policy, K,
     x̄, ū,
@@ -57,13 +57,13 @@ z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = _simulate(
 	u_idx = (1:model_sl.m - 1))
 
 # state tracking
-Jx_tvlqr
+Jx_lqr
 Jx_dpo
 
 # control tracking
-Ju_tvlqr
+Ju_lqr
 Ju_dpo
 
 # objective value
-J_tvlqr
+J_lqr
 J_dpo

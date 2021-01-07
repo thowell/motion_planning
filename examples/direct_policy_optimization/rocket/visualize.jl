@@ -22,10 +22,6 @@ zz = [x̄_dpo[t][2] for t = 1:T]
 plot(xx_nom, zz_nom, color = :purple)
 plot!(xx, zz, color = :orange)
 
-plot(hcat(ū_dpo...)[3:3,:]')
-ū_dpo[1][end]
-
-
 plot(t_nominal, hcat(x̄...)', color = :purple)
 plot!(t_dpo, hcat(x̄_dpo...)', color = :orange)
 
