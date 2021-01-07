@@ -45,7 +45,7 @@ z_lqr, u_lqr, J_lqr, Jx_lqr, Ju_lqr = simulate(
 	ul = ul[1], uu = uu[2],
 	u_idx = (1:model_sl.m - 1))
 
-z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = _simulate(
+z_dpo, u_dpo, J_dpo, Jx_dpo, Ju_dpo = simulate(
 	model_sim,
 	policy, Θ,
     x, u,
