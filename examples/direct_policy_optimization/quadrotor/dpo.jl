@@ -75,12 +75,12 @@ K, P = tvlqr(model, x̄, ū, 0.0, Q, R)
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-if true
+if false
 	include_snopt()
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
-		time_limit = 60 * 60)
+		time_limit = 60 * 60 * 4)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")
