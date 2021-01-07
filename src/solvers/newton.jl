@@ -2,8 +2,9 @@
 	Newton
 """
 function newton(res::Function, x;
-		tol_r = 1.0e-8, tol_d = 1.0e-6)
+		tol_r = 1.0e-8, tol_d = 1.0e-6, reg = 1.0e-8)
 	y = copy(x)
+	Δy = copy(x)
 
     r = res(y)
 
@@ -12,7 +13,12 @@ function newton(res::Function, x;
     while norm(r, 2) > tol_r && iter < 25
         ∇r = ForwardDiff.jacobian(res, y)
 
-        Δy = -1.0 * ∇r \ r
+		try
+        	Δy = -1.0 * (∇r + reg * I) \ r
+		catch
+			@warn "implicit-function failure"
+			return y
+		end
 
         α = 1.0
 

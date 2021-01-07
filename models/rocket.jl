@@ -41,15 +41,14 @@ l3 = 0.1 # length of pendulum
 
 # models
 m = 2
-d = 0
 
 # nominal model
 n_nominal = 6
-model_nominal = RocketNominal{Midpoint, FixedTime}(n_nominal, m, d, g, m1, l1, J)
+model_nominal = RocketNominal{Midpoint, FixedTime}(n_nominal, m, n_nominal, g, m1, l1, J)
 
 # slosh model
 n_slosh = 8
-model_slosh = RocketSlosh{Midpoint, FixedTime}(n_slosh, m, d, g, m1 - m2, l1, J, m2, l2, l3)
+model_slosh = RocketSlosh{Midpoint, FixedTime}(n_slosh, m, n_slosh, g, m1 - m2, l1, J, m2, l2, l3)
 
 function k_thruster(model::Rocket, x)
 	y, z, θ = x[1:3]
