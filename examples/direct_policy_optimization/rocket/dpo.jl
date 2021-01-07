@@ -83,12 +83,12 @@ for t = 1:T-1
 end
 
 # Solve
-if false # set to true to reoptimize
+if true # set to true to reoptimize
 	include_snopt()
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
-		time_limit = 60 * 60)
+		time_limit = 60 * 60 * 3)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")

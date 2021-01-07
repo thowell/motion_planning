@@ -11,9 +11,6 @@ x̄, ū = unpack(z̄, prob)
 prob_nom = prob.prob
 
 # DPO
-N = 2 * model.n
-D = 2 * model.d
-
 β = 1.0
 δ = 5.0e-4
 
@@ -40,7 +37,7 @@ prob_sample = [trajectory_optimization(
 				ul = ul,
 				uu = uu,
 				dynamics = false,
-				con = con_free_time) for i = 1:N]
+				con = con_free_time) for i = 1:2 * model.n]
 
 # sample objective
 Q = [(t < T ? Diagonal(10.0 * ones(model.n))
@@ -66,11 +63,9 @@ K, P = tvlqr(model, x̄, ū, 0.0, Q, R)
 z0 = pack(z̄, K, prob_dpo)
 
 # Solve
-optimize = false
-
-if optimize
+if true
 	include_snopt()
-	z , info = solve(prob_dpo, copy(z0),
+	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
 		time_limit = 60 * 120)

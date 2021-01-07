@@ -88,11 +88,9 @@ u0 = [ones(model.m) for t = 1:T-1]
 z0 = pack(x0, u0, prob)
 
 # Solve
-optimize = true
-
-if optimize
+if false
 	include_snopt()
-	@time z̄ , info = solve(prob, copy(z0),
+	@time z̄, info = solve(prob, copy(z0),
 		nlp = :SNOPT7,
 		time_limit = 60 * 10)
 	@save joinpath(@__DIR__, "sol_to.jld2") z̄
