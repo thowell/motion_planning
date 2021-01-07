@@ -38,36 +38,39 @@ const PGF = PGFPlots
 
 # TO trajectory
 p_nom = PGF.Plots.Linear(hcat(x̄...)[1,:], hcat(x̄...)[2,:],
-    mark = "",
+    mark = "none",
 	style = "color=cyan, line width=2pt, solid",
 	legendentry = "TO")
 
 # DPO trajectory
 p_dpo = PGF.Plots.Linear(hcat(x...)[1,:], hcat(x...)[2,:],
-    mark = "",
-	style = "color=orange, line width=3pt, solid",
+    mark = "none",
+	style = "color=orange, line width=2pt, solid",
 	legendentry = "DPO")
 
 # obstacles
-p_circle = [PGF.Plots.Circle(circle...,
-	style = "color=black,fill=black") for circle in circles]
+pc1 = PGF.Plots.Circle(circles[1]...,
+	style = "color=black, fill=black")
+pc2 = PGF.Plots.Circle(circles[2]...,
+	style = "color=black, fill=black")
+pc3 = PGF.Plots.Circle(circles[3]...,
+	style = "color=black, fill=black")
+pc4 = PGF.Plots.Circle(circles[4]...,
+	style = "color=black, fill=black")
 
-a = Axis([p_circle;
-    p_sample[1];
-    p_sample[2];
-    p_sample[3];
-    p_sample[4];
-    p_sample[5];
-    p_sample[6];
+a = Axis([
     p_nom;
-    p_dpo],
+    p_dpo;
+	pc1;
+	pc2;
+	pc3;
+	pc4],
     xmin = -0.4, ymin = -0.1, xmax = 1.4, ymax = 1.1,
     axisEqualImage = true,
-    hideAxis = false,
-	ylabel = "y",
-	xlabel = "x",
-	legendStyle = "{at={(0.01,0.99)}, anchor=north west}")
+    hideAxis = true,
+	# ylabel = "y",
+	# xlabel = "x",
+	legendStyle = "{at={(0.01, 0.99)}, anchor = north west}")
 
 # Save to tikz format
-dir = joinpath(@__DIR__, "figures")
-PGF.save(joinpath(dir, "car_obstacles.tikz"), a, include_preamble = false)
+PGF.save(joinpath(@__DIR__, "car_obstacles.tikz"), a, include_preamble = false)
