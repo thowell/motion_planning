@@ -3,7 +3,7 @@ include(joinpath(@__DIR__, "biped.jl"))
 
 function fd(model::BipedPinned{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
 	h = u[end]
-    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w)) - w
 end
 
 # Nominal solution
@@ -68,9 +68,11 @@ if true
 	z, info = solve(prob_dpo, copy(z0),
 		nlp = :SNOPT7,
 		tol = 1.0e-2, c_tol = 1.0e-2,
-		time_limit = 60 * 120)
+		time_limit = 60 * 60 * 4)
 	@save joinpath(@__DIR__, "sol_dpo.jld2") z
 else
 	println("Loading solution...")
 	@load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
+
+@save joinpath(@__DIR__, "sol_dpo.jld2") z
