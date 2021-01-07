@@ -6,6 +6,7 @@ function levenberg_marquardt(res::Function, x;
 		reg = 1.0e-8, tol_r = 1.0e-8, tol_d = 1.0e-6)
 
 	y = copy(x)
+	Δy = copy(x)
 
 	merit(z) = res(z)' * res(z)
 
@@ -32,7 +33,12 @@ function levenberg_marquardt(res::Function, x;
 			end
 		end
 
-		Δy = -1.0 * H \ (∇r' * r)
+		try
+			Δy = -1.0 * H \ (∇r' * r)
+		catch
+			@warn "implicit-function theorem failure"
+			return y
+		end
 
 		ls_iter = 0
 		while merit(y + α * Δy) > me + 1.0e-4 * (∇r' * r)' * (α * Δy)

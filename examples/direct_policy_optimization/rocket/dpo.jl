@@ -2,6 +2,11 @@ include_dpo()
 include(joinpath(@__DIR__, "rocket_nominal.jl"))
 include(joinpath(@__DIR__, "rocket_slosh.jl"))
 
+function fd(model::RocketNominal{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
+	h = u[end]
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
+end
+
 function fd(model::RocketSlosh{Midpoint, FreeTime}, x⁺, x, u, w, h, t)
 	h = u[end]
     x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w) + w)
@@ -89,5 +94,3 @@ else
 	println("Loading solution...")
     @load joinpath(@__DIR__, "sol_dpo.jld2") z
 end
-
-model_sl
