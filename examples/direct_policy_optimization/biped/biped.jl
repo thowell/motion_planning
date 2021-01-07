@@ -92,7 +92,7 @@ if false
 	include_snopt()
 	@time z̄, info = solve(prob, copy(z0),
 		nlp = :SNOPT7,
-		time_limit = 60 * 10)
+		time_limit = 60 * 5)
 	@save joinpath(@__DIR__, "sol_to.jld2") z̄
 else
 	println("Loading solution...")
