@@ -38,7 +38,7 @@ motion planning
 - [X] cart-pole
 - [X] rocket
 - [X] quadrotor
-- [ ] biped (currently broken, check previous commits)
+- [x] biped
 
 ## classic examples
 

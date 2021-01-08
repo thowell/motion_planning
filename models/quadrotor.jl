@@ -78,7 +78,8 @@ model = Quadrotor{Midpoint, FixedTime}(n, m, d,
                   kf,
                   km)
 
-function visualize!(vis, p::Quadrotor ,q; Δt = 0.1)
+function visualize!(vis, p::Quadrotor, q; Δt = 0.1)
+    default_background!(vis)
 
     obj_path = joinpath(pwd(),
       "models/quadrotor/drone.obj")
