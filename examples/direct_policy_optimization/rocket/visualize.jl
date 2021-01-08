@@ -146,28 +146,62 @@ vis = Visualizer()
 render(vis)
 default_background!(vis)
 
-com_traj_nom = hcat([[-1.0 * x̄[t][1]; 0.26; x̄[t][2]] for t = 1:T]...)
-pts_nom = collect(eachcol(com_traj_nom))
-material_nom = LineBasicMaterial(color = colorant"cyan", linewidth = 5.0)
+
+# interpolate traj
+T_sim = 10 * T
+times = [(t - 1) * ū[1][end] for t = 1:T-1]
+tf = ū[1][end] * (T-1)
+t_sim = range(0, stop = tf, length = T_sim)
+t_ctrl = range(0, stop = tf, length = T)
+dt_sim = tf / (T_sim - 1)
+A_state = hcat([[-1.0 * x̄[t][1]; -0.05; x̄[t][2]] for t = 1:T]...)
+
+z_interp = []
+for t = 1:T_sim
+	z_cubic = zeros(3)
+	for i = 1:3
+		interp_cubic = CubicSplineInterpolation(t_ctrl, A_state[i,:])
+		z_cubic[i] = interp_cubic(t_sim[t])
+	end
+	println(t_sim[t])
+	push!(z_interp, z_cubic)
+end
+pts_nom = collect(eachcol(hcat(z_interp...)))
+material_nom = LineBasicMaterial(color = colorant"cyan", linewidth = 7.5)
 setobject!(vis["com_traj_nom"], Object(PointCloud(pts_nom), material_nom, "Line"))
 
-com_traj_dpo = hcat([[-1.0 * x[t][1]; 0.265; x[t][2]] for t = 1:T]...)
-pts_dpo = collect(eachcol(com_traj_dpo))
-material_dpo = LineBasicMaterial(color = colorant"orange", linewidth = 5.0)
+T_sim = 5 * T
+times = [(t - 1) * u[1][end] for t = 1:T-1]
+tf = u[1][end] * (T-1)
+t_sim = range(0, stop = tf, length = T_sim)
+t_ctrl = range(0, stop = tf, length = T)
+dt_sim = tf / (T_sim - 1)
+A_state = hcat([[-1.0 * x[t][1]; 0.0; x[t][2]] for t = 1:T]...)
+z_interp = []
+for t = 1:T_sim
+	z_cubic = zeros(3)
+	for i = 1:3
+		interp_cubic = CubicSplineInterpolation(t_ctrl, A_state[i,:])
+		z_cubic[i] = interp_cubic(t_sim[t])
+	end
+	push!(z_interp, z_cubic)
+end
+pts_nom = collect(eachcol(hcat(z_interp...)))
+material_dpo = LineBasicMaterial(color = colorant"orange", linewidth = 7.5)
 setobject!(vis["com_traj_dpo"], Object(PointCloud(pts_dpo), material_dpo, "Line"))
 
 # settransform!(vis["/Cameras/default"], compose(Translation(0.0, 15.0, -1.0),
 # 	LinearMap(RotZ(pi / 2.0))))
 
-body = Cylinder(Point3f0(0.0, 0.0, -1.0 * model_sl.l1),
-	Point3f0(0.0, 0.0, 3.0 * model_sl.l1),
-	convert(Float32, 0.25))
-pad = Cylinder(Point3f0(0.0, 0.0, -0.1),
-	Point3f0(0.0, 0.0, 0.1),
-	convert(Float32, 0.5))
-setobject!(vis["pad"], pad,
-	MeshPhongMaterial(color = RGBA(220.0 / 255.0, 220.0 / 255.0, 220.0 / 255.0, 1.0)))
-setvisible!(vis["pad"], false)
+# body = Cylinder(Point3f0(0.0, 0.0, -1.0 * model_sl.l1),
+# 	Point3f0(0.0, 0.0, 3.0 * model_sl.l1),
+# 	convert(Float32, 0.25))
+# pad = Cylinder(Point3f0(0.0, 0.0, -0.1),
+# 	Point3f0(0.0, 0.0, 0.1),
+# 	convert(Float32, 0.5))
+# setobject!(vis["pad"], pad,
+# 	MeshPhongMaterial(color = RGBA(220.0 / 255.0, 220.0 / 255.0, 220.0 / 255.0, 1.0)))
+# setvisible!(vis["pad"], false)
 
 u_norm = [u[t][1:2] ./ 20.0 for t = 1:T-1]
 
@@ -228,18 +262,17 @@ p = k_thruster(model_sl, x[t])
 settransform!(vis["thrust4"], cable_transform([-1.0 * p[1]; 0.0; p[2]],
  	[-1.0 * p[1] + u_norm[t][1]; 0.0; p[2] - u_norm[t][2]]))
 t = T
-setobject!(vis["rocket5"], body,
-	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-settransform!(vis["rocket5"],
-	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
-	LinearMap(RotY(x[t][3]))))
-
+# setobject!(vis["rocket5"], body,
+# 	MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+# settransform!(vis["rocket5"],
+# 	compose(Translation(-1.0 * x[t][1], 0.0, x[t][2]),
+# 	LinearMap(RotY(x[t][3]))))
 ##
-vis = Visualizer()
-render(vis)
-default_background!(vis)
+# vis = Visualizer()
+# render(vis)
+# default_background!(vis)
 
-settransform!(vis["/Cameras/default"], compose(Translation(0.0, 25.0, -1.0),
+settransform!(vis["/Cameras/default"], compose(Translation(0.0, 20.0, -1.0),
 	LinearMap(RotZ(pi / 2.0))))
 
 y_shift = 2.35
@@ -282,15 +315,10 @@ settransform!(vis["_rocket5"],
 	LinearMap(RotY(1.0*q[t][3])*RotZ(pi)*RotX(pi/2.0))))
 setvisible!(vis["_rocket5"],true)
 
-obj_platform = "/home/taylor/Research/direct_policy_optimization/dynamics/rocket/space_x_platform.obj"
-mtl_platform = "/home/taylor/Research/direct_policy_optimization/dynamics/rocket/space_x_platform.mtl"
-
+obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
+mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
 ctm_platform = ModifiedMeshFileObject(obj_platform,mtl_platform,scale=1.0)
 setobject!(vis["platform"],ctm_platform)
-settransform!(vis["platform"], compose(Translation(0.0,0.0,-0.85),LinearMap(RotZ(pi)*RotX(pi/2))))
+settransform!(vis["platform"], compose(Translation(0.0,2.5,-0.85),LinearMap(RotZ(pi)*RotX(pi/2))))
 
-setvisible!(vis["rocket1"],true)
-setvisible!(vis["rocket2"],true)
-setvisible!(vis["rocket3"],true)
-setvisible!(vis["rocket4"],true)
-setvisible!(vis["rocket5"],true)
+open(vis)
