@@ -148,12 +148,12 @@ default_background!(vis)
 
 com_traj_nom = hcat([[-1.0 * x̄[t][1]; 0.26; x̄[t][2]] for t = 1:T]...)
 pts_nom = collect(eachcol(com_traj_nom))
-material_nom = LineBasicMaterial(color = colorant"cyan", linewidth = 2.0)
+material_nom = LineBasicMaterial(color = colorant"cyan", linewidth = 5.0)
 setobject!(vis["com_traj_nom"], Object(PointCloud(pts_nom), material_nom, "Line"))
 
 com_traj_dpo = hcat([[-1.0 * x[t][1]; 0.265; x[t][2]] for t = 1:T]...)
 pts_dpo = collect(eachcol(com_traj_dpo))
-material_dpo = LineBasicMaterial(color = colorant"orange", linewidth = 2.0)
+material_dpo = LineBasicMaterial(color = colorant"orange", linewidth = 5.0)
 setobject!(vis["com_traj_dpo"], Object(PointCloud(pts_dpo), material_dpo, "Line"))
 
 # settransform!(vis["/Cameras/default"], compose(Translation(0.0, 15.0, -1.0),
