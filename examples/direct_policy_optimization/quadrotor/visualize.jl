@@ -248,53 +248,109 @@ PGF.save(joinpath(dir,"quad_prop_u4.tikz"), a4, include_preamble=false)
 
 
 # # visualize
-visualize!(vis,model,z_tvlqr,Δt=dt_sim_nom)
-visualize!(vis,model,z_sample4,Δt=dt_sim_sample)
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis,model,x̄,Δt=ū[1][end])
+visualize!(vis,model,x,Δt=u[1][end])
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in x̄]...)))
+material_nom = LineBasicMaterial(color = colorant"cyan", linewidth = 10.0)
+setobject!(vis["com_traj_nom"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_nom"],false)
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in z_lqr1]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_lqr1"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_lqr1"],false)
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in z_lqr2]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_lqr2"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_lqr2"],false)
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in z_lqr3]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_lqr3"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_lqr3"],false)
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in z_lqr4]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_lqr4"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_lqr4"],false)
+
+pts_nom = collect(eachcol(hcat([z[1:3] for z in x]...)))
+material_nom = LineBasicMaterial(color = colorant"orange", linewidth = 10.0)
+setobject!(vis["com_traj_dpo"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_dpo"],true)
+
+pts_nom = collect(eachcol(hcat([z[1:3] .+ 1.0e-3 for z in z_dpo1]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_dpo1"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_dpo1"],true)
+
+pts_nom = collect(eachcol(hcat([z[1:3] .+ 1.0e-3 for z in z_dpo2]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_dpo2"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_dpo2"],true)
+
+pts_nom = collect(eachcol(hcat([z[1:3] .+ 1.0e-3 for z in z_dpo3]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_dpo3"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_dpo3"],true)
+
+pts_nom = collect(eachcol(hcat([z[1:3] .+ 1.0e-3 for z in z_dpo4]...)))
+material_nom = LineBasicMaterial(color = colorant"gray", linewidth = 5.0)
+setobject!(vis["com_traj_dpo4"], Object(PointCloud(pts_nom), material_nom, "Line"))
+setvisible!(vis["com_traj_dpo4"],true)
+
+# for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
+# 	i = k
+# 	q_to = z
+# 	for t = 1:3:T_sim
+# 		setobject!(vis["traj_to$t$i"], Sphere(Point3f0(0),
+# 			convert(Float32,0.025)),
+# 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
+# 		settransform!(vis["traj_to$t$i"], Translation((q_to[t][1],q_to[t][2],q_to[t][3])))
+# 		setvisible!(vis["traj_to$t$i"],false)
+# 	end
+# end
+# q_to_nom = X_nom
+# for t = 1:T
+# 	setobject!(vis["traj_to_nom$t"], Sphere(Point3f0(0),
+# 		convert(Float32,0.05)),
+# 		MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
+# 	settransform!(vis["traj_to_nom$t"], Translation((q_to_nom[t][1],q_to_nom[t][2],q_to_nom[t][3])))
+# 	setvisible!(vis["traj_to_nom$t"],false)
+# end
 #
-for (k,z) in enumerate([z_tvlqr1,z_tvlqr2,z_tvlqr3,z_tvlqr4])
-	i = k
-	q_to = z
-	for t = 1:3:T_sim
-		setobject!(vis["traj_to$t$i"], Sphere(Point3f0(0),
-			convert(Float32,0.025)),
-			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
-		settransform!(vis["traj_to$t$i"], Translation((q_to[t][1],q_to[t][2],q_to[t][3])))
-		setvisible!(vis["traj_to$t$i"],false)
-	end
-end
-q_to_nom = X_nom
-for t = 1:T
-	setobject!(vis["traj_to_nom$t"], Sphere(Point3f0(0),
-		convert(Float32,0.05)),
-		MeshPhongMaterial(color=RGBA(0.0,255.0/255.0,255.0/255.0,1.0)))
-	settransform!(vis["traj_to_nom$t"], Translation((q_to_nom[t][1],q_to_nom[t][2],q_to_nom[t][3])))
-	setvisible!(vis["traj_to_nom$t"],false)
-end
-
-for (k,z) in enumerate([z_sample1,z_sample2,z_sample3,z_sample4])
-	i = k
-	q_dpo = z
-	for t = 1:3:T_sim
-		setobject!(vis["traj_dpo$t$i"], Sphere(Point3f0(0),
-			convert(Float32,0.025)),
-			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
-		settransform!(vis["traj_dpo$t$i"], Translation((q_dpo[t][1],q_dpo[t][2],q_dpo[t][3])))
-		setvisible!(vis["traj_dpo$t$i"],true)
-	end
-end
-
-q_dpo_nom = X_nom_sample
-for t = 1:T
-	setobject!(vis["traj_dpo_nom$t"], Sphere(Point3f0(0),
-		convert(Float32,0.05)),
-		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,1.0)))
-	settransform!(vis["traj_dpo_nom$t"], Translation((q_dpo_nom[t][1],q_dpo_nom[t][2],q_dpo_nom[t][3])))
-	setvisible!(vis["traj_dpo_nom$t"],true)
-end
-
-obj_path = joinpath(pwd(),"/home/taylor/Research/direct_policy_optimization/dynamics/quadrotor/drone.obj")
-mtl_path = joinpath(pwd(),"/home/taylor/Research/direct_policy_optimization/dynamics/quadrotor/drone.mtl")
-
+# for (k,z) in enumerate([z_sample1,z_sample2,z_sample3,z_sample4])
+# 	i = k
+# 	q_dpo = z
+# 	for t = 1:3:T_sim
+# 		setobject!(vis["traj_dpo$t$i"], Sphere(Point3f0(0),
+# 			convert(Float32,0.025)),
+# 			MeshPhongMaterial(color=RGBA(128.0/255.0,128.0/255.0,128.0/255.0,1.0)))
+# 		settransform!(vis["traj_dpo$t$i"], Translation((q_dpo[t][1],q_dpo[t][2],q_dpo[t][3])))
+# 		setvisible!(vis["traj_dpo$t$i"],true)
+# 	end
+# end
+#
+# q_dpo_nom = X_nom_sample
+# for t = 1:T
+# 	setobject!(vis["traj_dpo_nom$t"], Sphere(Point3f0(0),
+# 		convert(Float32,0.05)),
+# 		MeshPhongMaterial(color=RGBA(255.0/255.0,127.0/255.0,0.0,1.0)))
+# 	settransform!(vis["traj_dpo_nom$t"], Translation((q_dpo_nom[t][1],q_dpo_nom[t][2],q_dpo_nom[t][3])))
+# 	setvisible!(vis["traj_dpo_nom$t"],true)
+# end
+#
+obj_path = joinpath(pwd(),
+   "models/quadrotor/drone.obj")
+ mtl_path = joinpath(pwd(),
+   "models/quadrotor/drone.mtl")
 ctm = ModifiedMeshFileObject(obj_path,mtl_path,scale=1.0)
 setobject!(vis["drone2"],ctm)
-settransform!(vis["drone2"], compose(Translation(X_nom[1][1:3]),LinearMap(MRP(X_nom[1][4:6]...)*RotX(pi/2.0))))
+settransform!(vis["drone2"], compose(Translation(x[10][1:3]),LinearMap(MRP(x[10][4:6]...)*RotX(pi/2.0))))
+
+# open(vis)
