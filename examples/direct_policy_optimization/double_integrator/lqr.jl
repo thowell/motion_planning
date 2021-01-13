@@ -62,7 +62,11 @@ prob_dpo = dpo_problem(
 	dist,
 	sample)
 
-z0 = ones(prob_dpo.num_var)
+z0 = zeros(prob_dpo.num_var)
+include_snopt()
+z, info = solve(prob_dpo, copy(z0),
+	tol = 1.0e-7, c_tol = 1.0e-7,
+	nlp = :SNOPT7)
 
 # Solve
 if true
@@ -89,3 +93,62 @@ K, P = tvlqr(
 # Policy difference
 policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
 println("policy difference (inf. norm): $(norm(policy_diff, Inf))")
+
+# Monte Carlo
+using Random, Distributions
+Random.seed!(1)
+
+function monte_carlo(;M = 5)
+	pd = []
+	uni_dist = Distributions.Uniform(-1.0, 1.0)
+	z_failure = []
+	for i = 1:M
+		z0 = rand(uni_dist, prob_dpo.num_var)
+		z, info = solve(prob_dpo, copy(z0),
+			tol = 1.0e-7, c_tol = 1.0e-7,
+			nlp = :SNOPT7,
+			time_limit = 60)
+			# mapl = 5, mipl = 0)
+
+		θ = get_policy(z, prob_dpo)
+		policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
+		pdi = norm(policy_diff, Inf)
+
+		# if SNOPT fails, try Ipopt
+		if pdi > 1.0e-4
+			z, info = solve(prob_dpo, copy(z0),
+				tol = 1.0e-9, c_tol = 1.0e-9,
+				nlp = :ipopt,
+				max_iter = 250)
+			θ = get_policy(z, prob_dpo)
+			policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
+			pdi = norm(policy_diff, Inf)
+
+			if pdi > 1.0e-4
+				push!(z_failure, (z0, pdi))
+			end
+		end
+
+		push!(pd, pdi)
+
+	end
+
+	return pd, z_failure
+end
+
+M = 1000
+pd, z_failure = monte_carlo(M = M)
+println("Monte Carlo: M = $M")
+println("failures: $(count(pd .> 1.0e-4))")
+println("maximum diff.: $(maximum(pd[pd .<= 1.0e-4]))")
+println("mean diff.: $(mean(pd[pd .<= 1.0e-4]))")
+println("std diff.: $(std(pd[pd .<= 1.0e-4]))")
+#
+# norm(z_failure[1][1])
+# z, info = solve(prob_dpo, copy(z_failure[1][1]),
+# 	tol = 1.0e-9, c_tol = 1.0e-9,
+# 	nlp = :ipopt,
+# 	time_limit = 20)
+# θ = get_policy(z, prob_dpo)
+# policy_diff = [norm(vec(θ[t] - K[t])) / norm(vec(K[t])) for t = 1:T-1]
+# pdi = norm(policy_diff, Inf)

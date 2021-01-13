@@ -146,6 +146,7 @@ vis = Visualizer()
 render(vis)
 default_background!(vis)
 
+
 # interpolate traj
 T_sim = 10 * T
 times = [(t - 1) * ū[1][end] for t = 1:T-1]
