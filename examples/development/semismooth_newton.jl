@@ -5,19 +5,19 @@ using IterativeSolvers
 # problem setup
 p = 60
 N = 30
-x_sol = randn(p)#max.(0.0, randn(p))
+x_sol = max.(0.0, randn(p))
 G = rand(N, p)
 h = G * x_sol
 ν_sol = randn(N)
-# λ_sol = rand(p)
-# λ_sol[x_sol .> 0.0] .= 0.0
-c = -G' * ν_sol# + λ_sol
+λ_sol = rand(p)
+λ_sol[x_sol .> 0.0] .= 0.0
+c = -G' * ν_sol + λ_sol
 
 "Convex.jl"
 x = Variable(p)
 prob = minimize(c' * x)
 prob.constraints += h - G * x == 0.0
-# prob.constraints += x >= 0.0
+prob.constraints += x >= 0.0
 
 @time solve!(prob, ECOS.Optimizer)
 
@@ -26,17 +26,34 @@ prob.constraints += h - G * x == 0.0
 @show x.value
 # @show prob.constraints[1].dual
 # @show prob.constraints[2].dual
-A = G #[G; Diagonal(-ones(p))]
-b = h #[h; zeros(p)]
-m = N# + p
+A = [-1.0 * Diagonal(ones(p)); G; -G]
+b = [zeros(p); h; -h]
+m = 2 * N + p
 k = p + m + 1
 
 Q = Array([zeros(p, p) A' c;
            -A zeros(m, m) b;
            -c' -b'      0.0])
 
-function Pκ(z)
-    z
+function κ(z)
+    # z_proj = zero(z)
+    # z_proj[1:N] = z[1:N]
+    # z_proj[N .+ (1:p)] = max.(0.0, z[N .+ (1:p)])
+
+    z_proj = max.(0.0, z)
+    return z_proj
+    # return z
+end
+
+κ(randn(10))
+
+function Pc(z)
+    z_proj = zero(z)
+    z_proj[1:p] = z[1:p]
+    z_proj[p .+ (1:m)] = κ(z[p .+ (1:m)])
+    z_proj[p + m + 1] = max(0.0, z[p + m + 1])
+
+    return z_proj
 end
 
 function F(z)
@@ -45,7 +62,7 @@ function F(z)
     v = z[2 * k .+ (1:k)]
 
     [(I + Q) * ũ - (u + v);
-     u - Pκ(ũ - v);
+     u - Pc(ũ - v);
      ũ - u]
 end
 
@@ -54,17 +71,15 @@ function Ju(z)
     u = z[k .+ (1:k)]
     v = z[2k .+ (1:k)]
 
-    # JP = ForwardDiff.jacobian(Pκ, ũ[p .+ (1:m)] - v[p .+ (1:m)])
-
-    # JP = zeros(m, m)
-    # dif = ũ[p .+ (1:m)] - v[p .+ (1:m)]
-    # for i = 1:m
-    #     if dif[i] >= 0.0
-    #         JP[i, i] = 1.0
-    #     end
-    # end
-
-    JP = Diagonal(ones(m))
+    JP = zeros(m, m)
+    dif = ũ[p .+ (1:m)] - v[p .+ (1:m)]
+    for i = 1:m
+        if dif[i] >= 0.0
+            JP[i, i] = 1.0
+        else
+            JP[i, i] = 0.0
+        end
+    end
 
     if z[k] - z[3k] >= 0.0
         ℓ = 1.0
@@ -97,7 +112,7 @@ rank(Ju(z))
 J(z)
 rank(ForwardDiff.jacobian(F, z))
 norm(J(z) - ForwardDiff.jacobian(F, z), Inf)
-
+gmres(J(z), -F(z))
 # (J(z)' * J(z)) \ (J(z)' * F(z))
 # Δ = zero(z)
 # Δ[k] = 1.0
@@ -115,49 +130,46 @@ function solve()
 
     z = [ũ; u; v]
     # z = rand(3k)
-    Δ = zero(z)
+    # Δ = zero(z)
 
-    for i = 1:100
-        # Fz(x) = F(x, Q_vec)
-        # FQ(x) = F(z, x)
+    extra_iters = 0
 
+    for i = 1:500
         _F = F(z)
-        if norm(_F) < 1.0e-8
-            # return z
-            x = z[k .+ (1:p)]
-            s = z[k + p .+ (1:m)]
-            τ = z[k + k]
-            κ = z[3k]
-            println("τ = $τ")
-            println("κ = $κ")
-            return x ./ τ
-        end
-        _J = J(z) #ForwardDiff.jacobian(F, z)
-        # Δ = -1.0 * _J' *  inv(_J * _J') * _F
-        # Δ = -1.0 * (_J' * _J) \ (_J' * _F)
-        # Δ = rand(length(z))
-        Δ = gmres(_J, -1.0 * _F, abstol = 1.0e-12, maxiter = 1000)
+        _J = J(z)
+        Δ = gmres(_J, 1.0 * _F, abstol = 1.0e-12, maxiter = i + extra_iters)
 
-        # print(Δ)
-        # @error " stop"
         iter = 0
         α = 1.0
-        while norm(F(z + α * Δ))^2.0 >= (1.0 - 0.001 * α) * norm(_F)^2.0
+        while norm(F(z - α * Δ))^2.0 >= (1.0 - 0.001 * α) * norm(_F)^2.0 && α > 1.0e-4
             α = 0.5 * α
             # println("   α = $α")
             iter += 1
             if iter > 100
                 @error "line search fail"
-                return z
+                # return z
+                x = z[k .+ (1:p)]
+                y = z[k + p .+ (1:m)]
+                τ = z[k + k]
+                κ = z[3k]
+                println("τ = $τ")
+                println("κ = $κ")
+                return x ./ τ
             end
         end
-        println("norm: $(norm(F(z)))")
-        z .+= α * Δ
+
+        if α <= 1.0e-4
+            extra_iters += 1
+        end
+
+        println("iter ($i) - norm: $(norm(F(z)))")
+
+        z .-= α * Δ
     end
 
     # return z
     x = z[k .+ (1:p)]
-    s = z[k + p .+ (1:m)]
+    y = z[k + p .+ (1:m)]
     τ = z[k + k]
     κ = z[3k]
     println("τ = $τ")
@@ -168,5 +180,5 @@ end
 x_sol = solve()
 
 
-norm(G * x_sol - h)
-x_sol
+b - A * x_sol
+norm(x_sol - x.value)
