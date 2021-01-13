@@ -76,47 +76,19 @@ end
 z = zeros(3)
 
 Pκ(z)
-∇Pκ(z)
-
-ForwardDiff.jacobian(Pκ, z)
-# - ∇Pκ(z)
-#
-# function Πsoc(z)
-# 	s = z[1]
-# 	v = z[2:end]
-#
-# 	z_proj = zero(z)
-#
-# 	if norm(v) <= -s
-# 		# @warn "below cone"
-# 		z_proj[1] = 0.0
-# 		z_proj[2:end] .= 0.0
-# 	elseif norm(v) <= s
-# 		# @warn "in cone"
-# 		z_proj .= copy(z)
-# 	elseif norm(v) > abs(s)
-# 		# @warn "outside cone"
-# 		a = 0.5 * (1.0 + s / norm(v))
-# 		z_proj[1] = a * norm(v)
-# 		z_proj[2:end] = a * v
-# 	else
-# 		@warn "soc projection error"
-# 		z_proj .= 0.0
-# 	end
-#
-# 	return z_proj
-# end
-#
-# Πsoc(z)
-# ForwardDiff.jacobian(Πsoc, z)
+norm(∇Pκ(z) - ForwardDiff.jacobian(Pκ, z))
 
 # example 3.6
-ϵ = 0.1
-f(x) = 0.5 * x[1]^2.0 + 0.5 * (x[2] - 2.0)^2.0 - 0.5 * ϵ * x[3]^2.0
+v = ones(2)
+y = 1.0
+c = [0.0; v]
+A = [1.0 0.0 0.0]
+b = [y]
+f(x) = c' * x
 
-m = 0
-A = zeros(m, n)
-b = zeros(m)
+m = 1
+# A = zeros(m, n)
+# b = zeros(m)
 
 function M(z)
     x = z[1:n]
@@ -140,7 +112,7 @@ end
 
 z = rand(2n + m)
 M(z)
-∇M(z)
+rank(∇M(z))
 
 function solve()
     x = zeros(n)
