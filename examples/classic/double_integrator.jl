@@ -42,8 +42,3 @@ using Plots
 x, u = unpack(z, prob)
 plot(hcat(x...)', width = 2.0)
 plot(hcat(u...)', width = 2.0, linetype = :steppost)
-
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, x, Δt = 1.0)
