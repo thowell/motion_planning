@@ -1,5 +1,5 @@
 # Model
-include_model("hopper")
+include_model("hopper_impedance")
 model_ft = free_time_model(model)
 
 # Horizon
@@ -94,17 +94,6 @@ if true
 else
 	@load joinpath(pwd(), "examples/trajectories/hopper_vertical_gait.jld2") x̄ ū h̄ x_proj u_proj
 end
-
-z_traj = [x[2] for x in x̄]
-k_traj = [u[3] for u in ū]
-λ_traj = [u[model_ft.idx_λ] for u in ū]
-f_traj = [u[2] for u in ū]
-
-plot(hcat(k_traj...)', linetype = :steppost, label = "impedance")
-plot!(h̄[1] * hcat(λ_traj...)', linetype = :steppost, label = ["" "λ1"])
-plot!(h̄[1] * hcat(f_traj...)', linetype = :steppost, label = "force")
-
-plot(hcat(z_traj...)', linetype = :steppost, label = "z")
 
 
 #
