@@ -36,7 +36,7 @@ end
 # signed distance for a box
 function sd_box(p, dim)
 	q = abs.(p) - dim
-	norm(max.(q, 0.0)) + min(maximum(q), 0.0)
+	norm(max.(q, 1.0e-32)) + min(maximum(q), 0.0)
 end
 
 function sd_2d_box(p, pose, dim, rnd)
@@ -171,7 +171,7 @@ function P_func(model::PlanarPushBlockV3, q)
 	r = p_pusher - p_block[1:2]
 	m = cross([r; 0.0], [t_dir; 0.0])[3]
 
-	P_pusherblock = map1 * [t_dir[1]; t_dir[2]; cross([p_pusher; 0.0] - [p_block[1:2]; 0.0], [t_dir; 0.0])[3]; -t_dir[1]; -t_dir[2]]'
+	P_pusherblock = map1 * [t_dir[1]; t_dir[2]; m; -t_dir[1]; -t_dir[2]]'
 
 	return [P_block; P_pusherblock]
 end

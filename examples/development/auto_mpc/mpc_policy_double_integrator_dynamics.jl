@@ -47,7 +47,7 @@ function eval_objective(prob::MOIGeneralProblem, z)
 	end
 	# parameter regularization
 	θ = z[p_idx]
-	J += 1.0e-5 * θ' * θ
+	J += 100.0 * (θ - θ0_policy)' * (θ - θ0_policy)
 	return J
 end
 
@@ -68,7 +68,7 @@ function eval_objective_gradient!(∇J, z, prob::MOIGeneralProblem)
 		end
 	end
 	θ = z[p_idx]
-	∇J[p_idx] = 2.0 * 1.0e-5 * θ
+	∇J[p_idx] = 2.0 * 100.0 * (θ - θ0_policy)
 
     return nothing
 end
@@ -205,13 +205,16 @@ T_mpc = 5
 n = 2
 m = 1
 
+x1 = [1.0; 0.0]
+xT = [0.0; 0.0]
+
 x_init = x1
 _Q = sqrt.(ones(n))
 _R = sqrt.(1.0 * ones(m))
 _QT = sqrt.(1.0 * ones(n))
 x_final = xT
 
-nθ_mpc = n + n + m + n + n
+nθ_mpc = n + n + m + n + n + n * n + n * m
 
 num_x_mpc = n * T_mpc
 num_u_mpc = m * (T_mpc - 1)
@@ -227,7 +230,7 @@ u_mpc = [0.01 * randn(m) for t = 1:T_mpc-1]
 y_mpc = [zeros(n) for t = 1:T_mpc]
 
 z0 = [vcat(x_mpc...); vcat(u_mpc...); vcat(y_mpc...)]
-θ0 = [x_init; _Q; _R; _QT; x_final]
+θ0 = [x_init; _Q; _R; _QT; x_final; vec(A); vec(B)]
 
 function lagrangian(z, θ)
 	x_init = θ[1:n]
@@ -238,6 +241,8 @@ function lagrangian(z, θ)
 	_QT = θ[n + n + m .+ (1:n)]
 	QT = Diagonal(_QT.^2.0)
 	x_final = θ[n + n + m + n .+ (1:n)]
+	Aθ = reshape(θ[n + n + m + n + n .+ (1:n * n)], n, n)
+	Bθ = reshape(θ[n + n + m + n + n + n * n .+ (1:n * m)], n, m)
 
 	L = 0.0
 
@@ -255,7 +260,7 @@ function lagrangian(z, θ)
 		L += transpose(xt - x_final) * Qt * (xt - x_final)
 		L += (transpose(ut) * Rt * ut)
 
-		L += transpose(yt⁺) *  dynamics(xt⁺, xt, ut, t)
+		L += transpose(yt⁺) *  (xt⁺ - (Aθ * xt + Bθ * ut))
 	end
 
 	xT = view(z, x_idx_mpc[T_mpc])
@@ -313,7 +318,7 @@ ip = interior_point(z0, θ0,
 # solve
 status = interior_point!(ip)
 
-using Test
+using Test, Plots
 # test
 @test status
 @test norm(ip.z[x_idx_mpc[1]] - x_init) < 1.0e-8
@@ -338,7 +343,10 @@ function policy(x, θ)
 	_Q = θ[1:n]
 	_R = θ[n .+ (1:m)]
 	_QT = θ[n + m .+ (1:n)]
-	ip.θ .= copy([x; _Q; _R; _QT; x_final])
+	_A = θ[n + m + n .+ (1:n * n)]
+	_B = θ[n + m + n + n * n .+ (1:n * m)]
+
+	ip.θ .= copy([x; _Q; _R; _QT; x_final; _A; _B])
 
 	status = interior_point!(ip)
 
@@ -352,7 +360,7 @@ function policy_gradients(x, θ)
 	_, ip = policy(x, θ)
 
 	ux = ip.δz[u_idx_mpc[1], 1:n]
-	uθ = ip.δz[u_idx_mpc[1], n .+ (1:(n + m + n))]
+	uθ = ip.δz[u_idx_mpc[1], n .+ (1:(n + m + n + n * n + n * m))]
 
 	return ux, uθ
 
@@ -363,12 +371,12 @@ end
 
 # policy(x1, 0.01 * randn(p))
 # policy_gradients(x1, 0.01 * randn(p))
-θ0_policy = [_Q; _R; _QT]
+θ0_policy = [_Q; _R; _QT; vec(A); vec(B)]
 policy(x1, θ0_policy)[1]
 policy_gradients(x1, θ0_policy)
 
 # p = m * n
-p = n + m + n
+p = n + m + n + n * n + n * m
 
 # trajectory indices
 x_idx = [(t - 1) * (n + m) .+ (1:n) for t = 1:T]
@@ -390,7 +398,7 @@ num_con = num_dyn + num_policy
 x1 = [1.0; 0.0]
 xT = [0.0; 0.0]
 
-U = [0.1 * randn(m) for t = 1:T-1]
+# U = [0.1 * randn(m) for t = 1:T-1]
 
 # rollout
 x_hist = [copy(x1)]
@@ -415,7 +423,7 @@ prob = MOIGeneralProblem(num_var, num_con, primal_bounds(x1, xT), constraint_bou
 prob_moi = moi_problem(prob)
 
 z_sol, info = solve(prob_moi, z,
-		tol = 1.0e-3,
+		tol = 1.0e-2,
 		c_tol = 1.0e-2,
 		max_iter = 1000,
 		nlp = :ipopt)
@@ -455,3 +463,7 @@ plot(hcat(u_hist..., u_hist[end])', linetype = :steppost)
 Q_sol = Diagonal(θ_sol[1:n].^2.0)
 R_sol = Diagonal(θ_sol[n .+ (1:m)].^2.0)
 QT_sol = Diagonal(θ_sol[n + m .+ (1:n)].^2.0)
+reshape(θ_sol[n + m + n .+ (1:n * n)], n, n)
+reshape(θ_sol[n + m + n + n * n .+ (1:n * m)], n, m)
+
+eigen(reshape(θ_sol[n + m + n .+ (1:n * n)], n, n))

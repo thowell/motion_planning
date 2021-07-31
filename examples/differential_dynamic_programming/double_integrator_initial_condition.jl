@@ -29,18 +29,18 @@ n = [model.n for t = 1:T]
 m = [t == 1 ? model.m + model.n : model.m for t = 1:T]
 
 # Initial conditions, controls, disturbances
-x1 = [0.0; 0.0]
-xT = [2.0; 0.0]
-ū = [0.01 * randn(m[t]) for t = 1:T-1]
+x1 = [1.0; 0.0]
+xT = [0.0; 0.0]
+ū = [1.0 * randn(m[t]) for t = 1:T-1]
 w = [zeros(model.d) for t = 1:T-1]
 
 # Rollout
 x̄ = rollout(model, x1, ū, w, h, T)
 
 # Objective
-Q = [(t < T ? h : 1.0) * 0.0 * Diagonal([1.0; 0.1]) for t = 1:T]
-q = [-2.0 * Q[t] * xT for t = 1:T]
-R = [h * Diagonal(1.0 * ones(m[t])) for t = 1:T-1]
+Q = [(t < T ? h : 1.0) * Diagonal([1.0; 1.0]) for t = 1:T]
+q = [(t < T ? h : 1.0) * -2.0 * Q[t] * xT for t = 1:T]
+R = [Diagonal(1.0 * ones(m[t])) for t = 1:T-1]
 r = [zeros(m[t]) for t = 1:T-1]
 obj = StageCosts([QuadraticCost(Q[t], q[t],
 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)
@@ -63,17 +63,25 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Constraints
-p = [t == 1 ? 2 * n[1] : (t == T ? n[T] : 0) for t = 1:T]
-info_1 = Dict(:x1l => [-1.0; -0.1], :x1u => [1.0; 0.1], :inequality => (1:2 * n[1]))
-info_t = Dict()
+p = [t == 1 ? 2 * n[1] + 2 * m[1] : (t == T ? n[T] : 2 * m[t]) for t = 1:T]
+ul = [-5.0]
+uu = [5.0]
+info_1 = Dict(:x1l => [0.5; -0.1], :x1u => [1.5; 0.1],
+	:ul => ul, :uu => uu, :inequality => (1:2 * n[1] + 2 * model.m))
+info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:(2 * model.m)))
 info_T = Dict(:xT => xT)
 con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : info_t) : info_T) for t = 1:T]
 
 function c!(c, cons::StageConstraints, x, u, t)
 	T = cons.T
 	if t == 1
-		c[1:2] .= view(u, 2:3) - cons.con[t].info[:x1u]
-		c[3:4] = cons.con[t].info[:x1l] - view(u, 2:3)
+		c[1:1] = view(u, 1:1) - cons.con[t].info[:uu]
+		c[2:2] = cons.con[t].info[:ul] - view(u, 1:1)
+		c[3:4] .= view(u, 2:3) - cons.con[t].info[:x1u]
+		c[5:6] = cons.con[t].info[:x1l] - view(u, 2:3)
+	elseif t < T
+		c[1:1] = view(u, 1:1) - cons.con[t].info[:uu]
+		c[2:2] = cons.con[t].info[:ul] - view(u, 1:1)
 	end
 	if t == T
 		c[1:2] .= view(x, 1:2) - cons.con[t].info[:xT]
@@ -97,7 +105,25 @@ x̄, ū = nominal_trajectory(prob)
 x[1] = u[1][2:3]
 x̄[1] = ū[1][2:3]
 
-# Visualize
-using Plots
-plot(hcat(x...)[:, 1:T]', color = :black, label = "")
-# plot(hcat(u..., u[end])', linetype = :steppost)
+plt = plot(hcat([xt[1:2] for xt in x]...)',
+	width = 2.0,
+	color = [:cyan :orange],
+	label = ["x" "ẋ"],
+	xlabel = "time step",
+	ylabel = "state")
+
+savefig(plt,
+	joinpath("/home/taylor/Research/parameter_optimization_manuscript/figures/di_initial_state.png"))
+
+plt = plot(hcat([ut[1] for ut in u]..., u[end][1])',
+	width = 2.0,
+	color = :magenta,
+	linetype = :steppost,
+	xlabel = "time step",
+	ylabel = "control",
+	label = "")
+
+savefig(plt,
+	joinpath("/home/taylor/Research/parameter_optimization_manuscript/figures/di_initial_control.png"))
+
+@show u[1][2]

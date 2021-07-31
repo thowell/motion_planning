@@ -1,48 +1,43 @@
 using Plots
 
 # Model
-include_model("planar_push_block_v3")
+include_model("bimanipulation_block_v2")
 
 # Horizon
-T = 20
+T = 26
 
 # Time step
-tf = 1.0
+tf = 2.5
 h = tf / (T-1)
 
 
 # Bounds
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] .= Inf
-_uu[model.idx_u[1:2]] .= 10.0
-_uu[model.idx_λ[1:4]] .= 1.0
+_uu[model.idx_u[1:4]] .= 10.0
 _ul = zeros(model.m)
 _ul[model.idx_u] .= -Inf
-_ul[model.idx_u[1:2]] .= -10.0
-_ul[model.idx_λ[1:4]] .= 1.0
+_ul[model.idx_u[1:4]] .= -10.0
 
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-q1 = [0.0, 0.0, 0.0, -2 * r, 0.0]
+ϵ = 1.0e-8
+q1 = [0.0, r, 0.0, -r - ϵ, r, r + ϵ, r]
 x1 = [q1; q1]
-# qT = [0.0, 0.0, 1.0 * π, 0.0, -r-1.0e-8]
-
-# qT = [1.0, 1.0, π, 0.0, -r-1.0e-8]
-x_goal = 1.0
-y_goal = 0.0
-θ_goal = 1.0 * π
-qT = [x_goal, y_goal, θ_goal, x_goal-r, y_goal-r]
-
+ϕ_func(model, q1)
+x_shift = 0.0
+z_shift = 0.25
+qT = [x_shift, r + z_shift, 0.0, -r + x_shift, r + z_shift, r + x_shift, r + z_shift]
+ϕ_func(model, qT)
 xT = [qT; qT]
 xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
-xl[T][4:5] .= -Inf
-xl[T][9:10] .= -Inf
-xu[T][4:5] .= Inf
-xu[T][9:10] .= Inf
+
+ϕ_func(model, zeros(7))
+P_func(model, zeros(7))
 
 # Objective
-include_objective("velocity")
+include_objective(["velocity", "nonlinear_stage", "control_velocity"])
 obj_velocity = velocity_objective(
     [t > T / 2 ? Diagonal(1.0 * ones(model.nq)) : Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
     model.nq,
@@ -50,17 +45,39 @@ obj_velocity = velocity_objective(
     idx_angle = collect([3]))
 
 obj_tracking = quadratic_tracking_objective(
-    [Diagonal(1.0 * ones(model.n)) for t = 1:T],
+    [Diagonal(0.0 * ones(model.n)) for t = 1:T],
     # [Diagonal(0.1 * ones(model.m)) for t = 1:T-1],
-	[Diagonal([0.001 * ones(model.nu);
+	[Diagonal([0.0 * ones(model.nu);
 		zeros(model.nc);
 		ones(model.nb);
 		zeros(model.m - model.nu - model.nc - model.nb)]) for t = 1:T-1],
     [xT for t = 1:T],
     [zeros(model.m) for t = 1:T])
 
-obj_penalty = PenaltyObjective(1.0e4, model.m)
-obj = MultiObjective([obj_tracking, obj_penalty, obj_velocity])
+function l_stage(x, u, t)
+	J = 0.0
+	p_box = view(x, 7 .+ (1:2))
+	p_pusher1 = view(x, 7 .+ (4:5))
+	p_pusher2 = view(x, 7 .+ (6:7))
+
+	ϕ = ϕ_func(model, view(x, 7 .+ (1:7)))
+	if true
+		J += 1.0 * sum(ϕ[5:6].^2.0)
+		# J += 100.0 * sum((p_box - p_pusher1).^2.0)
+		# J += 100.0 * sum((p_box - p_pusher2).^2.0)
+	end
+
+	return J
+end
+
+obj_stage = nonlinear_stage_objective(l_stage, l_stage)
+
+obj_penalty = PenaltyObjective(1.0e5, model.m)
+
+obj_ctrl_velocity = control_velocity_objective(Diagonal([1.0 * ones(model.nu)..., 0.0e-3 * ones(model.nc + model.nb)..., zeros(model.m - model.nu - model.nc - model.nb)...]))
+
+obj = MultiObjective([obj_tracking,
+	obj_penalty, obj_velocity, obj_stage, obj_ctrl_velocity])
 
 # Constraints
 include_constraints(["contact", "stage"])
@@ -88,8 +105,7 @@ z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories
 # Solve nominal problem
-@time z̄, info = solve(prob, copy(z0),
-	tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 2500)
+@time z̄, info = solve(prob, copy(z0), tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 2000)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
@@ -108,17 +124,8 @@ render(vis)
 visualize!(vis, model,
     q, u,
     Δt = h,
-	r = model.block_dim[1] + model.block_rnd)
+	r = model.block_dim[1])
 
 plot(hcat(q̄...)', color = :red, width = 1.0, labels = "")
-plot(hcat([ū..., ū[end]]...)[model.idx_u[1:2], :]', linetype = :steppost, color = :black, width = 1.0, labels = "")
-
-q_array = hcat(q...)
-u_array = hcat(u...)
-
-traj = Dict("q" => q_array, "u" => u_array)
-
-# using NPZ
-# i = 2
-# file_path = joinpath(pwd(), "examples/contact_implicit/manipulation/", "traj$i.npz")
-# npzwrite(file_path, traj)
+plot(hcat([ū..., ū[end]]...)[model.idx_u[1:2], :]', linetype = :steppost, width = 1.0, labels = ["x" "z"])
+plot(hcat([ū..., ū[end]]...)[model.idx_u[3:4], :]', linetype = :steppost, width = 1.0, labels = ["x" "z"])

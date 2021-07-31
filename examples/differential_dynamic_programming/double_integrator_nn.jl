@@ -149,7 +149,6 @@ for i = 1:N
 	x1[(i - 1) * (model.n) + 1] = 0.0 + x1_add[i]
 end
 
-
 ū = [1.0 * randn(models.m[t]) for t = 1:T-1]
 wi = [0.0, 0.0, 0.0, 0.0, 0.0]
 

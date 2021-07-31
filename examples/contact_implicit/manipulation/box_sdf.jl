@@ -18,15 +18,16 @@ function sd_2d_box(p, pose, dim, rnd)
 end
 
 # box parameters
-dim = [1.0, 1.0]
-rnd = 0.01
+dim = [0.1, 0.1]
+rnd = 0.0
 dim_rnd = dim .- rnd
 
 # setup
-p = [0.5 * sqrt(2.0), 0.5 * sqrt(2.0)]
+# p = [0.5 * sqrt(2.0), 0.5 * sqrt(2.0)]
+p = [0.0999, 0.0]
 px = 0.0
 py = 0.0
-θ = 0.25 * π
+θ = 0.0 * π
 pose = [px, py, θ]
 
 # problem
@@ -34,6 +35,7 @@ pose = [px, py, θ]
 
 sd_pose(x) = sd_2d_box(p, x, dim_rnd, rnd)
 @show Npose = ForwardDiff.gradient(sd_pose, pose)
+ForwardDiff.gradient(x->norm(x), zeros(3))
 
 sd_p(x) = sd_2d_box(x, pose, dim_rnd, rnd)
 @show Np = ForwardDiff.gradient(sd_p, p)
