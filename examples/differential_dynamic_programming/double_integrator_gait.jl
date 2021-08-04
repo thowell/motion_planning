@@ -42,9 +42,9 @@ x̄ = rollout(model, x1, ū, w, h, T)
 
 # Objective
 Q = [(t < T ? h : 1.0) * (t > 1 ? Diagonal([ones(2); zeros(2)]) : Diagonal(ones(2))) for t = 1:T]
-q = [(t < T ? h : 1.0) * (t > 1 ? -2.0 * Q[t] * [xT; zeros(2)] : -2.0 * Q[t] * xT) for t = 1:T]
+q = [(t > 1 ? -2.0 * Q[t] * [xT; zeros(2)] : -2.0 * Q[t] * xT) for t = 1:T]
 R = h * [t > 1 ? Diagonal(1.0 * ones(1)) : Diagonal([1.0; 1.0e-5 * ones(model.n)]) for t = 1:T-1]
-r = h * [zeros(m[t]) for t = 1:T-1]
+r = [zeros(m[t]) for t = 1:T-1]
 obj = StageCosts([QuadraticCost(Q[t], q[t],
 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)
 
@@ -57,7 +57,7 @@ function g(obj::StageCosts, x, u, t)
 		r = obj.cost[t].r
         return x' * Q * x + q' * x + u' * R * u + r' * u
     elseif t == T
-		Q = obj.cost[T].Q
+		Q = o bj.cost[T].Q
 		q = obj.cost[T].q
         return x' * Q * x + q' * x
     else

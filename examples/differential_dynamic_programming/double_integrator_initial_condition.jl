@@ -39,8 +39,8 @@ x̄ = rollout(model, x1, ū, w, h, T)
 
 # Objective
 Q = [(t < T ? h : 1.0) * Diagonal([1.0; 1.0]) for t = 1:T]
-q = [(t < T ? h : 1.0) * -2.0 * Q[t] * xT for t = 1:T]
-R = [Diagonal(1.0 * ones(m[t])) for t = 1:T-1]
+q = [-2.0 * Q[t] * xT for t = 1:T]
+R = [(t < T ? h : 1.0) * Diagonal(1.0 * ones(m[t])) for t = 1:T-1]
 r = [zeros(m[t]) for t = 1:T-1]
 obj = StageCosts([QuadraticCost(Q[t], q[t],
 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)

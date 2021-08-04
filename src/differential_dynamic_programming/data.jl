@@ -76,6 +76,8 @@ struct ModelData{X, U, D, S}
 
     # z = (x1...,xT,u1,...,uT-1) | Δz = (Δx1...,ΔxT,Δu1,...,ΔuT-1)
     z::Vector{S}
+
+	analytical_derivatives::Bool
 end
 
 ModelsData = Vector{ModelData}
@@ -83,7 +85,8 @@ ModelsData = Vector{ModelData}
 function model_data(model, obj, w, h, T;
 	n = [model.n for t = 1:T],
 	m = [model.m for t = 1:T-1],
-	d = [model.d for t = 1:T-1])
+	d = [model.d for t = 1:T-1],
+	analytical_derivatives = false)
 
     num_var = sum(n) + sum(m)
 
@@ -98,7 +101,8 @@ function model_data(model, obj, w, h, T;
 
     z = zeros(num_var)
 
-    ModelData(x, u, w, h, T, x̄, ū, model, n, m, d, obj, dyn_deriv, obj_deriv, z)
+    ModelData(x, u, w, h, T, x̄, ū, model, n, m, d, obj, dyn_deriv, obj_deriv, z,
+		analytical_derivatives)
 end
 
 function Δz!(m_data::ModelData)
@@ -239,13 +243,15 @@ end
 function problem_data(model::Model, obj::StageCosts, x̄, ū, w, h, T;
 	n = [model.n for t = 1:T],
 	m = [model.m for t = 1:T-1],
-	d = [model.d for t = 1:T-1])
+	d = [model.d for t = 1:T-1],
+	analytical_dynamics_derivatives = false)
 
 	# allocate policy data
     p_data = policy_data(model, T, n = n, m = m)
 
     # allocate model data
-    m_data = model_data(model, obj, w, h, T, n = n, m = m, d = d)
+    m_data = model_data(model, obj, w, h, T, n = n, m = m, d = d,
+		analytical_derivatives = analytical_dynamics_derivatives)
     m_data.x̄ .= x̄
     m_data.ū .= ū
 
@@ -283,7 +289,8 @@ function problem_data(model, obj::StageCosts, con_set::ConstraintSet,
 		x̄, ū, w, h, T;
 		n = [model.n for t = 1:T],
 		m = [model.m for t = 1:T-1],
-		d = [model.d for t = 1:T-1])
+		d = [model.d for t = 1:T-1],
+		analytical_dynamics_derivatives = false)
 
 	# constraints
 	c_data = constraints_data(model, [c.p for c in con_set], T, n = n, m = m)
@@ -296,7 +303,8 @@ function problem_data(model, obj::StageCosts, con_set::ConstraintSet,
     p_data = policy_data(model, T, n = n, m = m)
 
     # allocate model data
-    m_data = model_data(model, obj_al, w, h, T, n = n, m = m, d = d)
+    m_data = model_data(model, obj_al, w, h, T, n = n, m = m, d = d,
+		analytical_derivatives = analytical_dynamics_derivatives)
     m_data.x̄ .= x̄
     m_data.ū .= ū
 

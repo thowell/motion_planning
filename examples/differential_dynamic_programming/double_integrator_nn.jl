@@ -159,14 +159,15 @@ w = [vcat(wi...) for t = 1:T-1]
 x̄ = rollout(models, x1, ū, w, h, T)
 
 # Objective
-_R = 1.0e-1 * ones(N * model.m)
+_R = 0.1 * ones(N * model.m)
+_p = 0.01
 
 Q = [(t < T ?
-	 Diagonal(vcat([[1.0; 1.0] for i = 1:N]..., (t == 1 ? zeros(0) : _R)..., 1.0e-6 * ones(t == 1 ? 0 : models.p)))
-	: Diagonal(vcat([[1.0; 1.0] for i = 1:N]..., (t == 1 ? zeros(0) : _R)..., 1.0e-6 * ones(t == 1 ? 0 : models.p)))) for t = 1:T]
+	 Diagonal(vcat([h * [1.0; 1.0] for i = 1:N]..., (t == 1 ? zeros(0) : h * _R)..., _p * ones(t == 1 ? 0 : models.p)))
+	: Diagonal(vcat([[1.0; 1.0] for i = 1:N]..., (t == 1 ? zeros(0) : h * _R)..., _p * ones(t == 1 ? 0 : models.p)))) for t = 1:T]
 q = [-2.0 * Q[t] * xT[t] for t = 1:T]
 
-R = [Diagonal(t == 1 ? [_R; 1.0 * ones(models.p)] : _R) for t = 1:T-1]
+R = [Diagonal(t == 1 ? [h * _R; _p * ones(models.p)] : h * _R) for t = 1:T-1]
 r = [zeros(models.m[t]) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
@@ -192,13 +193,14 @@ end
 # Constraints
 ns = models.N * models.model.n
 ms = models.N * models.model.m
-p_con = [t == T ? ns : ms for t = 1:T]
-ul = [-Inf]
-uu = [Inf]
+p_con = [t == 1 ? ms : (t == T ? ns + 2 * ms : 2 * ms + ms) for t = 1:T]
+ul = [-10.0]
+uu = [10.0]
 info_t = Dict()
-info_T = Dict(:xT => _xT)
+info_t = Dict(:ul => ul, :uu => uu, :inequality => collect(ms .+ (1:2 * ms)))
+info_T = Dict(:xT => _xT, :ul => ul, :uu => uu, :inequality => collect(ns .+ (1:2 * ms)))
 
-con_set = [StageConstraint(p_con[t], t < T ? info_t : info_T) for t = 1:T]
+con_set = [StageConstraint(p_con[t], t == 1 ? info_1 : (t == T ? info_T : info_t)) for t = 1:T]
 
 function c!(c, cons::StageConstraints, x, u, t)
 	T = cons.T
@@ -212,12 +214,26 @@ function c!(c, cons::StageConstraints, x, u, t)
 
 	if t < T
 		c[1:ms] = view(u, 1:ms)
+		if t > 1
+			for i = 1:N
+				c[ms .+ (i - 1) * 2 * m .+ (1:m)] = view(x, ns + (i - 1) * m .+ (1:m)) - cons.con[t].info[:uu]
+				c[ms .+ (i - 1) * 2 * m + m .+ (1:m)] = cons.con[t].info[:ul] - view(x, ns + (i - 1) * m .+ (1:m))
+			end
+		end
 	end
 
 	if t == T
 		for i = 1:N
 			c[(i - 1) * n .+ (1:n)] .= view(x, (i - 1) * n .+ (1:n)) - cons.con[T].info[:xT]
 		end
+		for i = 1:N
+			c[ns .+ (i - 1) * 2 * m .+ (1:m)] = view(x, ns + (i - 1) * m .+ (1:m)) - cons.con[t].info[:uu]
+			c[ns .+ (i - 1) * 2 * m + m .+ (1:m)] = cons.con[t].info[:ul] - view(x, ns + (i - 1) * m .+ (1:m))
+		end
+	end
+
+	if t > 2
+
 	end
 end
 

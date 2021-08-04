@@ -38,9 +38,9 @@ x̄ = rollout(model, x1, ū, w, h, T)
 Q = [(t < T ? h : 1.0) * (t < T ?
 	 Diagonal([1.0; 1.0])
 		: Diagonal([1.0; 1.0])) for t = 1:T]
-q = [(t < T ? h : 1.0) * -2.0 * Q[t] * x_ref[t] for t = 1:T]
+q = [-2.0 * Q[t] * x_ref[t] for t = 1:T]
 R = h * [Diagonal(1.0 * ones(model.m)) for t = 1:T-1]
-r = h * [zeros(model.m) for t = 1:T-1]
+r = [zeros(model.m) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)
@@ -83,7 +83,8 @@ function c!(c, cons::StageConstraints, x, u, t)
 	end
 end
 
-prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
+prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
+	analytical_dynamics_derivatives = true)
 
 # Solve
 @time constrained_ddp_solve!(prob,
