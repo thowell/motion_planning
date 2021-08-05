@@ -188,6 +188,7 @@ end
 model = HopperCI{Midpoint, FixedTime}(2 * s.model.dim.q, s.model.dim.u, 0, d)
 
 np = model.n
+nq = model.dynamics.s.model.dim.q
 function fd(model::HopperCI{Midpoint, FixedTime}, x, u, w, h, t)
 	nq = model.dynamics.s.model.dim.q
 	nu = model.dynamics.s.model.dim.u
@@ -291,11 +292,12 @@ q0 = [0.0; 0.5; 0.0; 0.5]
 q1 = [0.0; 0.5; 0.0; 0.5]
 qM = [0.5; 0.5; 0.0; 0.5]
 qT = [1.0; 0.5; 0.0; 0.5]
-q_ref = [0.0; 0.5; 0.0; 0.5]
+q_ref = [0.5; 0.75; 0.0; 0.25]
 
 x1 = [q1; q1]
 xM = [qM; qM]
 xT = [qT; qT]
+x_ref = [q_ref; q_ref]
 
 ū = [t == 1 ? [0.0; s.model.g * (s.model.mb + s.model.ml) * 0.5 * h; x1] : [0.0; s.model.g * (s.model.mb + s.model.ml) * 0.5 * h] for t = 1:T-1]
 w = [zeros(model.d) for t = 1:T-1]
@@ -304,12 +306,12 @@ w = [zeros(model.d) for t = 1:T-1]
 x̄ = rollout(model, x1, ū, w, h, T)
 
 # Objective
-Q = [(t == 1 ? 0.1 * Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0])
+Q = [(t == 1 ? 0.1 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0])
 	: t == T ? Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; zeros(model.n)])
-	: 0.1 * Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; zeros(model.n)])) for t = 1:T]
-q = [t == 1 ? -2.0 * Q[t] * (t < 6 ? xT : xT) : -2.0 * Q[t] * [(t < 6 ? xT : xT); zeros(model.n)] for t = 1:T]
-R = [t == 1 ? Diagonal([1.0e-5 * ones(model.m); 1.0e-5 * ones(model.n)]) : Diagonal(1.0e-3 * ones(model.m)) for t = 1:T-1]
-r = [t == 1 ? zeros(model.m + model.n) : zeros(model.m) for t = 1:T-1]
+	: 0.1 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0; zeros(model.n)])) for t = 1:T]
+q = [t == 1 ? -2.0 * Q[t] * (t < 6 ? x_ref : x_ref) : -2.0 * Q[t] * [(t < 6 ? x_ref : x_ref); zeros(model.n)] for t = 1:T]
+R = [t == 1 ? Diagonal([1.0e-3 * ones(model.m); 1.0e-1 * ones(nq); 1.0e-5 * ones(nq)]) : Diagonal(1.0e-3 * ones(model.m)) for t = 1:T-1]
+r = [t == 1 ? [zeros(model.m); -2.0 * R[t][1:nq, 1:nq] * x1[1:nq]; zeros(nq)] : zeros(model.m) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)
@@ -334,11 +336,11 @@ end
 # Constraints
 ul = [-10.0; -10.0]
 uu = [10.0; 10.0]
-p = [t < T ? (t == 1 ? 2 * model.m + model.n : (t == 6 ? 2 * model.m + 0 * model.n : 2 * model.m)) : model.n for t = 1:T]
+p = [t < T ? (t == 1 ? 2 * model.m + nq + 2 * 2 : (t == 6 ? 2 * model.m + 0 * model.n : 2 * model.m)) : (model.n - 2) + 2 for t = 1:T]
 info_1 = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
 info_M = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
-info_T = Dict(:xT => xT)
+info_T = Dict(:xT => xT, :inequality => (1:2))
 con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : (t == 6 ? info_M : info_t)) : info_T) for t = 1:T]
 
 function c!(c, cons::StageConstraints, x, u, t)
@@ -352,14 +354,24 @@ function c!(c, cons::StageConstraints, x, u, t)
 		c[1:(2 * model.m)] .= [ul - u1; u1 - uu]
 
 		if t == 1
-			c[2 * model.m .+ (1:model.n)] .= u[model.m .+ (1:model.n)] - x1
+			# c[2 * model.m .+ (1:model.n)] .= u[model.m .+ (1:model.n)] - x1
+			c[2 * model.m .+ (1:nq)] .= u[model.m .+ (1:nq)] - x1[1:nq]
+			c[2 * model.m + nq .+ (1:2)] = kinematics(model.dynamics.s.model, u[model.m .+ (1:nq)]) - kinematics(model.dynamics.s.model, x1[1:nq])
+			c[2 * model.m + nq + 2 .+ (1:2)] = kinematics(model.dynamics.s.model, u[model.m + nq .+ (1:nq)]) - kinematics(model.dynamics.s.model, x1[nq .+ (1:nq)])
 		end
 
 		# if t == 6
 		# 	c[2 * model.m .+ (1:model.n)] .= x[1:model.n] - xM
 		# end
 	else
-		c .= x[1:model.n] - cons.con[T].info[:xT]
+		x_travel = 0.5
+		θ = x[model.n .+ (1:model.n)]
+
+		c[1] = x_travel - (x[1] - θ[1])
+		c[2] = x_travel - (x[nq + 1] - θ[nq + 1])
+		# c[2 .+ (1:model.n)] .= x[1:model.n] - cons.con[T].info[:xT]
+		c[2 .+ (1:3)] = x[1:nq][collect([2, 3, 4])] - θ[nq .+ (1:nq)][collect([2, 3, 4])]
+		c[2 + 3 .+ (1:3)] = x[nq .+ (1:nq)][collect([2, 3, 4])] - θ[nq .+ (1:nq)][collect([2, 3, 4])]
 	end
 end
 
