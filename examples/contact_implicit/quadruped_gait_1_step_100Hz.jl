@@ -2,7 +2,7 @@ using Plots
 
 # Model
 include_model("quadruped")
-model = free_time_model(model)
+# model = free_time_model(model)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
@@ -13,8 +13,8 @@ T = 31
 T_fix = 5
 
 # Time step
-tf = 0.625
-h = tf / (T - 1)
+# tf = 0.625
+h = 0.01#tf / (T - 1)
 
 # Permutation matrix
 perm = @SMatrix [1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0;
@@ -112,10 +112,10 @@ plot!(tr, hcat(pf2_ref...)')
 # ul <= u <= uu
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] .= 33.5 * h
-_uu[end] = 2.0 * h
+# _uu[end] = 2.0 * h
 _ul = zeros(model.m)
 _ul[model.idx_u] .= -33.5 * h
-_ul[end] = 0.75 * h
+# _ul[end] = 0.75 * h
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 xl, xu = state_bounds(model, T,
@@ -130,16 +130,15 @@ visualize!(vis, model, q_ref, Δt = h)
 x0 = configuration_to_state(q_ref)
 
 # penalty on slack variable
-obj_penalty = PenaltyObjective(1.0e4, model.m - 1)
+obj_penalty = PenaltyObjective(1.0e4, model.m)
 
 # quadratic tracking objective
 # Σ (x - xref)' Q (x - x_ref) + (u - u_ref)' R (u - u_ref)
-obj_control = quadratic_time_tracking_objective(
+obj_control = quadratic_tracking_objective(
     [1.0 * Diagonal(1.0e-5 * ones(model.n)) for t = 1:T],
     [1.0 * Diagonal([1.0e-3 * ones(model.nu)..., 1.0e-3 * ones(model.nc + model.nb)..., zeros(model.m - model.nu - model.nc - model.nb)...]) for t = 1:T-1],
     [[qT; qT] for t = 1:T],
-    [zeros(model.m) for t = 1:T],
-    1.0)
+    [zeros(model.m) for t = 1:T])
 
 # quadratic velocity penalty
 #Σ v' Q v
@@ -181,7 +180,7 @@ obj = MultiObjective([obj_penalty,
 					  obj_shaping,
 					  obj_ctrl_velocity])
 # Constraints
-include_constraints(["stage", "contact", "free_time", "loop"])
+include_constraints(["stage", "contact", "loop"])
 function pinned1!(c, x, u, t)
     q = view(x, 1:11)
     c[1:2] = pr1_ref[t] - kinematics_2(model, q, body = :calf_1, mode = :ee)
@@ -203,16 +202,15 @@ con_pinned1 = stage_constraints(pinned1!, n_stage, (1:0), t_idx1)
 con_pinned2 = stage_constraints(pinned2!, n_stage, (1:0), t_idx2)
 
 con_contact = contact_constraints(model, T)
-con_free_time = free_time_constraints(T)
 con_loop = loop_constraints(model, collect([(2:model.nq)...,
 	(nq .+ (2:model.nq))...]), 1, T, perm = Array(cat(perm, perm, dims = (1,2))))
-con = multiple_constraints([con_contact, con_loop,
-    con_free_time, con_pinned1, con_pinned2])
+con = multiple_constraints([con_contact, con_loop, con_pinned1, con_pinned2])
 
 # Problem
 prob = trajectory_optimization_problem(model,
                obj,
                T,
+			   h = h,
                xl = xl,
                xu = xu,
                ul = ul,
@@ -220,7 +218,7 @@ prob = trajectory_optimization_problem(model,
                con = con)
 
 # trajectory initialization
-u0 = [[1.0e-3 * rand(model.m - 1); h] for t = 1:T-1] # random controls
+u0 = [1.0e-3 * rand(model.m) for t = 1:T-1] # random controls
 
 # Pack trajectories into vector
 z0 = pack(x0, u0, prob)
@@ -228,20 +226,17 @@ z0 = pack(x0, u0, prob)
 # Solve
 @time z̄, info = solve(prob, copy(z0),
     nlp = :ipopt,
-    tol = 1.0e-3, c_tol = 1.0e-3,
+    tol = 1.0e-2, c_tol = 1.0e-2,
 	max_iter = 2000,
     time_limit = 60 * 2, mapl = 5)
 
 check_slack(z̄, prob)
 x̄, ū = unpack(z̄, prob)
 q̄ = state_to_configuration(x̄)
-_tf, _t, h̄ = get_time(ū)
-@show h̄[1]
-
 
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, state_to_configuration(x̄), Δt = h̄[1])
+visualize!(vis, model, state_to_configuration(x̄), Δt = h)
 
 # check foot trajectories
 _pr1_ref = [kinematics_2(model, q, body = :calf_1, mode = :ee) for q in q̄]
@@ -315,8 +310,7 @@ end
 
 qm, um, γm, bm, ψm, ηm = mirror_gait(q, u, γ, b, ψ, η, T)
 
-@save joinpath(@__DIR__, "quadruped_mirror_gait.jld2") qm um γm bm ψm ηm μm hm
-# @load joinpath(@__DIR__, "quadruped_mirror_gait.jld2") qm um γm bm ψm ηm μm hm
+@save joinpath(@__DIR__, "quadruped_gait_100Hz.jld2") qm um γm bm ψm ηm μm hm
 
 plot(hcat(q...)', color = :black, width = 2.0, label = "")
 plot!(hcat(qm...)', color = :red, width = 1.0, label = "")
@@ -330,21 +324,9 @@ plot!(hcat(γm...)', color = :red, width = 1.0, label = "", linetype = :steppost
 plot(hcat(b...)', color = :black, width = 2.0, label = "", linetype = :steppost)
 plot!(hcat(bm...)', color = :red, width = 1.0, label = "", linetype = :steppost)
 
-function get_q_viz(q̄)
-	q_viz = [q̄...]
-	shift_vec = zeros(model.nq)
-	shift_vec[1] = q̄[end][1]
-	for i = 1:5
-		q_update = [q + shift_vec for q in q̄[2:end]]
-		push!(q_viz, q_update...)
-		shift_vec[1] = q_update[end][1]
-	end
-
-	return q_viz
-end
 
 vis = Visualizer()
 render(vis)
 visualize!(vis, model,
 	qm,
-	Δt = h̄[1])
+	Δt = h)

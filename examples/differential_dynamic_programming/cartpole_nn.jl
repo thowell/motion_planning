@@ -93,7 +93,9 @@ function policy(θ, x, t, n, m)
 	# # z3 = tanh.(K3 * z2 + k3)
 	#
 	# zo = Ko * z2 + ko
+	x_mean = mean(x)
 
+	x_input = x .- x_mean
 	# 1 layer
 	p_policy = dp * model.n * model.n + dp * model.n + model.m * dp * model.n + model.m
 
@@ -335,7 +337,7 @@ include(joinpath(@__DIR__, "simulate.jl"))
 # Model
 model_sim = Cartpole{RK3, FixedTime}(n, m, d, 1.0, 0.2, 0.5, 9.81)
 x1_sim = copy(x1[1:model.n])
-T_sim = 10 * T
+T_sim = 1 * T
 
 # Time
 tf = h * (T - 1)
@@ -350,7 +352,7 @@ u_sim = []
 J_sim = []
 Random.seed!(1)
 for k = 1:N_sim
-	wi_sim = 0.0 #rand(range(-2.0, stop = 2.0, length = 1000))
+	wi_sim = rand(range(-0.0, stop = 0.0, length = 1000))
 	println("w: $wi_sim")
 	# w_sim = [wi_sim for t = 1:T-1]
 	w_sim = [wi_sim for t = 1:T-1]

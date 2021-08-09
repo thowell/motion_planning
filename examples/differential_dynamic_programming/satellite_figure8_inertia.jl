@@ -97,7 +97,7 @@ function g(obj::StageCosts, x, u, t)
 		# energy
 		if t == 1
 			inertia = Diagonal(u[4:6])
-			J += 1.0e-5 * transpose(u[4:6] - J_nominal) * (u[4:6] - J_nominal)
+			J += 1.0e-5 * transpose(u[4:6] - J_nominal) * (u[4:6] - J_nominal) # regularization to ensure positive-definiteness
 		else
 			inertia = Diagonal(x[7:9])
 		end
@@ -164,8 +164,8 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
-u[1][4:6]
-
+prob.s_data.obj
+J_opt = u[1][4:6]
 plot(hcat([ut[1:3] for ut in ū]...)', linetype = :steppost)
 
 # Visualize
@@ -173,6 +173,7 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 visualize!(vis, model, x, Δt = h)
+
 
 p = [kinematics(model, view(xt, 1:3)) for xt in x]
 px = [pt[1] for pt in p]
@@ -190,3 +191,18 @@ plot(zf)
 
 plot(xf, yf, zf, aspect_ratio = :equal)
 plot!(px, py, pz, aspect_ratio = :equal)
+
+
+function kinematics(model::Satellite, q)
+	p = @SVector [0.75, 0.0, 0.0]
+	k = MRP(view(q, 1:3)...) * p
+	return k
+end
+p = [kinematics(model, view(xt, 1:3)) for xt in x]
+points = Vector{Point{3,Float64}}()
+for _p in p
+	push!(points, Point(_p...))
+end
+
+line_mat = LineBasicMaterial(color=color=RGBA(1.0, 1.0, 1.0, 1.0), linewidth=5)
+setobject!(vis[:figure8], MeshCat.Line(points, line_mat))

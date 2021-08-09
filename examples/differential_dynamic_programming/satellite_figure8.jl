@@ -116,6 +116,7 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
 	con_tol = 1.0e-3,
 	cache = false)
 
+prob.s_data.obj
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 

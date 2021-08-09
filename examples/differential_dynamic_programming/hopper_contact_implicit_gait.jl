@@ -67,7 +67,7 @@ include(joinpath(contact_control_path, "dynamics/visual_utils.jl"))
 
 s = get_simulation("hopper_2D", "flat_2D_lc", "flat")
 
-n = s.model.dim.q
+nq = s.model.dim.q
 m = s.model.dim.u
 
 T = 11
@@ -363,14 +363,15 @@ function c!(c, cons::StageConstraints, x, u, t)
 		# if t == 6
 		# 	c[2 * model.m .+ (1:model.n)] .= x[1:model.n] - xM
 		# end
-	else
+	end
+	if t == T
 		x_travel = 0.5
 		θ = x[model.n .+ (1:model.n)]
 
 		c[1] = x_travel - (x[1] - θ[1])
 		c[2] = x_travel - (x[nq + 1] - θ[nq + 1])
 		# c[2 .+ (1:model.n)] .= x[1:model.n] - cons.con[T].info[:xT]
-		c[2 .+ (1:3)] = x[1:nq][collect([2, 3, 4])] - θ[nq .+ (1:nq)][collect([2, 3, 4])]
+		c[2 .+ (1:3)] = x[1:nq][collect([2, 3, 4])] - θ[1:nq][collect([2, 3, 4])]
 		c[2 + 3 .+ (1:3)] = x[nq .+ (1:nq)][collect([2, 3, 4])] - θ[nq .+ (1:nq)][collect([2, 3, 4])]
 	end
 end
@@ -389,10 +390,66 @@ x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 q̄ = state_to_configuration(x̄)
-
+q̄[1] = ū[1][model.m .+ (1:nq)]
+q̄[2] = ū[1][model.m + nq .+ (1:nq)]
 vis = Visualizer()
 render(vis)
-visualize!(vis, s.model, q̄, Δt = h)
+# visualize!(vis, s.model, q̄, Δt = h)
+
+ # x̄[T][1:model.n] - ū[1][model.m .+ (1:model.n)]
+
+function mirror_gait(q, T; n = 5)
+	qm = [deepcopy(q)...]
+	um = [deepcopy(u)...]
+
+	stride = zero(qm[1])
+	strd = q[T+1][1] - q[2][1]
+	@show stride[1] += strd
+	@show 0.5 * stride
+
+	for i = 1:n-1
+		for t = 1:T-1
+			push!(qm, q[t+2] + stride)
+			push!(um, u[t])
+		end
+		stride[1] += strd
+	end
+	len = qm[end][1]
+
+	# center
+	for t = 1:length(qm)
+		qm[t][1] -= 0.5 * len
+	end
+
+	return qm, um
+end
+
+qm, um = mirror_gait(q̄, T)
+visualize!(vis, s.model, qm, Δt = h)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+
+body_points = Vector{Point{3,Float64}}()
+foot_points = Vector{Point{3,Float64}}()
+body_points_opt = Vector{Point{3,Float64}}()
+foot_points_opt = Vector{Point{3,Float64}}()
+for q in qm
+	push!(body_points, Point(q[1], 0.0, q[2]))
+	push!(body_points_opt, Point(q[1], -0.05, q[2]))
+
+	k = kinematics(s.model, q)
+	push!(foot_points, Point(k[1], 0.0, k[2]))
+	push!(foot_points_opt, Point(k[1], -0.05, k[2]))
+
+end
+line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=5.0)
+line_mat = LineBasicMaterial(color=color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=2.5)
+
+setobject!(vis[:body_traj], MeshCat.Line(body_points, line_mat))
+setobject!(vis[:foot_traj], MeshCat.Line(foot_points, line_mat))
+setobject!(vis[:body_traj_opt], MeshCat.Line(body_points_opt[1:T+1], line_opt_mat))
+setobject!(vis[:foot_traj_opt], MeshCat.Line(foot_points_opt[1:T+1], line_opt_mat))
 
 function visualize!(vis, model, q;
 		Δt = 0.1, scenario = :vertical)
@@ -452,199 +509,3 @@ function visualize!(vis, model, q;
 
     MeshCat.setanimation!(vis, anim)
 end
-
-
-
-# # Model
-# include_model("double_integrator")
-#
-# function f(model::DoubleIntegratorContinuous, x, u, w)
-#     [x[2]; (1.0 + w[1]) * u[1]]
-# end
-#
-# function fd(model::DoubleIntegratorContinuous{Midpoint, FixedTime}, x, u, w, h, t)
-# 	x + h * f(model, x + 0.5 * h * f(model, x, u, w), u, w)
-# end
-#
-# model = DoubleIntegratorContinuous{Midpoint, FixedTime}(2, 1, 1)
-# n = model.n
-# m = model.m
-#
-# # Time
-# T = 11
-# h = 0.1
-#
-# # Initial conditions, controls, disturbances
-# x1 = [1.0; 0.0]
-# x_ref = [[0.0; 0.0] for t = 1:T]
-# xT = [0.0; 0.0]
-# ū = [1.0 * randn(model.m) for t = 1:T-1]
-# u_ref = [zeros(model.m) for t = 1:T-1]
-# w = [zeros(model.d) for t = 1:T-1]
-#
-# # Rollout
-# x̄ = rollout(model, x1, ū, w, h, T)
-#
-# # Objective
-# Q = [(t < T ? h : 1.0) * (t < T ?
-# 	 Diagonal([1.0; 1.0])
-# 		: Diagonal([1.0; 1.0])) for t = 1:T]
-# q = [-2.0 * Q[t] * x_ref[t] for t = 1:T]
-# R = h * [Diagonal(1.0 * ones(model.m)) for t = 1:T-1]
-# r = [zeros(model.m) for t = 1:T-1]
-#
-# obj = StageCosts([QuadraticCost(Q[t], q[t],
-# 	t < T ? R[t] : nothing, t < T ? r[t] : nothing) for t = 1:T], T)
-#
-# function g(obj::StageCosts, x, u, t)
-# 	T = obj.T
-#     if t < T
-# 		Q = obj.cost[t].Q
-# 		q = obj.cost[t].q
-# 	    R = obj.cost[t].R
-# 		r = obj.cost[t].r
-#         return x' * Q * x + q' * x + u' * R * u + r' * u
-#     elseif t == T
-# 		Q = obj.cost[T].Q
-# 		q = obj.cost[T].q
-#         return x' * Q * x + q' * x
-#     else
-#         return 0.0
-#     end
-# end
-#
-# # Constraints
-# ul = [-5.0]
-# uu = [5.0]
-# p = [t < T ? 2 * m : n for t = 1:T]
-# info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m))
-# info_T = Dict(:xT => xT)
-# con_set = [StageConstraint(p[t], t < T ? info_t : info_T) for t = 1:T]
-#
-# function c!(c, cons::StageConstraints, x, u, t)
-# 	T = cons.T
-# 	p = cons.con[t].p
-#
-# 	if t < T
-# 		ul = cons.con[t].info[:ul]
-# 		uu = cons.con[t].info[:uu]
-# 		c .= [ul - u; u - uu]
-# 	else
-# 		c .= x - cons.con[T].info[:xT]
-# 	end
-# end
-#
-# prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
-#
-# # Solve
-# @time constrained_ddp_solve!(prob,
-# 	max_iter = 1000, max_al_iter = 10,
-# 	ρ_init = 1.0, ρ_scale = 10.0,
-# 	con_tol = 1.0e-5)
-#
-# x, u = current_trajectory(prob)
-# x̄, ū = nominal_trajectory(prob)
-#
-# # Visualize
-# using Plots
-# # plot(hcat([[0.0; 0.0] for t = 1:T]...)',
-# #     width = 2.0, color = :black, label = "")
-# plt = plot(hcat(x...)',
-# 	width = 2.0,
-# 	color = [:cyan :orange],
-# 	label = ["x" "ẋ"],
-# 	xlabel = "time step",
-# 	ylabel = "state")
-#
-# savefig(plt,
-# 	joinpath("/home/taylor/Research/parameter_optimization_manuscript/figures/di_base_state.png"))
-#
-# plt = plot(hcat(u..., u[end])',
-# 	width = 2.0,
-# 	color = :magenta,
-# 	linetype = :steppost,
-# 	xlabel = "time step",
-# 	ylabel = "control",
-# 	label = "")
-#
-# savefig(plt,
-# 	joinpath("/home/taylor/Research/parameter_optimization_manuscript/figures/di_base_control.png"))
-#
-# # Simulate policy
-# include(joinpath(@__DIR__, "simulate.jl"))
-#
-# # Model
-# model_sim = DoubleIntegratorContinuous{RK3, FixedTime}(model.n, model.m, model.d)
-# x1_sim = copy(x1)
-# T_sim = 10 * T
-#
-# # Time
-# tf = h * (T - 1)
-# t = range(0, stop = tf, length = T)
-# t_sim = range(0, stop = tf, length = T_sim)
-# dt_sim = tf / (T_sim - 1)
-#
-# # Policy
-# K = [K for K in prob.p_data.K]
-# plot(vcat(K...))
-# K = [prob.p_data.K[t] for t = 1:T-1]
-# # K, _ = tvlqr(model, x̄, ū, h, Q, R)
-# # # K = [-k for k in K]
-# # K = [-K[1] for t = 1:T-1]
-# # plot(vcat(K...))
-#
-# # Simulate
-# N_sim = 1
-# x_sim = []
-# u_sim = []
-# J_sim = []
-# Random.seed!(1)
-# for k = 1:N_sim
-# 	wi_sim = 0.0 * min(0.1, max(-0.1, 1.0e-1 * randn(1)[1]))
-# 	w_sim = [wi_sim for t = 1:T-1]
-# 	println("sim: $k - w = $(wi_sim[1])")
-#
-# 	x_ddp, u_ddp, J_ddp, Jx_ddp, Ju_ddp = simulate_linear_feedback(
-# 		model_sim,
-# 		K,
-# 	    x̄, ū,
-# 		x_ref, u_ref,
-# 		Q, R,
-# 		T_sim, h,
-# 		x1_sim,
-# 		w_sim,
-# 		ul = ul,
-# 		uu = uu)
-#
-# 	push!(x_sim, x_ddp)
-# 	push!(u_sim, u_ddp)
-# 	push!(J_sim, J_ddp)
-# end
-#
-# # Visualize
-# idx = (1:2)
-# plt = plot(t, hcat(x̄...)[idx, :]',
-# 	width = 2.0, color = :black, label = "",
-# 	xlabel = "time (s)", ylabel = "state",
-# 	title = "double integrator (J_avg = $(round(mean(J_sim), digits = 3)), N_sim = $N_sim)")
-#
-# for xs in x_sim
-# 	plt = plot!(t_sim, hcat(xs...)[idx, :]',
-# 	    width = 1.0, color = :magenta, label = "")
-# end
-# display(plt)
-#
-# plt = plot(t, hcat(ū..., ū[end])',
-# 	width = 2.0, color = :black, label = "",
-# 	xlabel = "time (s)", ylabel = "control",
-# 	linetype = :steppost,
-# 	title = "double integrator (J_avg = $(round(mean(J_sim), digits = 3)), N_sim = $N_sim)")
-#
-# for us in u_sim
-# 	plt = plot!(t_sim, hcat(us..., us[end])',
-# 		width = 1.0, color = :magenta, label = "",
-# 		linetype = :steppost)
-# end
-# display(plt)
-# # u_sim
-# # plot(vcat(K...))
