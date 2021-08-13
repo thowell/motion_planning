@@ -280,12 +280,14 @@ end
 fdu(model, x0, [u0; p0], zeros(0), h, 1)
 fdu(model, [x0; p0], u0, zeros(0), h, 2)
 
+
+# Time
+T = 21
+h = 0.05
+
 n = [t == 1 ? model.n : 2 * model.n for t = 1:T]
 m = [t == 1 ? model.m + model.n : model.m for t = 1:T-1]
 
-# Time
-T = 11
-h = 0.1
 
 # Initial conditions, controls, disturbances
 q0 = [0.0; 0.5; 0.0; 0.5]
@@ -338,10 +340,10 @@ ul = [-10.0; -10.0]
 uu = [10.0; 10.0]
 p = [t < T ? (t == 1 ? 2 * model.m + nq + 2 * 2 : (t == 6 ? 2 * model.m + 0 * model.n : 2 * model.m)) : (model.n - 2) + 2 for t = 1:T]
 info_1 = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
-info_M = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
+# info_M = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
 info_T = Dict(:xT => xT, :inequality => (1:2))
-con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : (t == 6 ? info_M : info_t)) : info_T) for t = 1:T]
+con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : (t == -1 ? info_M : info_t)) : info_T) for t = 1:T]
 
 function c!(c, cons::StageConstraints, x, u, t)
 	T = cons.T
@@ -382,7 +384,7 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 5,
+	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 1.0e-3)
 
@@ -435,22 +437,23 @@ foot_points = Vector{Point{3,Float64}}()
 body_points_opt = Vector{Point{3,Float64}}()
 foot_points_opt = Vector{Point{3,Float64}}()
 for q in qm
-	push!(body_points, Point(q[1], 0.0, q[2]))
+	push!(body_points, Point(q[1], -0.025, q[2]))
 	push!(body_points_opt, Point(q[1], -0.05, q[2]))
 
 	k = kinematics(s.model, q)
-	push!(foot_points, Point(k[1], 0.0, k[2]))
+	push!(foot_points, Point(k[1], -0.025, k[2]))
 	push!(foot_points_opt, Point(k[1], -0.05, k[2]))
 
 end
-line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=5.0)
-line_mat = LineBasicMaterial(color=color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=2.5)
+line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=10.0)
+line_mat = LineBasicMaterial(color=color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=5.0)
 
 setobject!(vis[:body_traj], MeshCat.Line(body_points, line_mat))
 setobject!(vis[:foot_traj], MeshCat.Line(foot_points, line_mat))
 setobject!(vis[:body_traj_opt], MeshCat.Line(body_points_opt[1:T+1], line_opt_mat))
 setobject!(vis[:foot_traj_opt], MeshCat.Line(foot_points_opt[1:T+1], line_opt_mat))
 
+open(vis)
 function visualize!(vis, model, q;
 		Δt = 0.1, scenario = :vertical)
 

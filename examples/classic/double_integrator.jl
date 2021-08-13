@@ -37,6 +37,7 @@ z0 = pack(x0, u0, prob)
 # Solve
 include_snopt() # set path
 @time z, info = solve(prob, copy(z0), nlp = :SNOPT7)
+@time z, info = solve(prob, copy(z0), nlp = :ipopt)
 
 # Visualize
 using Plots

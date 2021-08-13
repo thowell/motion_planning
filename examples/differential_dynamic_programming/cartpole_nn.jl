@@ -93,9 +93,7 @@ function policy(θ, x, t, n, m)
 	# # z3 = tanh.(K3 * z2 + k3)
 	#
 	# zo = Ko * z2 + ko
-	x_mean = mean(x)
 
-	x_input = x .- x_mean
 	# 1 layer
 	p_policy = dp * model.n * model.n + dp * model.n + model.m * dp * model.n + model.m
 
@@ -337,7 +335,7 @@ include(joinpath(@__DIR__, "simulate.jl"))
 # Model
 model_sim = Cartpole{RK3, FixedTime}(n, m, d, 1.0, 0.2, 0.5, 9.81)
 x1_sim = copy(x1[1:model.n])
-T_sim = 1 * T
+T_sim = 10 * T
 
 # Time
 tf = h * (T - 1)
@@ -352,7 +350,7 @@ u_sim = []
 J_sim = []
 Random.seed!(1)
 for k = 1:N_sim
-	wi_sim = rand(range(-0.0, stop = 0.0, length = 1000))
+	wi_sim = 0.0 * rand(range(-1.0, stop = 1.0, length = 1000))
 	println("w: $wi_sim")
 	# w_sim = [wi_sim for t = 1:T-1]
 	w_sim = [wi_sim for t = 1:T-1]
@@ -365,8 +363,8 @@ for k = 1:N_sim
 		T_sim, h,
 		[0.0; 0.0 + wi_sim; 0.0; 0.0],
 		[0.0 for t = 1:T-1],
-		ul = ul,
-		uu = uu)
+		ul = uL,
+		uu = uU)
 
 	push!(x_sim, x_nn)
 	push!(u_sim, u_nn)
@@ -378,21 +376,25 @@ idx = (1:4)
 plt = plot(t, hcat(x_ref...)[idx, :]',
 	width = 2.0, color = :black, label = "",
 	xlabel = "time (s)", ylabel = "state",
-	ylim = (-3.5, 3.5),
+	ylim = (-4.0, 8.0),
 	title = "cartpole (J_avg = $(round(mean(J_sim), digits = 3)), N_sim = $N_sim)")
 
 for xs in x_sim
 	plt = plot!(t_sim, hcat(xs...)[idx, :]',
-	    width = 1.0, color = :magenta, label = "")
+	    width = 2.0, color = :magenta, label = "")
 end
 display(plt)
+
+savefig("/home/taylor/Research/parameter_optimization_manuscript/figures/cartpole_nn_state.png")
+
 plt = plot(
 	label = "",
 	xlabel = "time (s)", ylabel = "control",
 	title = "cartpole (J_avg = $(round(mean(J_sim), digits = 3)), N_sim = $N_sim)")
 for us in u_sim
 	plt = plot!(t_sim, hcat(us..., us[end])',
-		width = 1.0, color = :magenta, label = "",
+		width = 2.0, color = :magenta, label = "",
 		linetype = :steppost)
 end
 display(plt)
+savefig("/home/taylor/Research/parameter_optimization_manuscript/figures/cartpole_nn_control.png")

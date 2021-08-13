@@ -24,7 +24,7 @@ Q = [(t < T ? Diagonal(h * [1.0; 1.0; 1.0; 1.0])
         : Diagonal(1.0 * ones(model.n))) for t = 1:T]
 q = [-2.0 * Q[t] * xT for t = 1:T]
 
-R = [h * Diagonal(1.0 * ones(model.m)) for t = 1:T-1]
+R = [h * Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
 r = [zeros(model.m) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
@@ -88,7 +88,8 @@ x̄, ū = nominal_trajectory(prob)
 plot(π * ones(T),
     width = 2.0, color = :black, linestyle = :dash)
 plot!(hcat(x̄...)', width = 2.0, label = "",
-	ylims = (-2.5, 3.5))
+	ylims = (-4.0, 8.0),
+    color = :cyan)
 plot(hcat(ū..., ū[end])',
     width = 2.0, linetype = :steppost)
 
@@ -113,7 +114,7 @@ dt_sim = tf / (T_sim - 1)
 
 # Policy
 K = [K for K in prob.p_data.K]
-plot(vcat(K...))
+# plot(vcat(K...))
 # K = [K[end] for k in K]
 # K = [prob.p_data.K[t] for t = 1:T-1]
 # K, _ = tvlqr(model, x̄, ū, h, Q, R)
@@ -156,7 +157,7 @@ plt = plot(t, hcat(x̄...)[idx, :]',
 
 for xs in x_sim
 	plt = plot!(t_sim, hcat(xs...)[idx, :]',
-	    width = 1.0, color = :magenta, label = "")
+	    width = 2.0, color = :cyan, label = "")
 end
 display(plt)
 

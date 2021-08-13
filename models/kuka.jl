@@ -15,7 +15,7 @@ mvis = MechanismVisualizer(kuka, kuka_visuals, vis[:base])
 render(vis)
 
 vis_el = visual_elements(kuka, kuka_visuals)
-set_alpha!(vis_el, 0.5)
+# set_alpha!(vis_el, 0.5)
 
 mvis2 = MechanismVisualizer(kuka, vis[Symbol("shadow")])
 MeshCatMechanisms._set_mechanism!(mvis2, vis_el)

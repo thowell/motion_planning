@@ -171,7 +171,7 @@ end
 ## Trajectory Optimization
 
 # time
-T = 11
+T = 100
 h = 1.0
 
 # dynamics
@@ -204,38 +204,36 @@ end
 l1 = 2
 l2 = m
 function policy(x, θ)
-	M1 = reshape(θ[1:(l1 * n)], l1, n)
-	b1 = θ[l1 * n .+ (1:l1)]
-	z1 = tanh.(M1 * x + b1)
-
-	M2 = reshape(θ[l1 * n + l1 .+ (1:(l2 * l1))], l2, l1)
-	b2 = reshape(θ[l1 * n + l1 + l2 * l1 .+ (1:l2)])
-
-	return M2 * z1 + b2
-	# # layer 1
-	# W1 = reshape(θ[1:(l1 * n)], l1, n)
+	# M1 = reshape(θ[1:(l1 * n)], l1, n)
 	# b1 = θ[l1 * n .+ (1:l1)]
-	#
-	# z1 = W1 * x + b1
-	# o1 = tanh.(z1)
-	#
-	# # layer 2
-	# W2 = reshape(θ[l1 * n + l1 .+ (1:(l2 * l1))], l2, l1)
-	# b2 = θ[l1 * n + l1 + l2 * l1 .+ (1:l2)]
-	#
-	# z2 = W2 * o1 + b2
-	#
-	# return z2
-	# o2 = tanh.(z2)
-	#
-	# W3 = reshape(θ[l1 * n + l1 + l2 * l1 + l2 .+ (1:(m * l2))], m, l2)
-	# b3 = θ[l1 * n + l1 + l2 * l1 + l2 + m * l2 .+ (1:m)]
-	#
-	# return W3 * o2 + b3
+	# z1 = tanh.(M1 * x + b1)
+
+	# M2 = reshape(θ[l1 * n + l1 .+ (1:(l2 * l1))], l2, l1)
+	# b2 = reshape(θ[l1 * n + l1 + l2 * l1 .+ (1:l2)])
+
+	# return M2 * z1 + b2
+	# layer 1
+	W1 = reshape(θ[1:(l1 * n)], l1, n)
+	b1 = θ[l1 * n .+ (1:l1)]
+
+	z1 = W1 * x + b1
+	o1 = tanh.(z1)
+
+	# layer 2
+	W2 = reshape(θ[l1 * n + l1 .+ (1:(l2 * l1))], l2, l1)
+	b2 = θ[l1 * n + l1 + l2 * l1 .+ (1:l2)]
+
+	z2 = W2 * o1 + b2
+
+	o2 = tanh.(z2)
+
+	W3 = reshape(θ[l1 * n + l1 + l2 * l1 + l2 .+ (1:(m * l2))], m, l2)
+	b3 = θ[l1 * n + l1 + l2 * l1 + l2 + m * l2 .+ (1:m)]
+
+	return W3 * o2 + b3
 end
 
-p = l1 * n + l1 + l2 * l1 + l2
-# p = l1 * n + l1 + l2 * l1 + l2 #+ m * l2 + m
+p = l1 * n + l1 + l2 * l1 + l2 + m * l2 + m
 
 # trajectory indices
 x_idx = [(t - 1) * (n + m) .+ (1:n) for t = 1:T]
@@ -267,6 +265,7 @@ for t = 1:T-1
 
 	push!(x_roll, A * x_roll[end] + B * u_roll[end])
 end
+using Plots
 plot(hcat(x_roll...)')
 plot(hcat(u_roll..., u_roll[end])', linetype = :steppost)
 
