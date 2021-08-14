@@ -128,7 +128,7 @@ end
 
 d = gen_dynamics(s, h,
 	dyn_opts = InteriorPointOptions{Float64}(κ_tol = 1.0e-4, κ_init = 0.1),
-	jac_opts = InteriorPointOptions{Float64}(κ_tol = 1.0e-4, κ_init = 0.1))
+	jac_opts = InteriorPointOptions{Float64}(κ_tol = 1.0e-2, κ_init = 0.1))
 
 function f!(d::Dynamics, q0, q1, u1, mode = :dynamics)
 	s = d.s
