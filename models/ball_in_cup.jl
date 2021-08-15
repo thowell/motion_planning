@@ -658,7 +658,6 @@ x̄ = rollout(model, x1, ū, w, h, T)
 q̄ = state_to_configuration(x̄)
 visualize!(mvis, _model, q̄, Δt = h)
 
-
 # visualize!(mvis, _model, [x_track_extend[1:nq]], Δt = h)
 
 # Objective
@@ -732,7 +731,7 @@ w = [zeros(model.d) for t = 1:T-1]
 x̄ = rollout(model, x1, ū, w, h, T)
 q̄ = state_to_configuration(x̄)
 visualize!(mvis, _model, q̄, Δt = h)
-
+open(mvis)
 # Solve
 @time constrained_ddp_solve!(prob,
 	max_iter = 1000, max_al_iter = 10,

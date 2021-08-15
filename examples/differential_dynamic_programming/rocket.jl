@@ -17,11 +17,12 @@ h = 0.01
 
 # Initial conditions, controls, disturbances
 x1 = zeros(model.n)
-x1[1] = 1.0
+x1[1] = 2.5
 x1[2] = 0.0
 x1[3] = 10.0
 mrp = MRP(RotY(-0.5 * π) * RotX(0.0 * π))
 x1[4:6] = [mrp.x; mrp.y; mrp.z]
+x1[9] = -5.0
 
 # visualize!(vis, model, [x1], Δt = h)
 
@@ -69,7 +70,7 @@ end
 
 # Constraints
 p = [t < T ? 2 * m : n for t = 1:T]
-info_t = Dict(:ul => [-5.0; -5.0; 0.0], :uu => [5.0; 5.0; 100.0], :inequality => (1:2 * m))
+info_t = Dict(:ul => [-5.0; -5.0; 0.0], :uu => [5.0; 5.0; 15.0], :inequality => (1:2 * m))
 info_T = Dict(:xT => xT)
 con_set = [StageConstraint(p[t], t < T ? info_t : info_T) for t = 1:T]
 
@@ -111,7 +112,7 @@ render(vis)
 # open(vis)
 visualize!(vis, model, x̄, Δt = h)
 
-ū_fixed_time = ū
+# ū_fixed_time = ū
 
 # Visualize
 obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
