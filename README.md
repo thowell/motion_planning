@@ -19,14 +19,14 @@
 - [X] biped (2D)
 - [X] quadruped (2D) (modify model)
 - [ ] quadruped (2D) over box
-- [ ] quadruped (2D) backflip
+- [X] quadruped (2D) backflip
 - [ ] quadruped (3D)
 - [ ] ant (3D)
 - [ ] snake (3D)
 - [ ] atlas
 
 ## direct policy optimization examples
-<img src="examples/animations/dpo/rocket_landing_ghost.png" alt="drawing" width="200"/>
+<img src="examples/animations/dpo/rocket_landing_dpo.gif" alt="drawing" width="200"/>
 
 We provide the [examples](src/examples/direct_policy_optimization) from [Direct Policy Optimization using Deterministic Sampling and Collocation](https://arxiv.org/abs/2010.08506). Optimizing the policies requires [SNOPT](https://en.wikipedia.org/wiki/SNOPT) and resources for its installation are available [here](src/solvers/snopt.jl). The trajectories and policies from these examples have been saved and can be loaded in order to run the policy simulations and visualizations.
 
@@ -41,6 +41,16 @@ motion planning
 - [X] rocket
 - [X] quadrotor
 - [x] biped
+
+## linear contact-implicit model-predictive control examples
+<img src="examples/animations/flamingo_steps.gif" alt="drawing" width="200"/>
+
+We generate reference trajectories for the examples in [Linear Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
+
+- [X] [quadruped gait](examples/contact_implicit/quadruped_gait_1_step.jl)
+- [X] [spring flamingo gait](examples/contact_implicit/flamingo_gait_1_step.jl)
+- [X] hopper parkour: [stairs](examples/contact_implicit/hopper_stairs.jl), [flip](examples/contact_implicit/hopper_flip.jl)
+
 
 ## classic examples
 
