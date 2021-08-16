@@ -289,17 +289,47 @@ x̄, ū = nominal_trajectory(prob)
 
 # Trajectories
 maximum(hcat(ū...))
-plot(hcat(ū...)', linetype = :steppost)
+t = range(0, stop = h * (T-1), length = T)
+plt = plot(t, hcat(ū..., ū[end])',
+	width = 2.0,
+	color = [:magenta :orange :cyan],
+	title = "rocket soft landing",
+	xlabel = "time (s)",
+	ylabel = "control",
+	labels = ["f1" "f2" "f3"],
+	legend = :right,
+	linetype = :steppost)
+
+savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.png")
+
 plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
 
 # Visualize
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-# open(vis)
-visualize!(vis, model, x̄, Δt = h)
+open(vis)
+x_anim = [[x̄[1] for i = 1:100]..., x̄..., [x̄[end] for i = 1:100]...]
+visualize!(vis, model,
+	x_anim,
+	Δt = h, T_off = length(x_anim)-125)
+obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
+mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
+ctm_platform = ModifiedMeshFileObject(obj_platform,mtl_platform,scale=1.0)
+setobject!(vis["platform"],ctm_platform)
+settransform!(vis["platform"], compose(Translation(0.0,2.0,-0.6), LinearMap(0.75 * RotZ(pi)*RotX(pi/2))))
 
-# ū_fixed_time = ū
+settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
+	LinearMap(RotZ(1.5 * π + 0.0 * π))))
+setvisible!(vis["/Grid"], false)
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1.0)
+
+line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+points = Vector{Point{3,Float64}}()
+for xt in x̄
+	push!(points, Point(xt[1:3]...))
+end
+setobject!(vis[:traj], MeshCat.Line(points, line_mat))
 
 # Visualize
 obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
