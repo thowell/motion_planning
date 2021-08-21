@@ -1,3 +1,5 @@
+include(joinpath(pwd(), "examples/implicit_dynamics/utils.jl"))
+
 """
     Hopper2D
     	model inspired by "Dynamically Stable Legged Locomotion"
@@ -7,7 +9,7 @@
 			t - body orientation
 			r - leg length
 """
-mutable struct Hopper2D{T} <: ContactModel
+mutable struct Hopper2D{T}
     dim::Dimensions
 
     mb::T # mass of body
@@ -18,9 +20,6 @@ mutable struct Hopper2D{T} <: ContactModel
     μ_world::T  # coefficient of friction
     μ_joint::T  # gravity
 	g::T
-
-	base::BaseMethods
-	dyn::DynamicsMethods
 
 	joint_friction::SVector
 end
@@ -48,11 +47,11 @@ function C_func(model::Hopper2D, q, q̇)
 			  0.0]
 end
 
-function ϕ_func(model::Hopper2D, env::Environment, q)
-    SVector{1}(q[2] - q[4] * cos(q[3]) - env.surf(q[1] + q[4] * sin(q[3])))
+function ϕ_func(model::Hopper2D, q)
+    SVector{1}(q[2] - q[4] * cos(q[3]))
 end
 
-function J_func(::Hopper2D, env::Environment, q)
+function J_func(::Hopper2D, q)
     @SMatrix [1.0 0.0 (q[4] * cos(q[3])) sin(q[3]);
 		      0.0 1.0 (q[4] * sin(q[3])) (-1.0 * cos(q[3]))]
 end
@@ -62,24 +61,24 @@ function B_func(::Hopper2D, q)
              -sin(q[3]) cos(q[3]) 0.0 1.0]
 end
 
-function A_func(::Hopper2D, q)
-	@SMatrix [1.0 0.0 0.0 0.0;
-	          0.0 1.0 0.0 0.0]
-end
-
-function contact_forces(model::Hopper2D, env::Environment{<:World, LinearizedCone}, γ1, b1, q2, k)
-	m = friction_mapping(env)
-
-	SVector{2}(transpose(rotation(env, k)) * [m * b1; γ1])
-end
-
-function velocity_stack(model::Hopper2D, env::Environment{<:World, LinearizedCone}, q1, q2, k, h)
-	v = J_func(model, env, q2) * (q2 - q1) / h[1]
-
-	v1_surf = rotation(env, k) * v
-
-	SVector{2}([v1_surf[1]; -v1_surf[1]])
-end
+# function A_func(::Hopper2D, q)
+# 	@SMatrix [1.0 0.0 0.0 0.0;
+# 	          0.0 1.0 0.0 0.0]
+# end
+#
+# function contact_forces(model::Hopper2D, γ1, b1, q2)
+#     m = SMatrix{1, 2}([1.0 -1.0])
+#
+# 	SVector{2}([m * b1; γ1])
+# end
+#
+# function velocity_stack(model::Hopper2D, q1, q2, h)
+# 	v = J_func(model, q2) * (q2 - q1) / h[1]
+#
+# 	v1_surf = v
+#
+# 	SVector{2}([v1_surf[1]; -v1_surf[1]])
+# end
 
 # Working Parameters
 gravity = 9.81 # gravity
@@ -99,8 +98,98 @@ nw = 2
 nc = 1
 nb = 2
 
-hopper_2D = Hopper2D(Dimensions(nq, nu, nw, nc),
+model = Hopper2D(Dimensions(nq, nu, nw, nc),
 			   mb, ml, Jb, Jl,
 			   μ_world, μ_joint, gravity,
-			   BaseMethods(), DynamicsMethods(),
 			   SVector{4}(zeros(4)))
+
+function lagrangian_derivatives(model::Hopper2D, q, v)
+	D1L = -1.0 * C_func(model, q, v)
+    D2L = M_func(model, q) * v
+	return D1L, D2L
+end
+
+lagrangian_derivatives(model, rand(nq), rand(nq))
+
+function dynamics(model::Hopper2D, h, q0, q1, u1, λ1, q2)
+    # evalutate at midpoint
+    qm1 = 0.5 * (q0 + q1)
+    vm1 = (q1 - q0) / h[1]
+    qm2 = 0.5 * (q1 + q2)
+    vm2 = (q2 - q1) / h[1]
+
+    D1L1, D2L1 = lagrangian_derivatives(model, qm1, vm1)
+    D1L2, D2L2 = lagrangian_derivatives(model, qm2, vm2)
+
+    return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
+    	+ transpose(B_func(model, qm2)) * u1
+        + transpose(J_func(model, q2)) * λ1
+        -h[1] * model.joint_friction .* vm2)
+end
+
+function residual(model, z, θ, κ)
+    nq = model.dim.q
+    nu = model.dim.u
+    nc = model.dim.c
+    nb = nc * 2
+
+    q0 = θ[1:nq]
+    q1 = θ[nq .+ (1:nq)]
+    u1 = θ[2nq .+ (1:nu)]
+    h = θ[2nq + nu .+ (1:1)]
+
+    μ = model.μ_world
+
+    q2 = z[1:nq]
+    γ1 = z[nq .+ (1:nc)]
+    b1 = z[nq + nc .+ (1:nb)]
+    ψ1 = z[nq + nc + nb .+ (1:nc)]
+    η1 = z[nq + nc + nb + nc .+ (1:nb)]
+    s1 = z[nq + nc + nb + nc + nb .+ (1:nc)]
+    s2 = z[nq + nc + nb + nc + nb + nc .+ (1:nc)]
+
+	ϕ = ϕ_func(model, q2)
+
+	λ1 = [b1[1] - b1[2]; γ1]
+    vT = (J_func(model, q2) * (q2 - q1) / h[1])[1]
+	vT_stack = [vT; -vT]
+	ψ_stack = ψ1 .* ones(nb)
+
+	[
+     dynamics(model, h, q0, q1, u1, λ1, q2);
+	 s1 - ϕ;
+	 vT_stack + ψ_stack - η1;
+	 s2 .- (μ[1] * γ1 .- sum(b1));
+	 γ1 .* s1 .- κ;
+	 b1 .* η1 .- κ;
+	 ψ1 .* s2 .- κ
+    ]
+end
+
+nz = nq + nc + nb + nc + nb + nc + nc
+nθ = nq + nq + nu + 1
+
+idx_ineq = collect(nq .+ (1:(nc + nb + nc + nb + nc + nc)))
+z_subset_init = 0.1 * ones(nc + nb + nc + nb + nc + nc)
+
+# # Declare variables
+# @variables z[1:nz]
+# @variables θ[1:nθ]
+# @variables κ[1:1]
+#
+# # Residual
+# r = residual(model, z, θ, κ)
+# r = Symbolics.simplify.(r)
+# rz = Symbolics.jacobian(r, z, simplify = true)
+# rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
+#
+# # Build function
+# r_func = eval(build_function(r, z, θ, κ)[2])
+# rz_func = eval(build_function(rz, z, θ)[2])
+# rθ_func = eval(build_function(rθ, z, θ)[2])
+#
+# rz_array = similar(rz, Float64)
+# rθ_array = similar(rθ, Float64)
+#
+# @save joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
+@load joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
