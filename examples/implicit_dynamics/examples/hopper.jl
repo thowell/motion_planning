@@ -18,6 +18,7 @@ model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.di
 # Time
 T = 21
 
+# Parameter optimization discrete-time dynamics
 n = [t == 1 ? model_implicit.n : 2 * model_implicit.n for t = 1:T]
 m = [t == 1 ? model_implicit.m + model_implicit.n : model_implicit.m for t = 1:T-1]
 

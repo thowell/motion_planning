@@ -1,27 +1,17 @@
 using Plots
-include_ddp()
 
-# Model
+include_implicit_dynamics()
+include_ddp()
 include_model("rocket3D")
 
 n = model.n
 m = model.m
 
+# control limits
 ul = [-5.0; -5.0; 0.0]
 uu = [5.0; 5.0; 15.0]
 
-contact_control_path = "/home/taylor/Research/ContactControl.jl/src"
-
-using Parameters
-
-# Utilities
-include(joinpath(contact_control_path, "utils.jl"))
-
-# Solver
-include(joinpath(contact_control_path, "solver/cones.jl"))
-include(joinpath(contact_control_path, "solver/interior_point.jl"))
-include(joinpath(contact_control_path, "solver/lu.jl"))
-
+# control projection problem
 m = 3
 nz = m + 1 + 1 + 1 + 1 + m
 nθ = m + 1
@@ -110,8 +100,6 @@ ip_jac = interior_point(z0, θ0,
 interior_point_solve!(ip_con)
 interior_point_solve!(ip_jac)
 
-# ip_con.z[1:m]
-
 function soc_projection(x)
 	ip_con.z .= [x; 0.1 * ones(7)]
     ip_con.z[3] += 1.0
@@ -148,7 +136,6 @@ end
 
 fd(model, ones(model.n), zeros(model.m), zeros(model.d), h, 1)
 
-
 function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
@@ -157,8 +144,6 @@ function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	rx(z) = fd(model, x⁺, z, u_proj, w, h, t) # implicit midpoint integration
 	∇rx = ForwardDiff.jacobian(rx, x)
 	return -1.0 * ∇rz \ ∇rx
-	# f(z) = fd(model, z, u, w, h, t)
-	# return ForwardDiff.jacobian(f, x)
 end
 
 fdx(model, zeros(model.n), zeros(model.m), zeros(model.d), h, 1)
@@ -280,7 +265,7 @@ x̄, ū = nominal_trajectory(prob)
 x̄_soc = x̄
 ū_soc = ū
 
-@save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2" x̄_soc ū_soc
+# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2" x̄_soc ū_soc
 # @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2"
 
 all([second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1])

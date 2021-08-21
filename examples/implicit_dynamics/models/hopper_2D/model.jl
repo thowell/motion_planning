@@ -61,25 +61,6 @@ function B_func(::Hopper2D, q)
              -sin(q[3]) cos(q[3]) 0.0 1.0]
 end
 
-# function A_func(::Hopper2D, q)
-# 	@SMatrix [1.0 0.0 0.0 0.0;
-# 	          0.0 1.0 0.0 0.0]
-# end
-#
-# function contact_forces(model::Hopper2D, γ1, b1, q2)
-#     m = SMatrix{1, 2}([1.0 -1.0])
-#
-# 	SVector{2}([m * b1; γ1])
-# end
-#
-# function velocity_stack(model::Hopper2D, q1, q2, h)
-# 	v = J_func(model, q2) * (q2 - q1) / h[1]
-#
-# 	v1_surf = v
-#
-# 	SVector{2}([v1_surf[1]; -v1_surf[1]])
-# end
-
 # Working Parameters
 gravity = 9.81 # gravity
 μ_world = 0.8 # coefficient of friction

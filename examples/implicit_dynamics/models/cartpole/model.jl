@@ -1,3 +1,4 @@
+include(joinpath(pwd(), "examples/implicit_dynamics/utils.jl"))
 """
     Cartpole w/ internal friction
 """
