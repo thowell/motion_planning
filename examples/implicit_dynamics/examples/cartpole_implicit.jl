@@ -14,7 +14,7 @@ include(joinpath(contact_control_path, "utils.jl"))
 # Solver
 include(joinpath(contact_control_path, "solver/cones.jl"))
 include(joinpath(contact_control_path, "solver/interior_point.jl"))
-include(joinpath(contact_control_path, "solver/lu.jl"))
+# include(joinpath(contact_control_path, "solver/lu.jl"))
 
 # Environment
 include(joinpath(contact_control_path, "simulator/environment.jl"))
@@ -38,7 +38,11 @@ include(joinpath(contact_control_path, "dynamics/euler.jl"))
 
 # include("dynamics/particle_2D/model.jl")
 # include("dynamics/particle/model.jl")
-include(joinpath(contact_control_path, "dynamics/double_pendulum/model.jl"))
+# include(joinpath(contact_control_path, "dynamics/cartpole/model.jl"))
+include(joinpath(contact_control_path, "dynamics/cartpole/model_soc.jl"))
+
+include(joinpath(contact_control_path, "dynamics/cartpole/visuals.jl"))
+
 # include("dynamics/hopper_3D/model.jl")
 # include("dynamics/hopper_3D_quaternion/model.jl")
 # include("dynamics/quadruped/model.jl")
@@ -72,15 +76,15 @@ include(joinpath(contact_control_path, "simulation/code_gen_simulation.jl"))
 nq = s.model.dim.q
 m = s.model.dim.u
 
-T = 51
+T = 26
 h = 0.1
 
 q0 = [0.0; 0.0]
 q1 = [0.0; 0.0]
-qT = [π; 0.0]
-q_ref = [π; 0.0]
+qT = [0.0; π]
+q_ref = [0.0; π]
 
-x1 = [q0; q1]
+x1 = [q1; q1]
 xT = [qT; qT]
 
 struct Dynamics{T}
@@ -98,7 +102,7 @@ function gen_dynamics(s::Simulation, h;
 						diff_sol = true),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
-						κ_tol = 1.0e-4,
+						κ_tol = 1.0e-2,
 						κ_init = 0.1,
 						diff_sol = true))
 
@@ -107,6 +111,7 @@ function gen_dynamics(s::Simulation, h;
 
 	ip_dyn = interior_point(z, θ,
 		idx_ineq = idx_ineq,
+		# idx_soc = idx_soc,
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
@@ -118,6 +123,7 @@ function gen_dynamics(s::Simulation, h;
 
 	ip_jac = interior_point(z, θ,
 		idx_ineq = idx_ineq,
+		# idx_soc = idx_soc,
 		r! = s.res.r!,
 		rz! = s.res.rz!,
 		rθ! = s.res.rθ!,
@@ -139,7 +145,8 @@ function f!(d::Dynamics, q0, q1, u1, mode = :dynamics)
 	ip = (mode == :dynamics ? d.ip_dyn : d.ip_jac)
 	h = d.h
 
-	ip.z .= copy([q1; 0.1 * ones(nc + nc)])
+	# ip.z .= copy([q1; 1.0; 0.1; 1.0; 0.1; 1.0; 0.1; 1.0; 0.1])
+	ip.z .= copy(q1)
 	ip.θ .= copy([q0; q1; u1; h])
 
 	status = interior_point_solve!(ip)
@@ -182,16 +189,16 @@ end
 
 fu1(d, q0, q1, zeros(m))
 
-struct DoublePendulumI{I, T} <: Model{I, T}
+struct CartpoleI{I, T} <: Model{I, T}
     n::Int
     m::Int
     d::Int
 	dynamics::Dynamics
 end
 
-model = DoublePendulumI{Midpoint, FixedTime}(2 * s.model.dim.q, s.model.dim.u, 0, d)
+model = CartpoleI{Midpoint, FixedTime}(2 * s.model.dim.q, s.model.dim.u, 0, d)
 
-function fd(model::DoublePendulumI{Midpoint, FixedTime}, x, u, w, h, t)
+function fd(model::CartpoleI{Midpoint, FixedTime}, x, u, w, h, t)
 	nq = model.dynamics.s.model.dim.q
 	q0 = x[1:nq]
 	q1 = x[nq .+ (1:nq)]
@@ -203,7 +210,7 @@ end
 
 fd(model, [q0; q1], zeros(model.m), zeros(model.d), h, 1)
 
-function fdx(model::DoublePendulumI{Midpoint, FixedTime}, x, u, w, h, t)
+function fdx(model::CartpoleI{Midpoint, FixedTime}, x, u, w, h, t)
 	nq = model.dynamics.s.model.dim.q
 	q0 = x[1:nq]
 	q1 = x[nq .+ (1:nq)]
@@ -215,7 +222,7 @@ end
 fdx(model, [q0; q1], zeros(model.m), zeros(model.d), h, 1)
 
 
-function fdu(model::DoublePendulumI{Midpoint, FixedTime}, x, u, w, h, t)
+function fdu(model::CartpoleI{Midpoint, FixedTime}, x, u, w, h, t)
 	nq = model.dynamics.s.model.dim.q
 	q0 = x[1:nq]
 	q1 = x[nq .+ (1:nq)]
@@ -228,18 +235,14 @@ fdu(model, [q0; q1], zeros(model.m), zeros(model.d), h, 1)
 n = model.n
 m = model.m
 
-ū = [1.0e-2 * randn(model.m) for t = 1:T-1]
-w = [zeros(model.d) for t = 1:T-1]
-
-# Rollout
-x̄ = rollout(model, x1, ū, w, h, T)
-
 # Objective
-V = Diagonal(ones(s.model.dim.q))
-_Q = [V -V; -V V] ./ h^2.0
-Q = [t < T ? _Q : _Q for t = 1:T]
-q = [-2.0 * Q[t] * zeros(n) for t = 1:T]
-R = [Diagonal(1.0e-1 * ones(model.m)) for t = 1:T-1]
+V = 1.0 * Diagonal(ones(s.model.dim.q))
+Q_velocity = [V -V; -V V] ./ h^2.0
+Q_track = 1.0 * Diagonal(ones(2 * s.model.dim.q))
+
+Q = [t < T ? Q_velocity + Q_track : Q_velocity + 1.0 * Q_track for t = 1:T]
+q = [-2.0 * (t == T ? 1.0 : 1.0) * Q_track * xT for t = 1:T]
+R = [Diagonal(1.0 * ones(model.m)) for t = 1:T-1]
 r = [zeros(model.m) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
@@ -263,8 +266,8 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Constraints
-ul = [-2.0]
-uu = [2.0]
+ul = [-10.0]
+uu = [10.0]
 p = [t < T ? 2 * m : n for t = 1:T]
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m))
 info_T = Dict(:xT => xT)
@@ -283,6 +286,15 @@ function c!(c, cons::StageConstraints, x, u, t)
 	end
 end
 
+ū = [(t == 1 ? -1.0 : 0.0) * ones(model.m) for t = 1:T-1]
+w = [zeros(model.d) for t = 1:T-1]
+
+# Rollout
+x̄ = rollout(model, x1, ū, w, h, T)
+
+q̄ = state_to_configuration(x̄)
+# visualize!(vis, s.model, q̄, Δt = h)
+
 prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
@@ -290,31 +302,53 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
 @time constrained_ddp_solve!(prob,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
-	con_tol = 0.005)
+	con_tol = 0.001)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 q̄ = state_to_configuration(x̄)
-q2l = -0.5 * π * ones(length(q̄))
-q2u = 0.5 * π * ones(length(q̄))
+v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
+
+# q̄_friction = q̄
+# v̄_friction = v̄
+# ū_friction = ū
+# q̄_smooth = q̄
+# v̄_smooth = v̄
+# ū_smooth = ū
+# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_friction.jld2" q̄_friction v̄_friction ū_friction
+# @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_friction.jld2"
+# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2" q̄_smooth v̄_smooth ū_smooth
+# @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2"
+
 t = range(0, stop = h * (length(q̄) - 1), length = length(q̄))
 plt = plot();
-plt = plot!(t, q2l, color = :black, width = 2.0, label = "q2 limit lower")
-plt = plot!(t, q2u, color = :black, width = 2.0, label = "q2 limit upper")
 plt = plot!(t, hcat(q̄...)', width = 2.0,
 	color = [:magenta :orange],
 	labels = ["q1" "q2"],
 	legend = :topleft,
 	xlabel = "time (s)",
 	ylabel = "configuration",
-	title = "acrobot (w/o joint limits)")
+	# title = "cartpole (w / o friction)")
 
+	title = "cartpole (w/ friction)")
+
+plt = plot();
+plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
+	color = [:magenta :orange],
+	labels = ["q1" "q2"],
+	legend = :topleft,
+	xlabel = "time (s)",
+	ylabel = "velocity",
+	linetype = :steppost,
+	# title = "cartpole (w / o friction)")
+
+	title = "cartpole (w/ friction)")
 	# title = "acrobot (w/ joint limits)")
 
 # show(plt)
-# savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_joint_limits.png")
-# savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_no_joint_limits.png")
+# savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction.png")
+# savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_no_friction.png")
 
 plot(hcat(ū..., ū[end])', linetype = :steppost)
 
@@ -322,65 +356,56 @@ include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
 open(vis)
-default_background!(vis)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
+# default_background!(vis)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1)
+q̄ = state_to_configuration(x̄)
+q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
+visualize!(vis, s.model, q_anim, Δt = h)
 
-visualize!(vis, s.model, q̄, Δt = h)
+using PGFPlots
+const PGF = PGFPlots
 
-# visualization
-function visualize!(vis, model::DoublePendulum, x;
-        color=RGBA(0.0, 0.0, 0.0, 1.0),
-        r = 0.1, Δt = 0.1)
+plt_q1_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[1,:],
+	mark="none",style="color=cyan, line width = 2pt, dashed",legendentry="q1")
 
-    i = 1
-    l1 = Cylinder(Point3f0(0.0, 0.0, 0.0), Point3f0(0.0, 0.0, model.l1),
-        convert(Float32, 0.025))
-    setobject!(vis["l1"], l1, MeshPhongMaterial(color = color))
-    l2 = Cylinder(Point3f0(0.0,0.0,0.0), Point3f0(0.0, 0.0, model.l2),
-        convert(Float32, 0.025))
-    setobject!(vis["l2"], l2, MeshPhongMaterial(color = color))
+plt_q2_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[2,:],
+	mark="none",style="color=orange, line width = 2pt, dashed",legendentry="q2")
 
-    setobject!(vis["elbow_nominal"], Sphere(Point3f0(0.0),
-        convert(Float32, 0.05)),
-        MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
-	setobject!(vis["elbow_limit"], Sphere(Point3f0(0.0),
-        convert(Float32, 0.05)),
-        MeshPhongMaterial(color = RGBA(0.0, 1.0, 0.0, 1.0)))
-    setobject!(vis["ee"], Sphere(Point3f0(0.0),
-        convert(Float32, 0.05)),
-        MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
+plt_qd1_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[1,:],
+	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="q1")
 
-    anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
+plt_qd2_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[2,:],
+	mark="none",style="const plot, color=green, line width = 2pt, dashed",legendentry="q2")
 
-	ϵ = 1.0e-1
-    T = length(x)
-    for t = 1:T
+plt_q1_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[1,:],
+	mark="none",style="color=cyan, line width = 2pt",legendentry="q1 (friction)")
 
-        MeshCat.atframe(anim,t) do
-            p_mid = [kinematics_elbow(model, x[t])[1], 0.0, kinematics_elbow(model, x[t])[2]]
-            p_ee = [kinematics(model, x[t])[1], 0.0, kinematics(model, x[t])[2]]
+plt_q2_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[2,:],
+	mark="none",style="color=orange, line width = 2pt",legendentry="q2 (friction)")
 
-            settransform!(vis["l1"], cable_transform(zeros(3), p_mid))
-            settransform!(vis["l2"], cable_transform(p_mid, p_ee))
+plt_qd1_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[1,:],
+	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="q1 (friction)")
 
-            settransform!(vis["elbow_nominal"], Translation(p_mid))
-			settransform!(vis["elbow_limit"], Translation(p_mid))
-            settransform!(vis["ee"], Translation(p_ee))
+plt_qd2_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[2,:],
+	mark="none",style="const plot, color=green, line width = 2pt",legendentry="q2 (friction)")
 
-			if x[t][2] <= -0.5 * π + ϵ || x[t][2] >= 0.5 * π - ϵ
-				setvisible!(vis["elbow_nominal"], false)
-				setvisible!(vis["elbow_limit"], true)
-			else
-				setvisible!(vis["elbow_nominal"], true)
-				setvisible!(vis["elbow_limit"], false)
-			end
-        end
-    end
+aq = Axis([plt_q1_friction; plt_q2_friction; plt_q1_smooth; plt_q2_smooth],#; plt_qd1_smooth; plt_qd1_friction; plt_qd2_smooth; plt_qd2_friction],
+    axisEqualImage=false,
+    hideAxis=false,
+	ylabel="configuration",
+	xlabel="time (s)",
+	xlims=(0.0, 2.5),
+	legendStyle="{at={(0.01,0.99)},anchor=north west}")
 
-    # settransform!(vis["/Cameras/default"],
-    #    compose(Translation(0.0 , 0.0 , 0.0), LinearMap(RotZ(pi / 2.0))))
+av = Axis([plt_qd1_friction; plt_qd2_friction; plt_qd1_smooth; plt_qd2_smooth],
+    axisEqualImage=false,
+    hideAxis=false,
+	ylabel="velocity",
+	xlabel="time (s)",
+	legendStyle="{at={(0.01,0.99)},anchor=north west}")
 
-    MeshCat.setanimation!(vis, anim)
-end
+# Save to tikz format
+PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_configuration.tikz", aq, include_preamble=false)
+PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_velocity.tikz", av, include_preamble=false)

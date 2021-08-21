@@ -13,6 +13,7 @@ using FileIO
 using GeometryBasics
 using MeshCat, MeshIO, Meshing
 using Rotations
+using Parameters
 # using RigidBodyDynamics, MeshCatMechanisms
 include("indices.jl")
 include("utils.jl")
@@ -46,6 +47,11 @@ end
 # differential dynamic programming
 function include_ddp()
     include(joinpath(pwd(), "src/differential_dynamic_programming/ddp.jl"))
+end
+
+# implicit dynamics
+function include_implicit_dynamics()
+    include(joinpath(pwd(), "examples/implicit_dynamics/id.jl"))
 end
 
 end # module

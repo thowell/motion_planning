@@ -74,8 +74,8 @@ function visualize!(vis, model, q;
 
 	default_background!(vis)
 
-	l2 = Cylinder(Point3f0(-model.l * 2.0, 0.0, 0.0),
-		Point3f0(model.l * 2.0, 0.0, 0.0),
+	l2 = Cylinder(Point3f0(-model.l * 2.5, 0.0, 0.0),
+		Point3f0(model.l * 2.5, 0.0, 0.0),
 		convert(Float32, 0.025))
 
 	setobject!(vis["slider"], l2, MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))

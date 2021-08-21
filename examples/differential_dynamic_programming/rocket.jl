@@ -26,6 +26,8 @@ x1[9] = -5.0
 
 # visualize!(vis, model, [x1], Δt = h)
 
+# visualize!(vis, model, [x1], Δt = h)
+
 xT = zeros(model.n)
 # xT[1] = 2.5
 # xT[2] = 0.0
@@ -81,7 +83,7 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		c .= [ul - u; u - uu]
+		# c .= [ul - u; u - uu]
 	elseif t == T
 		xT = cons.con[T].info[:xT]
 		c .= x - xT
@@ -101,30 +103,40 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
+x̄_nominal = x̄
+ū_nominal = ū
+
+@save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket.jld2" x̄_nominal ū_nominal
+@load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket.jld2"
+
 # Trajectories
 plot(hcat(ū...)', linetype = :steppost)
 plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
 
-# Visualize
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-# open(vis)
-visualize!(vis, model, x̄, Δt = h)
-
-# ū_fixed_time = ū
-
-# Visualize
-obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
-mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
-ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
-setobject!(vis["rocket"]["starship"], ctm)
-
-settransform!(vis["rocket"]["starship"],
-	compose(Translation(0.0, 0.0, -model.length),
-		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
-
-default_background!(vis)
-settransform!(vis["rocket"],
-	compose(Translation(0.0, 0.0, 0.0),
-	LinearMap(RotY(0.0))))
+# t = 1
+# idx = [3; 1; 2]
+# second_order_cone_projection(ū[t][idx])
+# ū[t]
+# # Visualize
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# # open(vis)
+# visualize!(vis, model, x̄, Δt = h)
+#
+# # ū_fixed_time = ū
+#
+# # Visualize
+# obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
+# mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
+# ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
+# setobject!(vis["rocket"]["starship"], ctm)
+#
+# settransform!(vis["rocket"]["starship"],
+# 	compose(Translation(0.0, 0.0, -model.length),
+# 		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
+#
+# default_background!(vis)
+# settransform!(vis["rocket"],
+# 	compose(Translation(0.0, 0.0, 0.0),
+# 	LinearMap(RotY(0.0))))
