@@ -51,6 +51,14 @@ We generate reference trajectories for the examples in [Linear Contact-Implicit 
 - [X] [spring flamingo gait](examples/contact_implicit/flamingo_gait_1_step.jl)
 - [X] hopper parkour: [stairs](examples/contact_implicit/hopper_stairs.jl), [flip](examples/contact_implicit/hopper_flip.jl)
 
+## implicit dynamics examples
+
+- [X] acrobot
+- [X] cartpole
+- [X] rocket
+- [X] ball-in-cup
+- [X] planar push
+- [X] hopper
 
 ## classic examples
 
