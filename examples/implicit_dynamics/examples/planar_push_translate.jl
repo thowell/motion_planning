@@ -27,7 +27,7 @@ n = model_implicit.n
 m = model_implicit.m
 
 # Problem setup
-T = 21
+T = 26
 
 # Initial and final states
 q1 = [0.0, 0.0, 0.0, -r_dim - 1.0e-8, 0.0]
@@ -123,3 +123,5 @@ v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 visualize!(vis, model, q̄, ū, Δt = h, r = r_dim)
 
 q̄[end][1]
+
+plot(hcat(ū..., ū[end])', linetype = :steppost)

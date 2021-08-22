@@ -45,11 +45,11 @@ cc4 = @SVector [-r_dim, -r_dim]
 contact_corner_offset = @SVector [cc1, cc2, cc3, cc4]
 
 # Parameters
-μ_surface = 0.25  # coefficient of friction
+μ_surface = 0.5  # coefficient of friction
 μ_pusher = 0.5
 gravity = 9.81
 mass_block = 1.0   # mass
-mass_pusher = 0.1
+mass_pusher = 10.0
 inertia = 1.0 / 12.0 * mass_block * ((2.0 * r_dim)^2 + (2.0 * r_dim)^2)
 
 rnd = 0.01
