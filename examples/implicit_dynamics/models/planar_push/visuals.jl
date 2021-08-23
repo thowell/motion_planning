@@ -1,5 +1,6 @@
 function visualize!(vis, model::PlanarPush, q, u; r = r,
-        Δt = 0.1)
+        Δt = 0.1,
+        contact_points = false)
 
 	default_background!(vis)
 
@@ -9,10 +10,12 @@ function visualize!(vis, model::PlanarPush, q, u; r = r,
 		Vec(2.0 * r, 2.0 * r, 2.0 * r)),
 		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, 1.0)))
 
-    for i = 1:4
-        setobject!(vis["contact$i"], GeometryBasics.Sphere(Point3f0(0),
-            convert(Float32, 0.02)),
-            MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+    if contact_points
+        for i = 1:4
+            setobject!(vis["contact$i"], GeometryBasics.Sphere(Point3f0(0),
+                convert(Float32, 0.02)),
+                MeshPhongMaterial(color = RGBA(1.0, 165.0 / 255.0, 0.0, 1.0)))
+        end
     end
 
 	force_vis = ArrowVisualizer(vis[:force])
@@ -21,8 +24,8 @@ function visualize!(vis, model::PlanarPush, q, u; r = r,
 	us = u[1] / 10.0
 
 	settransform!(force_vis,
-				Point(q[1][4] - us[1], q[1][5] - us[1], 2 * r),
-				Vec(us[1], us[1], 2 * r),
+				Point(q[1][4] - us[1], q[1][5] - us[1], 0.0),
+				Vec(us[1], us[1], 0.0),
 				shaft_radius=0.01,
 				max_head_radius=0.025)
 
@@ -41,8 +44,8 @@ function visualize!(vis, model::PlanarPush, q, u; r = r,
 
 					us = u[t] / 10.0
 					settransform!(force_vis,
-								Point(q[t+1][4] - us[1], q[t+1][5] - us[2], 2 * r),
-								Vec(us[1], us[2], 2 * r),
+								Point(q[t+1][4] - us[1], q[t+1][5] - us[2], 0.0),
+								Vec(us[1], us[2], 0.0),
 								shaft_radius=0.01,
 								max_head_radius=0.025)
 				end
@@ -51,9 +54,11 @@ function visualize!(vis, model::PlanarPush, q, u; r = r,
             settransform!(vis["box"],
 				compose(Translation(q[t+1][1], q[t+1][2], r), LinearMap(RotZ(q[t+1][3]))))
 
-            for i = 1:4
-                settransform!(vis["contact$i"],
-                    Translation(([q[t+1][1:2]; 0.0] + RotZ(q[t+1][3]) * [contact_corner_offset[i]; 0.0])...))
+            if contact_points
+                for i = 1:4
+                    settransform!(vis["contact$i"],
+                        Translation(([q[t+1][1:2]; 0.0] + RotZ(q[t+1][3]) * [contact_corner_offset[i]; 0.0])...))
+                end
             end
         end
     end

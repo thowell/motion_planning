@@ -208,6 +208,8 @@ x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 q̄ = state_to_configuration(x̄)
+
+# update initial state using optimized parameter
 q̄[1] = ū[1][model_implicit.m .+ (1:nq)]
 q̄[2] = ū[1][model_implicit.m + nq .+ (1:nq)]
 
@@ -252,23 +254,48 @@ settransform!(vis["/Cameras/default"],
         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
 setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
 
+open(vis)
+
 body_points = Vector{Point{3,Float64}}()
 foot_points = Vector{Point{3,Float64}}()
 body_points_opt = Vector{Point{3,Float64}}()
 foot_points_opt = Vector{Point{3,Float64}}()
+
 for q in qm
-	push!(body_points, Point(q[1], -0.025, q[2]))
-	push!(body_points_opt, Point(q[1], -0.05, q[2]))
+	push!(body_points, Point(q[1], 0.01, q[2] + 0.05))
+	push!(body_points_opt, Point(q[1], -0.0, q[2] + 0.05))
 
-	k = kinematics(s.model, q)
-	push!(foot_points, Point(k[1], -0.025, k[2]))
-	push!(foot_points_opt, Point(k[1], -0.05, k[2]))
-
+	k = kinematics(model, q)
+	push!(foot_points, Point(k[1], 0.01, k[2] + 0.05))
+	push!(foot_points_opt, Point(k[1], -0.0, k[2] + 0.05))
 end
-line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=10.0)
-line_mat = LineBasicMaterial(color=color=RGBA(0.0, 0.0, 0.0, 1.0), linewidth=5.0)
 
-setobject!(vis[:body_traj], MeshCat.Line(body_points, line_mat))
-setobject!(vis[:foot_traj], MeshCat.Line(foot_points, line_mat))
+line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=10.0)
+body_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=5.0)
+foot_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=5.0)
+
+setobject!(vis[:body_traj], MeshCat.Line(body_points, body_line_mat))
+setobject!(vis[:foot_traj], MeshCat.Line(foot_points, foot_line_mat))
 setobject!(vis[:body_traj_opt], MeshCat.Line(body_points_opt[1:T+1], line_opt_mat))
 setobject!(vis[:foot_traj_opt], MeshCat.Line(foot_points_opt[1:T+1], line_opt_mat))
+
+for i = 1:length(body_points)
+    setobject!(vis["body_line_vertex_$i"], Sphere(Point3f0(0),
+        convert(Float32, 0.005)),
+        MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
+        settransform!(vis["body_line_vertex_$i"], Translation(body_points[i]))
+    setobject!(vis["foot_line_vertex_$i"], Sphere(Point3f0(0),
+        convert(Float32, 0.005)),
+        MeshPhongMaterial(color = RGBA(51.0 / 255.0, 1.0, 1.0, 1.0)))
+        settransform!(vis["foot_line_vertex_$i"], Translation(foot_points[i]))
+
+    i > T+1 && continue
+    setobject!(vis["body_line_opt_vertex_$i"], Sphere(Point3f0(0),
+        convert(Float32, 0.0075)),
+        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+        settransform!(vis["body_line_opt_vertex_$i"], Translation(body_points_opt[i]))
+    setobject!(vis["foot_line_opt_vertex_$i"], Sphere(Point3f0(0),
+        convert(Float32, 0.0075)),
+        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+        settransform!(vis["foot_line_opt_vertex_$i"], Translation(foot_points_opt[i]))
+end

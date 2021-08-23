@@ -153,24 +153,24 @@ nθ = nq + nq + nu + 1
 idx_ineq = collect(nq .+ (1:(nc + nb + nc + nb + nc + nc)))
 z_subset_init = 0.1 * ones(nc + nb + nc + nb + nc + nc)
 
-# # Declare variables
-# @variables z[1:nz]
-# @variables θ[1:nθ]
-# @variables κ[1:1]
-#
-# # Residual
-# r = residual(model, z, θ, κ)
-# r = Symbolics.simplify.(r)
-# rz = Symbolics.jacobian(r, z, simplify = true)
-# rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
-#
-# # Build function
-# r_func = eval(build_function(r, z, θ, κ)[2])
-# rz_func = eval(build_function(rz, z, θ)[2])
-# rθ_func = eval(build_function(rθ, z, θ)[2])
-#
-# rz_array = similar(rz, Float64)
-# rθ_array = similar(rθ, Float64)
-#
-# @save joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
+# Declare variables
+@variables z[1:nz]
+@variables θ[1:nθ]
+@variables κ[1:1]
+
+# Residual
+r = residual(model, z, θ, κ)
+r = Symbolics.simplify.(r)
+rz = Symbolics.jacobian(r, z, simplify = true)
+rθ = Symbolics.jacobian(r, θ, simplify = true) # TODO: sparse version
+
+# Build function
+r_func = eval(build_function(r, z, θ, κ)[2])
+rz_func = eval(build_function(rz, z, θ)[2])
+rθ_func = eval(build_function(rθ, z, θ)[2])
+
+rz_array = similar(rz, Float64)
+rθ_array = similar(rθ, Float64)
+
+@save joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
 @load joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array

@@ -120,6 +120,7 @@ v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 
 # vis = Visualizer()
 # render(vis)
+open(vis)
 visualize!(vis, model, q̄, ū, Δt = h, r = r_dim)
 
 q̄[end][1]

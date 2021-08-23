@@ -8,7 +8,7 @@ function visualize!(vis, model, q;
 
     setobject!(vis["body"], Sphere(Point3f0(0),
         convert(Float32, 0.1)),
-        MeshPhongMaterial(color = RGBA(0, 1, 0, 1.0)))
+        MeshPhongMaterial(color = RGBA(0, 0, 0, 1.0)))
 
     setobject!(vis["foot"], Sphere(Point3f0(0),
         convert(Float32, r_foot)),
@@ -49,10 +49,10 @@ function visualize!(vis, model, q;
         end
     end
 
-	if scenario == :vertical
-		settransform!(vis["/Cameras/default"],
-			compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
-	end
+	# if scenario == :vertical
+	# 	settransform!(vis["/Cameras/default"],
+	# 		compose(Translation(0.0, 0.5, -1.0),LinearMap(RotZ(-pi / 2.0))))
+	# end
 
     MeshCat.setanimation!(vis, anim)
 end
