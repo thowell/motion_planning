@@ -13,6 +13,11 @@ struct Cartpole{T}
     g::T      # gravity m/s^2
 end
 
+function kinematics(model::Cartpole, q)
+    [q[1] + model.l * sin(q[2]); -model.l * cos(q[2])]
+end
+
+
 lagrangian(model::Cartpole, q, q̇) = 0.0
 
 function M_func(model::Cartpole, x)

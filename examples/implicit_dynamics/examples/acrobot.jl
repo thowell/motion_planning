@@ -28,23 +28,23 @@ data = dynamics_data(model, h,
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
 # no impact model
-data = dynamics_data(model_no_impact, h,
-        r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
-		rz_no_impact_array, rθ_no_impact_array;
-        idx_ineq = collect(1:0),
-		z_subset_init = zeros(0),
-        dyn_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 0.1,
-						κ_init = 0.1,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 0.1,
-						κ_init = 0.1,
-						diff_sol = true))
-
-model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
+# data = dynamics_data(model_no_impact, h,
+#         r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
+# 		rz_no_impact_array, rθ_no_impact_array;
+#         idx_ineq = collect(1:0),
+# 		z_subset_init = zeros(0),
+#         dyn_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = false),
+# 		jac_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = true))
+#
+# model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
 
 # problem setup
 T = 101

@@ -15,11 +15,11 @@ data = dynamics_data(model, h,
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
         # θ_params = [0.5; 0.5],
-        θ_params = [0.35; 0.35],
+        # θ_params = [0.35; 0.35],
         # θ_params = [0.25; 0.25],
         # θ_params = [0.1; 0.1],
-        # θ_params = [0.01; 0.01],
-        # θ_params = [0.001; 0.001],
+        θ_params = [0.01; 0.01],
+        # θ_params = [0.0; 0.0],
         dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
@@ -116,7 +116,8 @@ function c!(c, cons::StageConstraints, x, u, t)
 	end
 end
 
-ū = [(t == 1 ? -1.0 : 0.0) * ones(m) for t = 1:T-1]
+# ū = [(t == 1 ? -1.0 : 0.0) * ones(m) for t = 1:T-1]
+ū = [(t == 1 ? 1.0 : 0.0) * ones(m) for t = 1:T-1] # initialize no friciton model this direction (not sure why it goes the oppostive direction...)
 w = [zeros(model_implicit.d) for t = 1:T-1]
 
 # Rollout
@@ -130,7 +131,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 10,
+	max_iter = 1000, max_al_iter = 12,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 0.001)
 
@@ -178,20 +179,143 @@ plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction.png")
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_no_friction.png")
 
-# plot(hcat(ū..., ū[end])', linetype = :steppost)
+plot(hcat(ū..., ū[end])', linetype = :steppost)
 #
-# include(joinpath(pwd(), "models/visualize.jl"))
-# vis = Visualizer()
-# render(vis)
-# # open(vis)
-# default_background!(vis)
-# settransform!(vis["/Cameras/default"],
-#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1)
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, q̄, Δt = h)
+open(vis)
+default_background!(vis)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+setvisible!(vis["/Grid"], false)
+
 # q̄ = state_to_configuration(x̄)
 # q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
 # visualize!(vis, model, q_anim, Δt = h)
-#
+
+# ghost
+limit_color = [0.0, 0.0, 0.0]
+# limit_color = [0.0, 1.0, 0.0]
+
+t = 1
+id = t
+tl = 0.05
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 5
+id = t
+tl = 0.15
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 10
+id = t
+tl = 0.25
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 15
+id = t
+tl = 0.35
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 20
+id = t
+tl = 0.45
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 25
+id = t
+tl = 0.55
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 30
+id = t
+tl = 0.65
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 35
+id = t
+tl = 0.75
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 40
+id = t
+tl = 0.85
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+t = 45
+id = t
+tl = 0.95
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+
+t = 51
+id = t
+tl = 1.0
+_create_cartpole!(vis, model;
+        tl = tl,
+        color = RGBA(limit_color..., tl),
+        i = id)
+_set_cartpole!(vis, model, x[t], i = id)
+
+line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+# line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
+
+points = Vector{Point{3,Float64}}()
+for (i, xt) in enumerate(x̄)
+    k = kinematics(model, xt)
+	push!(points, Point(k[1], 0.0, k[2]))
+
+    setobject!(vis["ee_vertex_$i"], Sphere(Point3f0(0),
+        convert(Float32, 0.001)),
+        MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
+        settransform!(vis["ee_vertex_$i"], Translation(points[i]))
+end
+setobject!(vis[:ee_traj], MeshCat.Line(points, line_mat))
+
+
 # using PGFPlots
 # const PGF = PGFPlots
 #
