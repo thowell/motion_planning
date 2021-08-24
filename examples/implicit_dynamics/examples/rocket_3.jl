@@ -9,8 +9,8 @@ n = model.n
 m = model.m
 
 # control limits
-ul = [-5.0; -5.0; 0.0]
-uu = [5.0; 5.0; 12.0]
+ul = [-1.0; -1.0; 0.0]
+uu = [1.0; 1.0; 11.5]
 
 # control projection problem
 m = 3
@@ -104,8 +104,8 @@ interior_point_solve!(ip_jac)
 function soc_projection(x)
     proj = second_order_cone_projection(x[[3;1;2]])[1]
 	ip_con.z .= [proj[2:3]; proj[3]; 0.1 * ones(7)]
-    ip_con.z[3] += 10.0
-    ip_con.z[10] += 10.0
+    ip_con.z[3] += 1.0
+    ip_con.z[10] += 1.0
 	ip_con.θ .= [x; uu[3]]
 
 	interior_point_solve!(ip_con)
@@ -118,8 +118,8 @@ soc_projection([100.0, 0.0, 0.0])
 function soc_projection_jacobian(x)
     proj = second_order_cone_projection(x[[3;1;2]])[1]
 	ip_con.z .= [proj[2:3]; proj[3]; 0.1 * ones(7)]
-    ip_con.z[3] += 10.0
-    ip_con.z[10] += 10.0
+    ip_con.z[3] += 1.0
+    ip_con.z[10] += 1.0
 	ip_con.θ .= [x; uu[3]]
 
 	interior_point_solve!(ip_jac)
@@ -132,8 +132,8 @@ soc_projection_jacobian([10.0, 0.0, 100.0])
 function fd(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-	# x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+	x⁺ = newton(rz, copy(x))
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	return x⁺
 	# return view(x, 1:model.n) + h * f(model, view(x, 1:model.n) + 0.5 * h * f(model, view(x, 1:model.n), view(u, 1:model.m), w), view(u, 1:model.m), w)
 end
@@ -143,8 +143,8 @@ fd(model, ones(model.n), zeros(model.m), zeros(model.d), h, 1)
 function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+    x⁺ = newton(rz, copy(x))
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	rx(z) = fd(model, x⁺, z, u_proj, w, h, t) # implicit midpoint integration
 	∇rx = ForwardDiff.jacobian(rx, x)
@@ -159,8 +159,8 @@ function fdu(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj_jac = soc_projection_jacobian(u)
 
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+    x⁺ = newton(rz, copy(x))
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	ru(z) = fd(model, x⁺, x, z, w, h, t) # implicit midpoint integration
 	∇ru = ForwardDiff.jacobian(ru, u_proj)
@@ -179,20 +179,20 @@ T = 101
 
 # Initial conditions, controls, disturbances
 x1 = zeros(model.n)
-x1[1] = 2.5
-x1[2] = 2.5
+x1[1] = 5.0
+x1[2] = -2.5
 x1[3] = 10.0
-mrp = MRP(RotZ(0.25 * π) * RotY(-0.5 * π) * RotX(0.15 * π))
+mrp = MRP(RotZ(0.0 * π) * RotY(-0.0 * π) * RotX(0.0 * π))
 x1[4:6] = [mrp.x; mrp.y; mrp.z]
-x1[9] = -1.0
+x1[9] = -5.0
 
-visualize!(vis, model, [x1], Δt = h)
+# visualize!(vis, model, [x1], Δt = h)
 
 xT = zeros(model.n)
 # xT[1] = 2.5
 # xT[2] = 0.0
 xT[3] = model.length
-mrpT = MRP(RotZ(0.25 * π) * RotY(0.0))
+mrpT = MRP(RotZ(0.0 * π) * RotY(0.0))
 xT[4:6] = [mrpT.x; mrpT.y; mrpT.z]
 
 u_ref = [0.0; 0.0; 0.0]#model.mass * 9.81]
@@ -211,7 +211,7 @@ Q = h * [(t < T ? 1.0 * Diagonal([1.0e-1 * ones(3); 0.0 * ones(3); 1.0e-1 * ones
         : 1000.0 * Diagonal(1.0 * ones(model.n))) for t = 1:T]
 q = h * [-2.0 * Q[t] * xT for t = 1:T]
 
-R = h * [Diagonal([10000.0; 10000.0; 100.0]) for t = 1:T-1]
+R = h * [Diagonal([100000.0; 100000.0; 1000.0]) for t = 1:T-1]
 r = h * [-2.0 * R[t] * u_ref  for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
@@ -235,8 +235,8 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Constraints
-x_con = [-0.5; 0.5]
-y_con = [-0.75; 0.75]
+# x_con = [-0.5; 0.5]
+# y_con = [-0.75; 0.75]
 p = [t < T ? 2 * m + 1 : 2 * n for t = 1:T]
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m + 1))
 info_T = Dict(:xT => xT, :inequality => (1:(2 * n)))
@@ -254,8 +254,8 @@ function c!(c, cons::StageConstraints, x, u, t)
 		c[2 * m + 1] = model.length - x[3]
 	elseif t == T
 		xT = cons.con[T].info[:xT]
-        c[(1:n)] .= (xT - [0.5, 0.75, 0.0, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]) - x
-        c[n .+ (1:n)] .= x - (xT + [0.5, 0.75, 0.1, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01])
+        c[(1:n)] .= (xT - [0.25, 0.45, 0.0, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]) - x
+        c[n .+ (1:n)] .= x - (xT + [0.25, 0.45, 0.01, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001])
 		# c[4 .+ (1:(n - 5))] .= (x - xT)[idx_T]
         # c[4 + (n - 5) .+ (1:3)] .= [-0.05; -0.05; -0.1] - x[4:6]
         # c[4 + (n - 5) + 3 .+ (1:3)] = x[4:6] - [0.05; 0.05; 0.3]
@@ -312,6 +312,7 @@ plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
 
 # Visualize
 include(joinpath(pwd(), "models/visualize.jl"))
+
 vis = Visualizer()
 render(vis)
 # open(vis)
