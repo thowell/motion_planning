@@ -7,12 +7,23 @@ include_ddp()
 include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/model.jl"))
 
 # build implicit dynamics
-h = 0.1
+h = 0.05
 
 # impact model
 data = dynamics_data(model, h,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
-        idx_ineq = idx_ineq)
+        idx_ineq = idx_ineq,
+        z_subset_init = 0.1 * ones(4),
+        dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-4,
+						κ_init = 0.1,
+						diff_sol = false),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-3,
+						κ_init = 0.1,
+						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
@@ -21,12 +32,22 @@ model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.di
 #         r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
 # 		rz_no_impact_array, rθ_no_impact_array;
 #         idx_ineq = collect(1:0),
-# 		z_subset_init = zeros(0))
+# 		z_subset_init = zeros(0),
+#         dyn_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = false),
+# 		jac_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = true))
 #
 # model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
 
 # problem setup
-T = 51
+T = 101
 
 q0 = [0.0; 0.0]
 q1 = [0.0; 0.0]
@@ -40,18 +61,18 @@ n = model_implicit.n
 nq = model_implicit.dynamics.m.dim.q
 m = model_implicit.m
 
-ū = [1.0e-2 * randn(model_implicit.m) for t = 1:T-1]
+ū = [1.0e-3 * randn(model_implicit.m) for t = 1:T-1]
 w = [zeros(model_implicit.d) for t = 1:T-1]
 
 # Rollout
 x̄ = rollout(model_implicit, x1, ū, w, h, T)
 
 # Objective
-V = Diagonal(ones(nq))
+V = 0.1 * Diagonal(ones(nq))
 _Q = [V -V; -V V] ./ h^2.0
 Q = [t < T ? _Q : _Q for t = 1:T]
 q = [-2.0 * Q[t] * zeros(n) for t = 1:T]
-R = [Diagonal(1.0e-1 * ones(m)) for t = 1:T-1]
+R = [Diagonal(1.0 * ones(m)) for t = 1:T-1]
 r = [zeros(m) for t = 1:T-1]
 
 obj = StageCosts([QuadraticCost(Q[t], q[t],
@@ -75,8 +96,8 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Constraints
-ul = [-2.0]
-uu = [2.0]
+ul = [-1.0]
+uu = [1.0]
 p = [t < T ? 2 * m : n for t = 1:T]
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m))
 info_T = Dict(:xT => xT)
@@ -89,7 +110,7 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		c .= [ul - u; u - uu]
+		# c .= [ul - u; u - uu]
 	else
 		c .= x - cons.con[T].info[:xT]
 	end
@@ -102,7 +123,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 @time constrained_ddp_solve!(prob,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
-	con_tol = 0.005)
+	con_tol = 0.001)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
@@ -131,6 +152,7 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 plot(hcat(ū..., ū[end])', linetype = :steppost)
 
 include(joinpath(pwd(), "models/visualize.jl"))
+
 vis = Visualizer()
 render(vis)
 # open(vis)

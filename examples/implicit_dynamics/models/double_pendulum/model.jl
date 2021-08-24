@@ -88,10 +88,10 @@ function P_func(model, q)
 end
 
 model = DoublePendulum(Dimensions(2, 1, 0, 2),
-    1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+    1.0, 0.333, 1.0, 0.5, 1.0, 0.333, 1.0, 0.5, 9.81, 0.0, 0.0)
 
 model_no_impact = DoublePendulum(Dimensions(2, 1, 0, 0),
-    1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+    1.0, 0.333, 1.0, 0.5, 1.0, 0.333, 1.0, 0.5, 9.81, 0.0, 0.0)
 
 function lagrangian_derivatives(model::DoublePendulum, q, v)
 	D1L = -1.0 * C_func(model, q, v)
@@ -167,52 +167,54 @@ function residual_no_impact(model::DoublePendulum, z, θ, κ)
 end
 
 # generate residual methods
-# nq = model.dim.q
-# nu = model.dim.u
-# nc = model.dim.c
-# nz = nq + nc + nc
-# nz_no_impact = nq
-# nθ = nq + nq + nu + 1
-#
-# # Declare variables
-# @variables z[1:nz]
-# @variables z_no_impact[1:nz_no_impact]
-# @variables θ[1:nθ]
-# @variables κ[1:1]
-#
-# # Residual
-# r = residual(model, z, θ, κ)
-# r = Symbolics.simplify.(r)
-# rz = Symbolics.jacobian(r, z, simplify = true)
-# rθ = Symbolics.jacobian(r, θ, simplify = true)
-#
-# # Build function
-# r_func = eval(build_function(r, z, θ, κ)[2])
-# rz_func = eval(build_function(rz, z, θ)[2])
-# rθ_func = eval(build_function(rθ, z, θ)[2])
-#
-# rz_array = similar(rz, Float64)
-# rθ_array = similar(rθ, Float64)
-#
-# @save joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
+nq = model.dim.q
+nu = model.dim.u
+nc = model.dim.c
+nz = nq + nc + nc
+nz_no_impact = nq
+nθ = nq + nq + nu + 1
+
+# Declare variables
+@variables z[1:nz]
+@variables z_no_impact[1:nz_no_impact]
+@variables θ[1:nθ]
+@variables κ[1:1]
+
+# Residual
+r = residual(model, z, θ, κ)
+r = Symbolics.simplify.(r)
+rz = Symbolics.jacobian(r, z, simplify = true)
+rθ = Symbolics.jacobian(r, θ, simplify = true)
+
+# Build function
+r_func = eval(build_function(r, z, θ, κ)[2])
+rz_func = eval(build_function(rz, z, θ)[2])
+rθ_func = eval(build_function(rθ, z, θ)[2])
+
+rz_array = similar(rz, Float64)
+rθ_array = similar(rθ, Float64)
+
+@save joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
 @load joinpath(@__DIR__, "dynamics/residual.jl") r_func rz_func rθ_func rz_array rθ_array
 
 # Residual
-# r_no_impact = residual_no_impact(model, z_no_impact, θ, κ)
-# r_no_impact = Symbolics.simplify.(r_no_impact)
-# rz_no_impact = Symbolics.jacobian(r_no_impact, z_no_impact, simplify = true)
-# rθ_no_impact = Symbolics.jacobian(r_no_impact, θ, simplify = true)
-#
-# # Build function
-# r_no_impact_func = eval(build_function(r_no_impact, z_no_impact, θ, κ)[2])
-# rz_no_impact_func = eval(build_function(rz_no_impact, z_no_impact, θ)[2])
-# rθ_no_impact_func = eval(build_function(rθ_no_impact, z_no_impact, θ)[2])
-#
-# rz_no_impact_array = similar(rz_no_impact, Float64)
-# rθ_no_impact_array = similar(rθ_no_impact, Float64)
-#
-# @save joinpath(@__DIR__, "dynamics/residual_no_impact.jl") r_no_impact_func rz_no_impact_func rθ_no_impact_func rz_no_impact_array rθ_no_impact_array
+r_no_impact = residual_no_impact(model, z_no_impact, θ, κ)
+r_no_impact = Symbolics.simplify.(r_no_impact)
+rz_no_impact = Symbolics.jacobian(r_no_impact, z_no_impact, simplify = true)
+rθ_no_impact = Symbolics.jacobian(r_no_impact, θ, simplify = true)
+
+# Build function
+r_no_impact_func = eval(build_function(r_no_impact, z_no_impact, θ, κ)[2])
+rz_no_impact_func = eval(build_function(rz_no_impact, z_no_impact, θ)[2])
+rθ_no_impact_func = eval(build_function(rθ_no_impact, z_no_impact, θ)[2])
+
+rz_no_impact_array = similar(rz_no_impact, Float64)
+rθ_no_impact_array = similar(rθ_no_impact, Float64)
+
+@save joinpath(@__DIR__, "dynamics/residual_no_impact.jl") r_no_impact_func rz_no_impact_func rθ_no_impact_func rz_no_impact_array rθ_no_impact_array
 @load joinpath(@__DIR__, "dynamics/residual_no_impact.jl") r_no_impact_func rz_no_impact_func rθ_no_impact_func rz_no_impact_array rθ_no_impact_array
+
+idx_ineq = collect([nq .+ (1:(nc + nc))]...)
 
 # q0 = [0.5 * π; 0.0]
 # q1 = [0.5 * π; 0.0]
@@ -232,7 +234,6 @@ end
 #    r_tol = 1.0e-8,
 #    diff_sol = true)
 #
-# idx_ineq = collect([nq .+ (1:(nc + nc))]...)
 #
 # # solver
 # ip = interior_point(z0, θ0,

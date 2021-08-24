@@ -7,7 +7,7 @@ include_ddp()
 include(joinpath(pwd(), "examples/implicit_dynamics/models/cartpole/model.jl"))
 
 # build implicit dynamics
-h = 0.1
+h = 0.05
 
 # friction model
 data = dynamics_data(model, h,
@@ -34,24 +34,24 @@ data = dynamics_data(model, h,
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
 # no friction model
-data = dynamics_data(model, h,
-        r_no_friction_func, rz_no_friction_func, rθ_no_friction_func,
-		rz_no_friction_array, rθ_no_friction_array,
-        θ_params = [0.0; 0.0],
-        dyn_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 0.1,
-						κ_init = 0.1,
-						diff_sol = true),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 0.1,
-						κ_init = 0.1,
-						diff_sol = true))
+# data = dynamics_data(model, h,
+#         r_no_friction_func, rz_no_friction_func, rθ_no_friction_func,
+# 		rz_no_friction_array, rθ_no_friction_array,
+#         θ_params = [0.0; 0.0],
+#         dyn_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = true),
+# 		jac_opts =  InteriorPointOptions{Float64}(
+# 						r_tol = 1.0e-8,
+# 						κ_tol = 0.1,
+# 						κ_init = 0.1,
+# 						diff_sol = true))
+#
+# model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
-model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
-
-T = 26
+T = 51
 
 n = model_implicit.n
 nq = model_implicit.dynamics.m.dim.q
@@ -178,62 +178,62 @@ plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction.png")
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_no_friction.png")
 
-plot(hcat(ū..., ū[end])', linetype = :steppost)
-
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-# open(vis)
-default_background!(vis)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1)
-q̄ = state_to_configuration(x̄)
-q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
-visualize!(vis, model, q_anim, Δt = h)
-
-using PGFPlots
-const PGF = PGFPlots
-
-plt_q1_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[1,:],
-	mark="none",style="color=cyan, line width = 2pt, dashed",legendentry="q1")
-
-plt_q2_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[2,:],
-	mark="none",style="color=orange, line width = 2pt, dashed",legendentry="q2")
-
-plt_qd1_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[1,:],
-	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="q1")
-
-plt_qd2_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[2,:],
-	mark="none",style="const plot, color=green, line width = 2pt, dashed",legendentry="q2")
-
-plt_q1_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[1,:],
-	mark="none",style="color=cyan, line width = 2pt",legendentry="q1 (friction)")
-
-plt_q2_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[2,:],
-	mark="none",style="color=orange, line width = 2pt",legendentry="q2 (friction)")
-
-plt_qd1_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[1,:],
-	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="q1 (friction)")
-
-plt_qd2_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[2,:],
-	mark="none",style="const plot, color=green, line width = 2pt",legendentry="q2 (friction)")
-
-aq = Axis([plt_q1_friction; plt_q2_friction; plt_q1_smooth; plt_q2_smooth],#; plt_qd1_smooth; plt_qd1_friction; plt_qd2_smooth; plt_qd2_friction],
-    axisEqualImage=false,
-    hideAxis=false,
-	ylabel="configuration",
-	xlabel="time (s)",
-	xlims=(0.0, 2.5),
-	legendStyle="{at={(0.01,0.99)},anchor=north west}")
-
-av = Axis([plt_qd1_friction; plt_qd2_friction; plt_qd1_smooth; plt_qd2_smooth],
-    axisEqualImage=false,
-    hideAxis=false,
-	ylabel="velocity",
-	xlabel="time (s)",
-	legendStyle="{at={(0.01,0.99)},anchor=north west}")
-
-# Save to tikz format
-PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_configuration.tikz", aq, include_preamble=false)
-PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_velocity.tikz", av, include_preamble=false)
+# plot(hcat(ū..., ū[end])', linetype = :steppost)
+#
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# # open(vis)
+# default_background!(vis)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1)
+# q̄ = state_to_configuration(x̄)
+# q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
+# visualize!(vis, model, q_anim, Δt = h)
+#
+# using PGFPlots
+# const PGF = PGFPlots
+#
+# plt_q1_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[1,:],
+# 	mark="none",style="color=cyan, line width = 2pt, dashed",legendentry="q1")
+#
+# plt_q2_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[2,:],
+# 	mark="none",style="color=orange, line width = 2pt, dashed",legendentry="q2")
+#
+# plt_qd1_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[1,:],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="q1")
+#
+# plt_qd2_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[2,:],
+# 	mark="none",style="const plot, color=green, line width = 2pt, dashed",legendentry="q2")
+#
+# plt_q1_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[1,:],
+# 	mark="none",style="color=cyan, line width = 2pt",legendentry="q1 (friction)")
+#
+# plt_q2_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[2,:],
+# 	mark="none",style="color=orange, line width = 2pt",legendentry="q2 (friction)")
+#
+# plt_qd1_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[1,:],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="q1 (friction)")
+#
+# plt_qd2_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[2,:],
+# 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="q2 (friction)")
+#
+# aq = Axis([plt_q1_friction; plt_q2_friction; plt_q1_smooth; plt_q2_smooth],#; plt_qd1_smooth; plt_qd1_friction; plt_qd2_smooth; plt_qd2_friction],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="configuration",
+# 	xlabel="time (s)",
+# 	xlims=(0.0, 2.5),
+# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+#
+# av = Axis([plt_qd1_friction; plt_qd2_friction; plt_qd1_smooth; plt_qd2_smooth],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="velocity",
+# 	xlabel="time (s)",
+# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+#
+# # Save to tikz format
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_configuration.tikz", aq, include_preamble=false)
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_velocity.tikz", av, include_preamble=false)
