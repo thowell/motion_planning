@@ -10,7 +10,7 @@ function newton(res::Function, x;
 
     iter = 0
 
-    while norm(r, 2) > tol_r && iter < 25
+    while norm(r, 1) > tol_r && iter < 25
         ∇r = ForwardDiff.jacobian(res, y)
 
 		try
@@ -23,11 +23,11 @@ function newton(res::Function, x;
         α = 1.0
 
 		iter_ls = 0
-        while α > 1.0e-8 && iter_ls < 10
+        while α > 1.0e-8 && iter_ls < 25
             ŷ = y + α * Δy
             r̂ = res(ŷ)
 
-            if norm(r̂) < norm(r)
+            if norm(r̂, 1) < norm(r, 1)
                 y = ŷ
                 r = r̂
                 break
@@ -36,7 +36,7 @@ function newton(res::Function, x;
 				iter_ls += 1
             end
 
-			iter_ls == 10 && (@warn "line search failed")
+			iter_ls == 25 && (@warn "line search failed")
         end
 
         iter += 1

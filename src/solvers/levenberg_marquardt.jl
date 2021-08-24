@@ -46,7 +46,7 @@ function levenberg_marquardt(res::Function, x;
 			reg = reg
 			ls_iter += 1
 
-			if ls_iter > 100 || reg > 1.0e12
+			if ls_iter > 25 || reg > 1.0e12
 				@error "line search failure"
 			end
 		end

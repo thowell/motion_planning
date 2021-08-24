@@ -13,16 +13,43 @@ h = 0.1
 data = dynamics_data(model, h,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
 		idx_soc = idx_soc,
-		z_subset_init = z_subset_init)
+		z_subset_init = z_subset_init,
+        # θ_params = [0.5; 0.5],
+        θ_params = [0.35; 0.35],
+        # θ_params = [0.25; 0.25],
+        # θ_params = [0.1; 0.1],
+        # θ_params = [0.01; 0.01],
+        # θ_params = [0.001; 0.001],
+        dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-4,
+						κ_init = 0.1,
+						diff_sol = true),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-1,
+						κ_init = 0.1,
+						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
-# # no friction model
-# data = dynamics_data(model, h,
-#         r_no_friction_func, rz_no_friction_func, rθ_no_friction_func,
-# 		rz_no_friction_array, rθ_no_friction_array)
-#
-# model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
+# no friction model
+data = dynamics_data(model, h,
+        r_no_friction_func, rz_no_friction_func, rθ_no_friction_func,
+		rz_no_friction_array, rθ_no_friction_array,
+        θ_params = [0.0; 0.0],
+        dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 0.1,
+						κ_init = 0.1,
+						diff_sol = true),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 0.1,
+						κ_init = 0.1,
+						diff_sol = true))
+
+model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
 T = 26
 
@@ -133,7 +160,6 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 	xlabel = "time (s)",
 	ylabel = "configuration",
 	# title = "cartpole (w / o friction)")
-
 	title = "cartpole (w/ friction)")
 
 plt = plot();
@@ -145,7 +171,6 @@ plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
 	ylabel = "velocity",
 	linetype = :steppost,
 	# title = "cartpole (w / o friction)")
-
 	title = "cartpole (w/ friction)")
 	# title = "acrobot (w/ joint limits)")
 

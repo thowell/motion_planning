@@ -3,6 +3,7 @@ struct DynamicsData{T}
 	ip_dyn::InteriorPoint
 	ip_jac::InteriorPoint
     z_subset_init::Vector{T}
+	θ_params
 	h::T
 end
 
@@ -11,6 +12,7 @@ function dynamics_data(m, h,
         idx_ineq = collect(1:0),
         idx_soc = Vector{Int}[],
         z_subset_init = ones(size(rz)[1] - m.dim.q),
+		θ_params = [],
 		dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
@@ -50,7 +52,7 @@ function dynamics_data(m, h,
 
 	ip_jac.opts.diff_sol = true
 
-	DynamicsData(m, ip_dyn, ip_jac, z_subset_init, h)
+	DynamicsData(m, ip_dyn, ip_jac, z_subset_init, θ_params, h)
 end
 
 function f!(d::DynamicsData, q0, q1, u1, mode = :dynamics)
@@ -58,7 +60,7 @@ function f!(d::DynamicsData, q0, q1, u1, mode = :dynamics)
 	h = d.h
 
 	ip.z .= copy([q1; d.z_subset_init])
-	ip.θ .= copy([q0; q1; u1; h])
+	ip.θ .= copy([q0; q1; u1; h; d.θ_params])
 
 	status = interior_point_solve!(ip)
 

@@ -4,6 +4,9 @@ include_implicit_dynamics()
 include_ddp()
 include_model("rocket3D")
 
+# time step
+h = 0.01
+
 n = model.n
 m = model.m
 
@@ -70,7 +73,7 @@ z0[10] += 1.0
 opts_con = InteriorPointOptions(
   κ_init = 0.1,
   κ_tol = 1.0e-4,
-  r_tol = 1.0e-8,
+  r_tol = 1.0e-6,
   diff_sol = false)
 
 ip_con = interior_point(z0, θ0,
@@ -85,7 +88,7 @@ ip_con = interior_point(z0, θ0,
 opts_jac = InteriorPointOptions(
 	κ_init = 0.1,
 	κ_tol = 1.0e-2,
-	r_tol = 1.0e-8,
+	r_tol = 1.0e-6,
 	diff_sol = true)
 
 ip_jac = interior_point(z0, θ0,
@@ -167,7 +170,6 @@ fdu(model, zeros(model.n), zeros(model.m), zeros(model.d), h, 1)
 
 # Time
 T = 201
-h = 0.01
 
 # Initial conditions, controls, disturbances
 x1 = zeros(model.n)
@@ -192,7 +194,7 @@ w = [zeros(model.d) for t = 1:T-1]
 # Rollout
 x̄ = rollout(model, x1, ū, w, h, T)
 
-visualize!(vis, model, x̄, Δt = h)
+# visualize!(vis, model, x̄, Δt = h)
 # x̄ = linear_interpolation(x1, xT, T)
 # plot(hcat(x̄...)')
 
@@ -251,7 +253,7 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
 u_ref = [0.0; 0.0; 0.0] # model.mass * 9.81]
-ū = [u_ref + [1.0e-3; 1.0e-3; 1.0e-3] .* randn(model.m) for t = 1:T-1]
+ū = [u_ref + [1.0e-2; 1.0e-2; 1.0e-2] .* randn(model.m) for t = 1:T-1]
 
 # Solve
 @time constrained_ddp_solve!(prob,
@@ -308,115 +310,115 @@ settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
 setvisible!(vis["/Grid"], false)
 setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1.0)
 
-line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
-points = Vector{Point{3,Float64}}()
-for xt in x̄
-	push!(points, Point(xt[1:3]...))
-end
-setobject!(vis[:traj], MeshCat.Line(points, line_mat))
-
-t = 35
-
-setobject!(vis["rocket2"]["starship"], ctm)
-
-settransform!(vis["rocket2"]["starship"],
-	compose(Translation(0.0, 0.0, -model.length),
-		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
-
-body = Cylinder(Point3f0(0.0, 0.0, -1.25),
-  Point3f0(0.0, 0.0, 0.5),
-  convert(Float32, 0.125))
-
-setobject!(vis["rocket2"]["body"], body,
-  MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
-
-settransform!(vis["rocket2"],
-	  compose(Translation(x̄[t][1:3]),
-			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
-
-t = 85
-
-setobject!(vis["rocket3"]["starship"], ctm)
-
-settransform!(vis["rocket3"]["starship"],
-	compose(Translation(0.0, 0.0, -model.length),
-		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
-
-body = Cylinder(Point3f0(0.0, 0.0, -1.25),
-  Point3f0(0.0, 0.0, 0.5),
-  convert(Float32, 0.125))
-
-setobject!(vis["rocket3"]["body"], body,
-  MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
-
-settransform!(vis["rocket3"],
-	  compose(Translation(x̄[t][1:3]),
-			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
-
-
-t = T
-
-setobject!(vis["rocket4"]["starship"], ctm)
-
-settransform!(vis["rocket4"]["starship"],
-	compose(Translation(0.0, 0.0, -model.length),
-		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
-
-body = Cylinder(Point3f0(0.0, 0.0, -1.25),
-  Point3f0(0.0, 0.0, 0.5),
-  convert(Float32, 0.125))
-
-setobject!(vis["rocket4"]["body"], body,
-  MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
-
-settransform!(vis["rocket4"],
-	  compose(Translation(x̄[t][1:3]),
-			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
-
-
-# # Visualize
-# obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
-# mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
-# ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
-# setobject!(vis["rocket"]["starship"], ctm)
+# line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+# points = Vector{Point{3,Float64}}()
+# for xt in x̄
+# 	push!(points, Point(xt[1:3]...))
+# end
+# setobject!(vis[:traj], MeshCat.Line(points, line_mat))
 #
-# settransform!(vis["rocket"]["starship"],
+# t = 35
+#
+# setobject!(vis["rocket2"]["starship"], ctm)
+#
+# settransform!(vis["rocket2"]["starship"],
 # 	compose(Translation(0.0, 0.0, -model.length),
 # 		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
 #
-# default_background!(vis)
-# settransform!(vis["rocket"],
-# 	compose(Translation(0.0, 0.0, 0.0),
-# 	LinearMap(RotY(0.0))))
-
-
-using PGFPlots
-const PGF = PGFPlots
-
-plt_F1_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[3,:],
-	mark="none",style="const plot, color=cyan, line width = 2pt, dashed",legendentry="F1")
-
-plt_F2_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[1,:],
-	mark="none",style="const plot, color=orange, line width = 2pt, dashed",legendentry="F2")
-
-plt_F3_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[2,:],
-	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="F2")
-
-plt_F1_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[3,:],
-	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="F1 (soc)")
-
-plt_F2_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[1,:],
-	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="F2 (soc)")
-
-plt_F3_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[2,:],
-	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="F2 (soc)")
-
-a = Axis([plt_F1_soc; plt_F2_soc; plt_F3_soc; plt_F1_smooth; plt_F2_smooth; plt_F3_smooth],
-    axisEqualImage=false,
-    hideAxis=false,
-	ylabel="control",
-	xlabel="time (s)",
-	# xlims=(0.0, 2.0),
-	legendStyle="{at={(0.5,0.5)},anchor=west}")
-
-PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.tikz", a, include_preamble=false)
+# body = Cylinder(Point3f0(0.0, 0.0, -1.25),
+#   Point3f0(0.0, 0.0, 0.5),
+#   convert(Float32, 0.125))
+#
+# setobject!(vis["rocket2"]["body"], body,
+#   MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
+#
+# settransform!(vis["rocket2"],
+# 	  compose(Translation(x̄[t][1:3]),
+# 			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
+#
+# t = 85
+#
+# setobject!(vis["rocket3"]["starship"], ctm)
+#
+# settransform!(vis["rocket3"]["starship"],
+# 	compose(Translation(0.0, 0.0, -model.length),
+# 		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
+#
+# body = Cylinder(Point3f0(0.0, 0.0, -1.25),
+#   Point3f0(0.0, 0.0, 0.5),
+#   convert(Float32, 0.125))
+#
+# setobject!(vis["rocket3"]["body"], body,
+#   MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
+#
+# settransform!(vis["rocket3"],
+# 	  compose(Translation(x̄[t][1:3]),
+# 			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
+#
+#
+# t = T
+#
+# setobject!(vis["rocket4"]["starship"], ctm)
+#
+# settransform!(vis["rocket4"]["starship"],
+# 	compose(Translation(0.0, 0.0, -model.length),
+# 		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
+#
+# body = Cylinder(Point3f0(0.0, 0.0, -1.25),
+#   Point3f0(0.0, 0.0, 0.5),
+#   convert(Float32, 0.125))
+#
+# setobject!(vis["rocket4"]["body"], body,
+#   MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0, 1.0)))
+#
+# settransform!(vis["rocket4"],
+# 	  compose(Translation(x̄[t][1:3]),
+# 			LinearMap(MRP(x̄[t][4:6]...) * RotX(0.0))))
+#
+#
+# # # Visualize
+# # obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
+# # mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
+# # ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
+# # setobject!(vis["rocket"]["starship"], ctm)
+# #
+# # settransform!(vis["rocket"]["starship"],
+# # 	compose(Translation(0.0, 0.0, -model.length),
+# # 		LinearMap(0.25 * RotY(0.0) * RotZ(0.5 * π) * RotX(0.5 * π))))
+# #
+# # default_background!(vis)
+# # settransform!(vis["rocket"],
+# # 	compose(Translation(0.0, 0.0, 0.0),
+# # 	LinearMap(RotY(0.0))))
+#
+#
+# using PGFPlots
+# const PGF = PGFPlots
+#
+# plt_F1_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[3,:],
+# 	mark="none",style="const plot, color=cyan, line width = 2pt, dashed",legendentry="F1")
+#
+# plt_F2_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[1,:],
+# 	mark="none",style="const plot, color=orange, line width = 2pt, dashed",legendentry="F2")
+#
+# plt_F3_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[2,:],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="F2")
+#
+# plt_F1_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[3,:],
+# 	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="F1 (soc)")
+#
+# plt_F2_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[1,:],
+# 	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="F2 (soc)")
+#
+# plt_F3_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[2,:],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="F2 (soc)")
+#
+# a = Axis([plt_F1_soc; plt_F2_soc; plt_F3_soc; plt_F1_smooth; plt_F2_smooth; plt_F3_smooth],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="control",
+# 	xlabel="time (s)",
+# 	# xlims=(0.0, 2.0),
+# 	legendStyle="{at={(0.5,0.5)},anchor=west}")
+#
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.tikz", a, include_preamble=false)
