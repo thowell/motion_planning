@@ -4,7 +4,7 @@ function visualize!(mvis, model::KukaParticle, q;
 
 	setobject!(vis["ball"], Sphere(Point3f0(0),
 				convert(Float32, r_ball)),
-				MeshPhongMaterial(color = RGBA(1.0, 0.0, 0.0,1.0)))
+				MeshPhongMaterial(color = RGBA(51.0 / 255.0, 1.0, 1.0, 1.0)))
 
 	settransform!(vis["ball"], compose(Translation(0.66,3.0,0.0)))
 

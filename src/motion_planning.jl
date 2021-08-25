@@ -5,7 +5,6 @@ using MathOptInterface, Ipopt
 using Distributions, Interpolations
 using JLD2
 using BenchmarkTools
-using ModelingToolkit
 
 using Colors
 using CoordinateTransformations
@@ -14,6 +13,8 @@ using GeometryBasics
 using MeshCat, MeshIO, Meshing
 using Rotations
 using Parameters
+using Symbolics
+
 # using RigidBodyDynamics, MeshCatMechanisms
 include("indices.jl")
 include("utils.jl")

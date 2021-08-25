@@ -19,7 +19,17 @@ h = 0.1
 data = dynamics_data(model, h,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
-		z_subset_init = z_subset_init)
+		z_subset_init = z_subset_init,
+        dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-4,
+						κ_init = 0.1,
+						diff_sol = true),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-2,
+						κ_init = 0.1,
+						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 

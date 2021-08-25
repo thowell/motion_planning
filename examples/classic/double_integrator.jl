@@ -35,8 +35,8 @@ u0 = [ones(model.m) for t = 1:T-1]
 z0 = pack(x0, u0, prob)
 
 # Solve
-include_snopt() # set path
-@time z, info = solve(prob, copy(z0), nlp = :SNOPT7)
+# include_snopt() # set path
+# @time z, info = solve(prob, copy(z0), nlp = :SNOPT7)
 @time z, info = solve(prob, copy(z0), nlp = :ipopt)
 
 # Visualize
