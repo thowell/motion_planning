@@ -127,9 +127,9 @@ plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
 # # ū_fixed_time = ū
 #
 # # Visualize
-# obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
-# mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
-# ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
+obj_rocket = joinpath(pwd(), "models/starship/Starship.obj")
+mtl_rocket = joinpath(pwd(), "models/starship/Starship.mtl")
+ctm = ModifiedMeshFileObject(obj_rocket, mtl_rocket, scale=1.0)
 # setobject!(vis["rocket"]["starship"], ctm)
 #
 # settransform!(vis["rocket"]["starship"],

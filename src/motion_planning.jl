@@ -14,6 +14,7 @@ using MeshCat, MeshIO, Meshing
 using Rotations
 using Parameters
 using Symbolics
+using Random
 
 # using RigidBodyDynamics, MeshCatMechanisms
 include("indices.jl")

@@ -1,5 +1,7 @@
 include_ddp()
 
+Random.seed!(0)
+
 # Model
 include_model("acrobot")
 n = model.n
@@ -12,7 +14,7 @@ h = 0.05
 # Initial conditions, controls, disturbances
 x1 = [0.0, 0.0, 0.0, 0.0]
 xT = [π, 0.0, 0.0, 0.0] # goal state
-ū = [1.0 * rand(model.m) for t = 1:T-1]
+ū = [1.0e-3 * rand(model.m) for t = 1:T-1]
 w = [zeros(model.d) for t = 1:T-1]
 
 # Rollout
@@ -53,22 +55,23 @@ prob = problem_data(model, obj, copy(x̄), copy(ū), w, h, T)
 
 # Solve
 @time ddp_solve!(prob,
-    max_iter = 1000, verbose = true)
+    max_iter = 1000, verbose = true,
+    linesearch = :armijo)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 
 # Visualize
-using Plots
-plot(π * ones(T),
-    width = 2.0, color = :black, linestyle = :dash)
-plot!(hcat(x...)', width = 2.0, label = "")
-plot(hcat(u..., u[end])',
-    width = 2.0, linetype = :steppost)
-
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-# open(vis)
-visualize!(vis, model, x, Δt = h)
+# using Plots
+# plot(π * ones(T),
+#     width = 2.0, color = :black, linestyle = :dash)
+# plot!(hcat(x...)', width = 2.0, label = "")
+# plot(hcat(u..., u[end])',
+#     width = 2.0, linetype = :steppost)
+#
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# # open(vis)
+# visualize!(vis, model, x, Δt = h)

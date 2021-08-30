@@ -105,21 +105,21 @@ function model_data(model, obj, w, h, T;
 		analytical_derivatives)
 end
 
-function Δz!(m_data::ModelData)
-	n = m_data.n
-	m = m_data.m
-	T = m_data.T
-
-    for t = 1:T
-        idx_x = (t == 1 ? 0 : (t - 1) * n[t-1]) .+ (1:n[t])
-        m_data.z[idx_x] = m_data.x[t] - m_data.x̄[t]
-
-        t == T && continue
-
-        idx_u = sum(n) + (t == 1 ? 0 : (t - 1) * m[t-1]) .+ (1:m[t])
-        m_data.z[idx_u] = m_data.u[t] - m_data.ū[t]
-    end
-end
+# function Δz!(m_data::ModelData)
+# 	n = m_data.n
+# 	m = m_data.m
+# 	T = m_data.T
+#
+#     for t = 1:T
+#         idx_x = (t == 1 ? 0 : (t - 1) * n[t-1]) .+ (1:n[t])
+#         m_data.z[idx_x] = m_data.x[t] - m_data.x̄[t]
+#
+#         t == T && continue
+#
+#         idx_u = sum(n) + (t == 1 ? 0 : (t - 1) * m[t-1]) .+ (1:m[t])
+#         m_data.z[idx_u] = m_data.u[t] - m_data.ū[t]
+#     end
+# end
 
 function objective(data::ModelData; mode = :nominal)
     if mode == :nominal
@@ -136,6 +136,9 @@ struct PolicyData{N, M, NN, MM, MN, NNN, MNN}
     # policy
     K::Vector{MN}
     k::Vector{M}
+
+    K_cand::Vector{MN}
+    k_cand::Vector{M}
 
     # value function approximation
     P::Vector{NN}
@@ -161,6 +164,9 @@ function policy_data(model::Model, T;
 	K = [zeros(m[t], n[t]) for t = 1:T-1]
     k = [zeros(m[t]) for t = 1:T-1]
 
+    K_cand = [zeros(m[t], n[t]) for t = 1:T-1]
+    k_cand = [zeros(m[t]) for t = 1:T-1]
+
     P = [zeros(n[t], n[t]) for t = 1:T]
     p = [zeros(n[t]) for t = 1:T]
 
@@ -175,7 +181,7 @@ function policy_data(model::Model, T;
 	uu_tmp = [zeros(m[t], m[t]) for t = 1:T-1]
 	ux_tmp = [zeros(m[t], n[t]) for t = 1:T-1]
 
-    PolicyData(K, k, P, p, Qx, Qu, Qxx, Quu, Qux, xx̂_tmp, ux̂_tmp, uu_tmp, ux_tmp)
+    PolicyData(K, k, K_cand, k_cand, P, p, Qx, Qu, Qxx, Quu, Qux, xx̂_tmp, ux̂_tmp, uu_tmp, ux_tmp)
 end
 
 """
@@ -186,7 +192,10 @@ mutable struct SolverData{T}
     gradient::Vector{T} # Lagrangian gradient
 	c_max::T            # maximum constraint violation
 
-	α::T                # step length
+    idx_x::Vector       # indices for state trajectory
+    idx_u::Vector       # indices for control trajectory
+
+    α::T                # step length
     status::Bool        # solver status
 
 	cache::Dict         #
@@ -200,12 +209,15 @@ function solver_data(model::Model, T;
 
     num_var = sum(n) + sum(m)
 
+    idx_x = [sum(n[1:(t-1)]) .+ (1:n[t]) for t = 1:T]
+    idx_u = [sum(n) + sum(m[1:(t-1)]) .+ (1:m[t]) for t = 1:T-1]
+
     obj = Inf
 	c_max = 0.0
     gradient = zeros(num_var)
 	cache = Dict(:obj => [], :gradient => [], :c_max => [], :α => [])
 
-    SolverData(obj, gradient, c_max, 1.0, false, cache)
+    SolverData(obj, gradient, c_max, idx_x, idx_u, 1.0, false, cache)
 end
 
 function cache!(data::SolverData)
@@ -229,6 +241,19 @@ function objective!(s_data::SolverData, m_data::ModelData; mode = :nominal)
 	end
 
 	return s_data.obj
+end
+
+function Δz!(m_data::ModelData, p_data::PolicyData, s_data::SolverData)
+	n = m_data.n
+	m = m_data.m
+	T = m_data.T
+
+    m_data.z[s_data.idx_x[1]] .= 0.0
+
+    for t = 1:T-1
+        m_data.z[s_data.idx_u[t]] .= p_data.K[t] * m_data.z[s_data.idx_x[t]] + p_data.k[t]
+        m_data.z[s_data.idx_x[t+1]] .= m_data.dyn_deriv.fx[t] * m_data.z[s_data.idx_x[t]] + m_data.dyn_deriv.fu[t] * m_data.z[s_data.idx_u[t]]
+    end
 end
 
 """

@@ -1,4 +1,5 @@
 include_ddp()
+Random.seed!(0)
 
 # Model
 include_model("acrobot")
@@ -72,7 +73,8 @@ end
 prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
 
 # Solve
-@time constrained_ddp_solve!(prob,
+@time stats = constrained_ddp_solve!(prob,
+    linesearch = :wolfe,
     max_iter = 1000, max_al_iter = 7,
 	con_tol = 1.0e-3,
 	ρ_init = 1.0, ρ_scale = 10.0)

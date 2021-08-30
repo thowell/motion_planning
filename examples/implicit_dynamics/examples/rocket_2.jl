@@ -1,4 +1,5 @@
 using Plots
+Random.seed!(0)
 
 include_implicit_dynamics()
 include_ddp()

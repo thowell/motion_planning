@@ -1,11 +1,12 @@
 function ddp_solve!(prob::ProblemData;
     max_iter = 10,
     grad_tol = 1.0e-5,
+    linesearch = :armijo,
     verbose = true,
 	cache = false)
 
 	println()
-    (verbose && prob.m_data.obj isa StageCosts) && printstyled("Differential Dynamic Programming\n",
+    (verbose && prob.m_data.obj isa StageCosts) && printstyled("Differential Dynamic Programming (iLQR)\n",
 		color = :red, bold = true)
 
 	# data
@@ -13,27 +14,26 @@ function ddp_solve!(prob::ProblemData;
 	m_data = prob.m_data
 	s_data = prob.s_data
 
-    # compute objective
-    # s_data.obj = objective(m_data, mode = :nominal)
+    stats = Dict(:iters => 0)
+
 	objective!(s_data, m_data, mode = :nominal)
-	# println("obj")
+    derivatives!(m_data, mode = :nominal)
+    backward_pass!(p_data, m_data, mode = :nominal)
+
     for i = 1:max_iter
-        # derivatives
-        derivatives!(m_data)
-		# println("derivatives")
+        forward_pass!(p_data, m_data, s_data, linesearch = linesearch)
 
-		# backward pass
-        backward_pass!(p_data, m_data)
-		# println("backward pass")
-
-        # forward pass
-        forward_pass!(p_data, m_data, s_data)
-		# println("forward pass")
+        if linesearch != :none
+            derivatives!(m_data, mode = :nominal)
+            backward_pass!(p_data, m_data, mode = :nominal)
+            lagrangian_gradient!(s_data, p_data, m_data)
+        end
 
 		# cache solver data
 		cache && cache!(s_data)
 
         # check convergence
+        stats[:iters] = i
         grad_norm = norm(s_data.gradient, Inf)
         verbose && println("     iter: $i
              cost: $(s_data.obj)
@@ -43,6 +43,10 @@ function ddp_solve!(prob::ProblemData;
 		grad_norm < grad_tol && break
         !s_data.status && break
     end
+
+
+
+    return stats
 end
 
 """
@@ -55,13 +59,10 @@ function lagrangian_gradient!(s_data::SolverData, p_data::PolicyData, n, m, T)
     Qu = p_data.Qu
 
     for t = 1:T-1
-        idx_x = (t == 1 ? 0 : (t - 1) * n[t-1]) .+ (1:n[t])
-        s_data.gradient[idx_x] = Qx[t] - p[t]
-        # NOTE: gradient wrt xT is satisfied implicitly
-
-        idx_u = sum(n) + (t == 1 ? 0 : (t - 1) * m[t-1]) .+ (1:m[t])
-        s_data.gradient[idx_u] = Qu[t]
+        s_data.gradient[s_data.idx_x[t]] = Qx[t] - p[t] # should always be zero by construction
+        s_data.gradient[s_data.idx_u[t]] = Qu[t]
     end
+    # NOTE: gradient wrt xT is satisfied implicitly
 end
 
 function lagrangian_gradient!(s_data::SolverData, p_data::PolicyData, m_data::ModelData)
@@ -73,6 +74,7 @@ end
     augmented Lagrangian solve
 """
 function constrained_ddp_solve!(prob::ProblemData;
+    linesearch = :armijo,
     max_iter = 10,
 	max_al_iter = 5,
     grad_tol = 1.0e-5,
@@ -93,15 +95,20 @@ function constrained_ddp_solve!(prob::ProblemData;
 		prob.m_data.obj.ρ[t] = ρ_init .* ρ
 	end
 
+    stats_al = Dict(:iters => 0, :stats_ilqr => Dict{Symbol,Int}[])
+
 	for i = 1:max_al_iter
 		verbose && println("  al iter: $i")
 
 		# primal minimization
-		ddp_solve!(prob,
+		stats = ddp_solve!(prob,
+            linesearch = linesearch,
 		    max_iter = max_iter,
 		    grad_tol = grad_tol,
 			cache = cache,
 		    verbose = verbose)
+
+        push!(stats_al[:stats_ilqr], stats)
 
 		# update trajectories
 		objective!(prob.s_data, prob.m_data, mode = :nominal)
@@ -117,4 +124,6 @@ function constrained_ddp_solve!(prob::ProblemData;
 		augmented_lagrangian_update!(prob.m_data.obj,
 			s = ρ_scale, max_penalty = ρ_max)
 	end
+
+    return stats_al
 end

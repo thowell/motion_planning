@@ -42,7 +42,9 @@
 #     end
 # end
 
-function backward_pass!(p_data::PolicyData, m_data::ModelData)
+function backward_pass!(p_data::PolicyData, m_data::ModelData;
+    mode = :nominal)
+
     T = m_data.T
     fx = m_data.dyn_deriv.fx
     fu = m_data.dyn_deriv.fu
@@ -53,8 +55,13 @@ function backward_pass!(p_data::PolicyData, m_data::ModelData)
     gux = m_data.obj_deriv.gux
 
     # policy
-    K = p_data.K
-    k = p_data.k
+    if mode == :nominal
+        K = p_data.K
+        k = p_data.k
+    else
+        K = p_data.K_cand
+        k = p_data.k_cand
+    end
 
     # value function approximation
     P = p_data.P

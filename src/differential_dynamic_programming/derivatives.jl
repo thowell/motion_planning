@@ -1,6 +1,12 @@
-function dynamics_derivatives!(data::ModelData)
-    x̄ = data.x̄
-    ū = data.ū
+function dynamics_derivatives!(data::ModelData; mode = :nominal)
+    if mode == :nominal
+        x̄ = data.x̄
+        ū = data.ū
+    else
+        x̄ = data.x
+        ū = data.u
+    end
+
     w = data.w
     h = data.h
     T = data.T
@@ -26,9 +32,17 @@ function dynamics_derivatives!(data::ModelData)
     end
 end
 
-function objective_derivatives!(obj::StageCosts, data::ModelData)
-    x̄ = data.x̄
-    ū = data.ū
+function objective_derivatives!(obj::StageCosts, data::ModelData;
+    mode = :nominal)
+
+    if mode == :nominal
+        x̄ = data.x̄
+        ū = data.ū
+    else
+        x̄ = data.x
+        ū = data.u
+    end
+
     T = data.T
     model = data.model
     n = data.n
@@ -66,9 +80,17 @@ function objective_derivatives!(obj::StageCosts, data::ModelData)
 	end
 end
 
-function constraints_derivatives!(cons::StageConstraints, data::ModelData)
-    x̄ = data.x̄
-    ū = data.ū
+function constraints_derivatives!(cons::StageConstraints, data::ModelData;
+    mode = :nominal)
+
+    if mode == :nominal
+        x̄ = data.x̄
+        ū = data.ū
+    else
+        x̄ = data.x
+        ū = data.u
+    end
+
     T = data.T
 
     for t = 1:T-1
@@ -85,7 +107,9 @@ function constraints_derivatives!(cons::StageConstraints, data::ModelData)
     ForwardDiff.jacobian!(cons.data.cx[T], cxT!, c, x̄[T])
 end
 
-function objective_derivatives!(obj::AugmentedLagrangianCosts, data::ModelData)
+function objective_derivatives!(obj::AugmentedLagrangianCosts, data::ModelData;
+        mode = :nominal)
+
     gx = data.obj_deriv.gx
     gu = data.obj_deriv.gu
     gxx = data.obj_deriv.gxx
@@ -102,8 +126,8 @@ function objective_derivatives!(obj::AugmentedLagrangianCosts, data::ModelData)
     T = data.T
     model = data.model
 
-    objective_derivatives!(obj.costs, data)
-    constraints_derivatives!(obj.cons, data)
+    objective_derivatives!(obj.costs, data, mode = mode)
+    constraints_derivatives!(obj.cons, data, mode = mode)
 
     for t = 1:T-1
         gx[t] .+= cx[t]' * (λ[t] + ρ[t] .* a[t] .* c[t])
@@ -117,7 +141,7 @@ function objective_derivatives!(obj::AugmentedLagrangianCosts, data::ModelData)
     gxx[T] .+= cx[T]' * Diagonal(ρ[T] .* a[T]) * cx[T]
 end
 
-function derivatives!(m_data::ModelData)
-    dynamics_derivatives!(m_data)
-    objective_derivatives!(m_data.obj, m_data)
+function derivatives!(m_data::ModelData; mode = :nominal)
+    dynamics_derivatives!(m_data, mode = mode)
+    objective_derivatives!(m_data.obj, m_data, mode = mode)
 end

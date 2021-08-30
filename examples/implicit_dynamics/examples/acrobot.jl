@@ -121,6 +121,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
+    linesearch = :wolfe,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 0.001)
@@ -150,133 +151,133 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_no_joint_limits.png")
 
 plot(hcat(ū..., ū[end])', linetype = :steppost)
-
-include(joinpath(pwd(), "models/visualize.jl"))
-include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/visuals.jl"))
-vis = Visualizer()
-render(vis)
-open(vis)
-default_background!(vis)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
-setvisible!(vis["/Grid"], false)
-
-# visualize_elbow!(vis, model, q̄, Δt = h)
-
-# ghost
-limit_color = [1.0, 0.0, 0.0]
-# limit_color = [0.0, 1.0, 0.0]
-
-t = 1
-id = t
-tl = 0.05
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 10
-id = t
-tl = 0.15
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 20
-tl = 0.25
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 30
-id = t
-tl = 0.35
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 40
-id = t
-tl = 0.45
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 50
-id = t
-tl = 0.55
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 60
-id = t
-tl = 0.65
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 70
-id = t
-tl = 0.75
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 80
-id = t
-tl = 0.85
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 90
-id = t
-tl = 0.95
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-t = 101
-id = t
-tl = 1.0
-_create_acrobot!(vis, model;
-        tl = tl,
-        limit_color = RGBA(limit_color..., tl),
-        i = id)
-_set_acrobot!(vis, model, x[t], i = id)
-
-# line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
-line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
-
-points = Vector{Point{3,Float64}}()
-for (i, xt) in enumerate(x̄)
-    k = kinematics(model, xt)
-	push!(points, Point(k[1], 0.0, k[2]))
-
-    setobject!(vis["ee_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.001)),
-        MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
-        settransform!(vis["ee_vertex_$i"], Translation(points[i]))
-end
-setobject!(vis[:ee_traj], MeshCat.Line(points, line_mat))
+#
+# include(joinpath(pwd(), "models/visualize.jl"))
+# include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/visuals.jl"))
+# vis = Visualizer()
+# render(vis)
+# open(vis)
+# default_background!(vis)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
+# setvisible!(vis["/Grid"], false)
+#
+# # visualize_elbow!(vis, model, q̄, Δt = h)
+#
+# # ghost
+# limit_color = [1.0, 0.0, 0.0]
+# # limit_color = [0.0, 1.0, 0.0]
+#
+# t = 1
+# id = t
+# tl = 0.05
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 10
+# id = t
+# tl = 0.15
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 20
+# tl = 0.25
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 30
+# id = t
+# tl = 0.35
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 40
+# id = t
+# tl = 0.45
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 50
+# id = t
+# tl = 0.55
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 60
+# id = t
+# tl = 0.65
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 70
+# id = t
+# tl = 0.75
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 80
+# id = t
+# tl = 0.85
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 90
+# id = t
+# tl = 0.95
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# t = 101
+# id = t
+# tl = 1.0
+# _create_acrobot!(vis, model;
+#         tl = tl,
+#         limit_color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_acrobot!(vis, model, x[t], i = id)
+#
+# # line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+# line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
+#
+# points = Vector{Point{3,Float64}}()
+# for (i, xt) in enumerate(x̄)
+#     k = kinematics(model, xt)
+# 	push!(points, Point(k[1], 0.0, k[2]))
+#
+#     setobject!(vis["ee_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.001)),
+#         MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
+#         settransform!(vis["ee_vertex_$i"], Translation(points[i]))
+# end
+# setobject!(vis[:ee_traj], MeshCat.Line(points, line_mat))

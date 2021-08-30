@@ -219,6 +219,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
+    # linesearch = :wolfe,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 1.0e-3)
@@ -237,9 +238,9 @@ include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/visuals.jl"
 
 vis = Visualizer()
 render(vis)
-visualize!(vis, model, q̄, Δt = h)
+visualize!(vis, model, q̄[1:end-1], Δt = h)
 
- # x̄[T][1:model.n] - ū[1][model.m .+ (1:model.n)]
+ x̄[T][1:model_implicit.n] - ū[1][model_implicit.m .+ (1:model_implicit.n)]
 
 function mirror_gait(q, T; n = 5)
 	qm = [deepcopy(q)...]

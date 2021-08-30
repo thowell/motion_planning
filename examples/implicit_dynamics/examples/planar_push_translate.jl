@@ -131,7 +131,7 @@ setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
 
 t = 1
 id = t
-tl = 0.0
+tl = 0.5
 _create_planar_push!(vis, model,
         r = r_dim,
         r_pusher = 0.25 * r_dim,
@@ -141,7 +141,7 @@ _set_planar_push!(vis, model, q̄[t], i = id)
 
 t = 5
 id = t
-tl = 0.0
+tl = 0.6
 _create_planar_push!(vis, model,
         r = r_dim,
         r_pusher = 0.25 * r_dim,
@@ -151,7 +151,7 @@ _set_planar_push!(vis, model, q̄[t], i = id)
 
 t = 10
 id = t
-tl = 0.0
+tl = 0.7
 _create_planar_push!(vis, model,
         r = r_dim,
         r_pusher = 0.25 * r_dim,
@@ -161,7 +161,7 @@ _set_planar_push!(vis, model, q̄[t], i = id)
 
 t = 15
 id = t
-tl = 0.0
+tl = 0.8
 _create_planar_push!(vis, model,
         r = r_dim,
         r_pusher = 0.25 * r_dim,
@@ -171,7 +171,7 @@ _set_planar_push!(vis, model, q̄[t], i = id)
 
 t = 20
 id = t
-tl = 0.0
+tl = 0.9
 _create_planar_push!(vis, model,
         r = r_dim,
         r_pusher = 0.25 * r_dim,
@@ -188,6 +188,7 @@ _create_planar_push!(vis, model,
         tl = tl,
         i = id)
 _set_planar_push!(vis, model, q̄[t], i = id)
+
 
 box_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
 pusher_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)

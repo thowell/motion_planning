@@ -1,4 +1,7 @@
 function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData;
+    linesearch = :armijo,
+    c1 = 1.0e-4,
+    c2 = 0.9,
     max_iter = 25)
 
     # reset solver status
@@ -10,9 +13,17 @@ function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData
     # gradient of Lagrangian
     lagrangian_gradient!(s_data, p_data, m_data)
 
+    if linesearch == :armijo || linesearch == :wolfe
+        Δz!(m_data, p_data, s_data)
+        delta_grad_product = s_data.gradient' * m_data.z
+    else
+        delta_grad_product = 0.0
+    end
+
     # line search with rollout
     s_data.α = 1.0
     iter = 1
+
     while true
         iter > max_iter && (@error "forward pass failure", break)
 
@@ -20,17 +31,28 @@ function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData
         try
             rollout!(p_data, m_data, α = s_data.α)
             J = objective!(s_data, m_data, mode = :current)
-            Δz!(m_data)
+
+            if linesearch == :wolfe
+                derivatives!(m_data, mode = :current)
+                backward_pass!(p_data, m_data, mode = :current)
+                lagrangian_gradient!(s_data, p_data, m_data)
+            end
         catch
             @warn "rollout failure"
-            fill!(m_data.z, 0.0)
+            @show norm(s_data.gradient)
         end
 
-        if J < J_prev + 0.001 * s_data.α * s_data.gradient' * m_data.z
+        if (J <= J_prev + c1 * s_data.α * delta_grad_product) && (linesearch == :wolfe ? (-m_data.z' * s_data.gradient <= -c2 * delta_grad_product) : true)
             # update nominal
             m_data.x̄ .= deepcopy(m_data.x)
             m_data.ū .= deepcopy(m_data.u)
             s_data.obj = J
+
+            if linesearch == :wolfe
+                p_data.K .= p_data.K_cand
+                p_data.k .= p_data.k_cand
+            end
+
             s_data.status = true
             break
         else
