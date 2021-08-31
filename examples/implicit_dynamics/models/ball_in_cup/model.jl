@@ -119,12 +119,14 @@ function kinematics_ee(m::KukaParticle, q::AbstractVector{T}) where T
     return transform(state, m.ee_point, m.world).v
 end
 
+l_string = 0.5
+
 function ϕ_func(m::KukaParticle, q::AbstractVector{T}) where T
 	p_ee = kinematics_ee(m, q)
 	p_p = q[8:10]
 	diff = (p_ee - p_p)
 	d_ee_p = sqrt(diff' * diff)
-    SVector{1}([0.5 - d_ee_p])
+    SVector{1}([l_string - d_ee_p])
 end
 
 function P_func(m::KukaParticle, q::AbstractVector{T}) where T
@@ -153,7 +155,7 @@ nw = 0
 nc = 1
 
 # particle mass
-mp = 0.01
+mp = 0.001
 
 model = KukaParticle(
 	Dimensions(nq, nu, nw, nc),

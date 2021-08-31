@@ -1,17 +1,18 @@
 using Plots
-Random.seed!(0)
 
 include_implicit_dynamics()
 include_ddp()
 include_model("rocket3D")
 
-h = 0.05
+# time step
+h = 0.01
+
 n = model.n
 m = model.m
 
 # control limits
 ul = [-5.0; -5.0; 0.0]
-uu = [5.0; 5.0; 12.0]
+uu = [5.0; 5.0; 15.0]
 
 # control projection problem
 m = 3
@@ -66,7 +67,7 @@ z0[1:m] = copy(ū)
 z0[3] += 1.0
 z0[10] += 1.0
 
-θ0 = [copy(ū); uu[3]]
+θ0 = [copy(ū); 15.0]
 
 # solver
 opts_con = InteriorPointOptions(
@@ -85,7 +86,7 @@ ip_con = interior_point(z0, θ0,
   opts = opts_con)
 
 opts_jac = InteriorPointOptions(
-	κ_init = 0.1,
+	κ_init = 1.0,
 	κ_tol = 1.0e-2,
 	r_tol = 1.0e-6,
 	diff_sol = true)
@@ -103,38 +104,35 @@ interior_point_solve!(ip_con)
 interior_point_solve!(ip_jac)
 
 function soc_projection(x)
-    proj = second_order_cone_projection(x[[3;1;2]])[1]
-	ip_con.z .= [proj[2:3]; proj[3]; 0.1 * ones(7)]
-    ip_con.z[3] += 10.0
-    ip_con.z[10] += 10.0
-	ip_con.θ .= [x; uu[3]]
+	ip_con.z .= [x; 0.1 * ones(7)]
+    ip_con.z[3] += 1.0
+    ip_con.z[10] += 1.0
+	ip_con.θ .= [x; 15.0]
 
 	interior_point_solve!(ip_con)
 
 	return ip_con.z[1:m]
 end
 
-soc_projection([100.0, 0.0, 0.0])
+soc_projection(zeros(m))
 
 function soc_projection_jacobian(x)
-    proj = second_order_cone_projection(x[[3;1;2]])[1]
-	ip_con.z .= [proj[2:3]; proj[3]; 0.1 * ones(7)]
-    ip_con.z[3] += 10.0
-    ip_con.z[10] += 10.0
-	ip_con.θ .= [x; uu[3]]
+    ip_con.z .= [x; 0.1 * ones(7)]
+    ip_con.z[3] += 1.0
+    ip_con.z[10] += 1.0
+	ip_con.θ .= [x; 15.0]
 
 	interior_point_solve!(ip_jac)
 
 	return ip_jac.δz[1:m, 1:m]
 end
 
-soc_projection_jacobian([10.0, 0.0, 100.0])
+soc_projection_jacobian(zeros(m))
 
 function fd(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-	# x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+	x⁺ = newton(rz, copy(x))
 	return x⁺
 	# return view(x, 1:model.n) + h * f(model, view(x, 1:model.n) + 0.5 * h * f(model, view(x, 1:model.n), view(u, 1:model.m), w), view(u, 1:model.m), w)
 end
@@ -144,8 +142,7 @@ fd(model, ones(model.n), zeros(model.m), zeros(model.d), h, 1)
 function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+	x⁺ = newton(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	rx(z) = fd(model, x⁺, z, u_proj, w, h, t) # implicit midpoint integration
 	∇rx = ForwardDiff.jacobian(rx, x)
@@ -160,14 +157,11 @@ function fdu(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj_jac = soc_projection_jacobian(u)
 
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+	x⁺ = newton(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	ru(z) = fd(model, x⁺, x, z, w, h, t) # implicit midpoint integration
 	∇ru = ForwardDiff.jacobian(ru, u_proj)
 	return -1.0 * ∇rz \ (∇ru * u_proj_jac)
-    # return -1.0 * ∇rz \ ∇ru
-
 	# f(z) = fd(model, x, z, w, h, t)
 	# return ForwardDiff.jacobian(f, u)
 end
@@ -175,17 +169,16 @@ end
 fdu(model, zeros(model.n), zeros(model.m), zeros(model.d), h, 1)
 
 # Time
-T = 101
-# h = 0.05
+T = 201
 
 # Initial conditions, controls, disturbances
 x1 = zeros(model.n)
 x1[1] = 2.5
-x1[2] = 2.5
+x1[2] = 0.0
 x1[3] = 10.0
-mrp = MRP(RotZ(0.25 * π) * RotY(-0.5 * π))
+mrp = MRP(RotY(-0.45 * π) * RotX(0.0 * π))
 x1[4:6] = [mrp.x; mrp.y; mrp.z]
-x1[9] = -1.0
+x1[9] = -5.0
 
 # visualize!(vis, model, [x1], Δt = h)
 
@@ -193,8 +186,6 @@ xT = zeros(model.n)
 # xT[1] = 2.5
 # xT[2] = 0.0
 xT[3] = model.length
-mrpT = MRP(RotZ(0.25 * π) * RotY(0.0))
-xT[4:6] = [mrpT.x; mrpT.y; mrpT.z]
 
 u_ref = [0.0; 0.0; 0.0]#model.mass * 9.81]
 ū = [u_ref + [1.0e-3; 1.0e-3; 1.0e-3] .* randn(model.m) for t = 1:T-1]
@@ -209,7 +200,7 @@ x̄ = rollout(model, x1, ū, w, h, T)
 
 # Objective
 Q = h * [(t < T ? 1.0 * Diagonal([1.0e-1 * ones(3); 0.0 * ones(3); 1.0e-1 * ones(3); 1000.0 * ones(3)])
-        : 1000.0 * Diagonal(1.0 * ones(model.n))) for t = 1:T]
+        : 0.0 * Diagonal(0.0 * ones(model.n))) for t = 1:T]
 q = h * [-2.0 * Q[t] * xT for t = 1:T]
 
 R = h * [Diagonal([10000.0; 10000.0; 100.0]) for t = 1:T-1]
@@ -236,14 +227,12 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Constraints
-x_con = [-0.5; 0.5]
-y_con = [-0.75; 0.75]
-p = [t < T ? 2 * m + 1 : n - 2 + 4 for t = 1:T]
-info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m + 1))
-info_T = Dict(:xT => xT, :inequality => (1:4))
+p = [t < T ? 2 * m : n - 2 for t = 1:T]
+info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * m))
+info_T = Dict(:xT => xT)
 con_set = [StageConstraint(p[t], t < T ? info_t : info_T) for t = 1:T]
-idx_T = collect([3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
+idx_T = collect([3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 function c!(c, cons::StageConstraints, x, u, t)
 	T = cons.T
 	p = cons.con[t].p
@@ -251,15 +240,10 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		# c[1:2 * m] .= [ul - u; u - uu]
-		c[2 * m + 1] = model.length - x[3]
+		# c .= [ul - u; u - uu]
 	elseif t == T
-		c[1] = x_con[1] - x[1]
-		c[2] = x[1] - x_con[2]
-		c[3] = y_con[1] - x[2]
-		c[4] = x[2] - y_con[2]
 		xT = cons.con[T].info[:xT]
-		c[4 .+ (1:(n - 2))] .= (x - xT)[idx_T]
+		c .= (x - xT)[idx_T]
 	else
 		nothing
 	end
@@ -274,7 +258,7 @@ ū = [u_ref + [1.0e-2; 1.0e-2; 1.0e-2] .* randn(model.m) for t = 1:T-1]
 # Solve
 @time constrained_ddp_solve!(prob,
     max_iter = 1000, max_al_iter = 10,
-	con_tol = 0.001,
+	con_tol = 0.005,
 	ρ_init = 1.0, ρ_scale = 10.0)
 
 x, u = current_trajectory(prob)
@@ -287,50 +271,44 @@ ū_soc = ū
 # @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2"
 
 all([second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1])
-[second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1]
-t = 4
-fd(model, x̄[t], ū[t], zeros(model.d), h, t) - x̄[t+1]
-soc_projection(ū[t])
-t = 1
-norm(ū[t][1:2]) <= ū[t][3]
 
-# Trajectories
-maximum(hcat(ū...))
-t = range(0, stop = h * (T-1), length = T)
-plt = plot(t, hcat(ū..., ū[end])',
-	width = 2.0,
-	color = [:magenta :orange :cyan],
-	title = "rocket soft landing",
-	xlabel = "time (s)",
-	ylabel = "control",
-	labels = ["f1" "f2" "f3"],
-	legend = :right,
-	linetype = :steppost)
-
-# savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.png")
-
-plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
-
-# Visualize
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-# open(vis)
-x_anim = [[x̄[1] for i = 1:100]..., x̄..., [x̄[end] for i = 1:100]...]
-visualize!(vis, model,
-	x_anim,
-	Δt = h, T_off = length(x_anim)-125)
-obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
-mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
-ctm_platform = ModifiedMeshFileObject(obj_platform,mtl_platform,scale=1.0)
-
-setobject!(vis["platform"],ctm_platform)
-settransform!(vis["platform"], compose(Translation(0.0,2.0,-0.6), LinearMap(0.75 * RotZ(pi)*RotX(pi/2))))
-
-settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
-	LinearMap(RotZ(1.5 * π + 0.0 * π))))
-setvisible!(vis["/Grid"], false)
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1.0)
+# # Trajectories
+# maximum(hcat(ū...))
+# t = range(0, stop = h * (T-1), length = T)
+# plt = plot(t, hcat(ū..., ū[end])',
+# 	width = 2.0,
+# 	color = [:magenta :orange :cyan],
+# 	title = "rocket soft landing",
+# 	xlabel = "time (s)",
+# 	ylabel = "control",
+# 	labels = ["f1" "f2" "f3"],
+# 	legend = :right,
+# 	linetype = :steppost)
+#
+# # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.png")
+#
+# plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
+#
+# # Visualize
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# # open(vis)
+# x_anim = [[x̄[1] for i = 1:100]..., x̄..., [x̄[end] for i = 1:100]...]
+# visualize!(vis, model,
+# 	x_anim,
+# 	Δt = h, T_off = length(x_anim)-125)
+# obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
+# mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
+# ctm_platform = ModifiedMeshFileObject(obj_platform,mtl_platform,scale=1.0)
+#
+# setobject!(vis["platform"],ctm_platform)
+# settransform!(vis["platform"], compose(Translation(0.0,2.0,-0.6), LinearMap(0.75 * RotZ(pi)*RotX(pi/2))))
+#
+# settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
+# 	LinearMap(RotZ(1.5 * π + 0.0 * π))))
+# setvisible!(vis["/Grid"], false)
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1.0)
 
 # line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
 # points = Vector{Point{3,Float64}}()

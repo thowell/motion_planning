@@ -17,12 +17,12 @@ data = dynamics_data(model, h,
         dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
-						κ_init = 0.1,
+						κ_init = 10.0,
 						diff_sol = false),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-3,
-						κ_init = 0.1,
+						κ_init = 10.0,
 						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
@@ -121,7 +121,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-    linesearch = :wolfe,
+    linesearch = :armijo,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 0.001)
@@ -151,19 +151,19 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_no_joint_limits.png")
 
 plot(hcat(ū..., ū[end])', linetype = :steppost)
-#
-# include(joinpath(pwd(), "models/visualize.jl"))
-# include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/visuals.jl"))
-# vis = Visualizer()
-# render(vis)
-# open(vis)
-# default_background!(vis)
-# settransform!(vis["/Cameras/default"],
-#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
-# setvisible!(vis["/Grid"], false)
-#
-# # visualize_elbow!(vis, model, q̄, Δt = h)
+
+include(joinpath(pwd(), "models/visualize.jl"))
+include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/visuals.jl"))
+vis = Visualizer()
+render(vis)
+open(vis)
+default_background!(vis)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
+setvisible!(vis["/Grid"], false)
+
+visualize_elbow!(vis, model, q̄, Δt = h)
 #
 # # ghost
 # limit_color = [1.0, 0.0, 0.0]

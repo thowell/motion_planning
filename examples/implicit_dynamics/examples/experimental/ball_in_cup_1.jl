@@ -23,12 +23,12 @@ data = dynamics_data(model, h,
         dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
-						κ_init = 0.1,
-						diff_sol = true),
+						κ_init = 1.0,
+						diff_sol = false),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-2,
-						κ_init = 0.1,
+						κ_init = 1.0,
 						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
@@ -47,8 +47,9 @@ q0[4] = -pi/2
 q0[5] = 0.0
 p_pos0 = Array(kinematics_ee(model, q0))
 p_pos0[1] += 0.0
-p_pos0[3] -= 0.5
+p_pos0[3] -= l_string
 q0[8:10] = p_pos0
+
 
 q1 = copy(q0)
 
@@ -75,6 +76,10 @@ p_posD = ee_posD
 # p_posD[1] += 0.5
 qD[8:10] = p_posD
 
+qD_up = copy(qD)
+qD_up[10] += l_string
+
+
 x1 = [q1; q1]
 xT = [qN; qN]
 ū = [0.0 * randn(m) for t = 1:T-1]#[t == 1 ? [0.0, 10.0, 0.0, 0.0, 0.0, -0.0, 0.0] : t == 2 ? [0.0, -10.0, 0.0, -0.0, 0.0, 0.0, 0.0] : [0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0] for t = 1:T-1] #u_hist #[-1.0 * gravity_compensation(_model, h, q1, q1) for t = 1:T-1]
@@ -84,19 +89,20 @@ w = [zeros(model_implicit.d) for t = 1:T-1]
 x̄ = rollout(model_implicit, x1, ū, w, h, T)
 q̄ = state_to_configuration(x̄)
 
-visualize!(mvis, model, q̄, Δt = h)
+visualize!(mvis, model, [qD_up])
+# q̄, Δt = h)
 
 # Objective
 V = Diagonal(ones(nq))
-Q_velocity = 1.0e-3 * [V -V; -V V] ./ h^2.0
+Q_velocity = 1.0e-1 * [V -V; -V V] ./ h^2.0
 Q_track = 1.0 * Diagonal(ones(n))
 Q_track_extend = copy(Q_track)
 Q_track_extend[8, 8] = 10.0
 Q_track_extend[nq + 8, nq + 8] = 10.0
-x_track = [qD; qD]
+x_track = [qD_up; qD_up]
 x_track_extend = copy(x_track)
-x_track_extend[8] += 0.5
-x_track_extend[nq + 8] += 0.5
+x_track_extend[8] += l_string
+x_track_extend[nq + 8] += l_string
 Q = [t < T ? Q_velocity + (t == 11 ? Q_track_extend : 1.0 * Q_track) : Q_velocity + 1.0 * Q_track for t = 1:T]
 q = [t < T ? -2.0 * (t == 11 ? Q_track_extend * x_track_extend : 1.0 * Q_track * x_track) : -2.0 * 1.0 * Q_track * x_track for t = 1:T]
 R = [Diagonal(1.0e-3 * ones(m)) for t = 1:T-1]
@@ -150,7 +156,7 @@ end
 prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
-ū = [t == 1 ? [0.0, 6.5, 0.0, 0.0, 0.0, -0.0, 0.0] : t == 2 ? [0.0, -6.5, 0.0, -0.0, 0.0, 0.0, 0.0] : [0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0] for t = 1:T-1] #u_hist #[-1.0 * gravity_compensation(model, h, q1, q1) for t = 1:T-1]
+ū = [t == 1 ? [0.0, 5.0, 0.0, 0.0, 0.0, -0.0, 0.0] : t == 2 ? [0.0, -5.0, 0.0, -0.0, 0.0, 0.0, 0.0] : [0.0, 0.0, 0.0, -0.0, 0.0, 0.0, 0.0] for t = 1:T-1] #u_hist #[-1.0 * gravity_compensation(model, h, q1, q1) for t = 1:T-1]
 w = [zeros(model_implicit.d) for t = 1:T-1]
 
 # Rollout
@@ -160,9 +166,9 @@ visualize!(mvis, model, q̄, Δt = h)
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 10,
+	max_iter = 1, max_al_iter = 5,
 	ρ_init = 1.0, ρ_scale = 10.0,
-	con_tol = 0.005)
+	con_tol = 0.01)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)

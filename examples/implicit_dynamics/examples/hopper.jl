@@ -11,7 +11,17 @@ h = 0.05
 data = dynamics_data(model, h,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
-		z_subset_init = z_subset_init)
+		z_subset_init = z_subset_init,
+        dyn_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-4,
+						κ_init = 1.0,
+						diff_sol = true),
+		jac_opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 1.0e-2,
+						κ_init = 1.0,
+						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
@@ -219,7 +229,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-    # linesearch = :wolfe,
+    linesearch = :armijo,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 1.0e-3)
@@ -233,89 +243,89 @@ q̄ = state_to_configuration(x̄)
 q̄[1] = ū[1][model_implicit.m .+ (1:nq)]
 q̄[2] = ū[1][model_implicit.m + nq .+ (1:nq)]
 
-include(joinpath(pwd(), "models/visualize.jl"))
-include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/visuals.jl"))
-
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, q̄[1:end-1], Δt = h)
-
- x̄[T][1:model_implicit.n] - ū[1][model_implicit.m .+ (1:model_implicit.n)]
-
-function mirror_gait(q, T; n = 5)
-	qm = [deepcopy(q)...]
-	um = [deepcopy(u)...]
-
-	stride = zero(qm[1])
-	strd = q[T+1][1] - q[2][1]
-	@show stride[1] += strd
-	@show 0.5 * stride
-
-	for i = 1:n-1
-		for t = 1:T-1
-			push!(qm, q[t+2] + stride)
-			push!(um, u[t])
-		end
-		stride[1] += strd
-	end
-	len = qm[end][1]
-
-	# center
-	for t = 1:length(qm)
-		qm[t][1] -= 0.5 * len
-	end
-
-	return qm, um
-end
-
-qm, um = mirror_gait(q̄, T)
-visualize!(vis, model, qm, Δt = h)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
-
-open(vis)
-
-body_points = Vector{Point{3,Float64}}()
-foot_points = Vector{Point{3,Float64}}()
-body_points_opt = Vector{Point{3,Float64}}()
-foot_points_opt = Vector{Point{3,Float64}}()
-
-for q in qm
-	push!(body_points, Point(q[1], 0.01, q[2] + 0.05))
-	push!(body_points_opt, Point(q[1], -0.0, q[2] + 0.05))
-
-	k = kinematics(model, q)
-	push!(foot_points, Point(k[1], 0.01, k[2] + 0.05))
-	push!(foot_points_opt, Point(k[1], -0.0, k[2] + 0.05))
-end
-
-line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=10.0)
-body_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=5.0)
-foot_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=5.0)
-
-setobject!(vis[:body_traj], MeshCat.Line(body_points, body_line_mat))
-setobject!(vis[:foot_traj], MeshCat.Line(foot_points, foot_line_mat))
-setobject!(vis[:body_traj_opt], MeshCat.Line(body_points_opt[1:T+1], line_opt_mat))
-setobject!(vis[:foot_traj_opt], MeshCat.Line(foot_points_opt[1:T+1], line_opt_mat))
-
-for i = 1:length(body_points)
-    setobject!(vis["body_line_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.005)),
-        MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
-        settransform!(vis["body_line_vertex_$i"], Translation(body_points[i]))
-    setobject!(vis["foot_line_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.005)),
-        MeshPhongMaterial(color = RGBA(51.0 / 255.0, 1.0, 1.0, 1.0)))
-        settransform!(vis["foot_line_vertex_$i"], Translation(foot_points[i]))
-
-    i > T+1 && continue
-    setobject!(vis["body_line_opt_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.0075)),
-        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
-        settransform!(vis["body_line_opt_vertex_$i"], Translation(body_points_opt[i]))
-    setobject!(vis["foot_line_opt_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.0075)),
-        MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
-        settransform!(vis["foot_line_opt_vertex_$i"], Translation(foot_points_opt[i]))
-end
+# include(joinpath(pwd(), "models/visualize.jl"))
+# include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/visuals.jl"))
+#
+# vis = Visualizer()
+# render(vis)
+# visualize!(vis, model, q̄[1:end-1], Δt = h)
+#
+#  x̄[T][1:model_implicit.n] - ū[1][model_implicit.m .+ (1:model_implicit.n)]
+#
+# function mirror_gait(q, T; n = 5)
+# 	qm = [deepcopy(q)...]
+# 	um = [deepcopy(u)...]
+#
+# 	stride = zero(qm[1])
+# 	strd = q[T+1][1] - q[2][1]
+# 	@show stride[1] += strd
+# 	@show 0.5 * stride
+#
+# 	for i = 1:n-1
+# 		for t = 1:T-1
+# 			push!(qm, q[t+2] + stride)
+# 			push!(um, u[t])
+# 		end
+# 		stride[1] += strd
+# 	end
+# 	len = qm[end][1]
+#
+# 	# center
+# 	for t = 1:length(qm)
+# 		qm[t][1] -= 0.5 * len
+# 	end
+#
+# 	return qm, um
+# end
+#
+# qm, um = mirror_gait(q̄, T)
+# visualize!(vis, model, qm, Δt = h)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+#
+# open(vis)
+#
+# body_points = Vector{Point{3,Float64}}()
+# foot_points = Vector{Point{3,Float64}}()
+# body_points_opt = Vector{Point{3,Float64}}()
+# foot_points_opt = Vector{Point{3,Float64}}()
+#
+# for q in qm
+# 	push!(body_points, Point(q[1], 0.01, q[2] + 0.05))
+# 	push!(body_points_opt, Point(q[1], -0.0, q[2] + 0.05))
+#
+# 	k = kinematics(model, q)
+# 	push!(foot_points, Point(k[1], 0.01, k[2] + 0.05))
+# 	push!(foot_points_opt, Point(k[1], -0.0, k[2] + 0.05))
+# end
+#
+# line_opt_mat = LineBasicMaterial(color=color=RGBA(1.0, 0.0, 0.0, 1.0), linewidth=10.0)
+# body_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=5.0)
+# foot_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=5.0)
+#
+# setobject!(vis[:body_traj], MeshCat.Line(body_points, body_line_mat))
+# setobject!(vis[:foot_traj], MeshCat.Line(foot_points, foot_line_mat))
+# setobject!(vis[:body_traj_opt], MeshCat.Line(body_points_opt[1:T+1], line_opt_mat))
+# setobject!(vis[:foot_traj_opt], MeshCat.Line(foot_points_opt[1:T+1], line_opt_mat))
+#
+# for i = 1:length(body_points)
+#     setobject!(vis["body_line_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.005)),
+#         MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
+#         settransform!(vis["body_line_vertex_$i"], Translation(body_points[i]))
+#     setobject!(vis["foot_line_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.005)),
+#         MeshPhongMaterial(color = RGBA(51.0 / 255.0, 1.0, 1.0, 1.0)))
+#         settransform!(vis["foot_line_vertex_$i"], Translation(foot_points[i]))
+#
+#     i > T+1 && continue
+#     setobject!(vis["body_line_opt_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.0075)),
+#         MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+#         settransform!(vis["body_line_opt_vertex_$i"], Translation(body_points_opt[i]))
+#     setobject!(vis["foot_line_opt_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.0075)),
+#         MeshPhongMaterial(color = RGBA(1, 0, 0, 1.0)))
+#         settransform!(vis["foot_line_opt_vertex_$i"], Translation(foot_points_opt[i]))
+# end

@@ -14,21 +14,21 @@ data = dynamics_data(model, h,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
-        # θ_params = [0.5; 0.5],
+        # θ_params = [0.75; 0.75], # fails to reach constraint tolerance
+        # θ_params = [0.5; 0.5], # fails to reach constraint tolerance
         # θ_params = [0.35; 0.35],
         # θ_params = [0.25; 0.25],
         # θ_params = [0.1; 0.1],
         θ_params = [0.01; 0.01],
-        # θ_params = [0.0; 0.0],
         dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
-						κ_init = 0.1,
-						diff_sol = true),
+						κ_init = 1.0,
+						diff_sol = false),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-1,
-						κ_init = 0.1,
+						κ_init = 1.0,
 						diff_sol = true))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
@@ -180,184 +180,184 @@ plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_no_friction.png")
 
 plot(hcat(ū..., ū[end])', linetype = :steppost)
+# #
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# visualize!(vis, model, q̄, Δt = h)
+# open(vis)
+# default_background!(vis)
+# settransform!(vis["/Cameras/default"],
+#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+# setvisible!(vis["/Grid"], false)
 #
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-visualize!(vis, model, q̄, Δt = h)
-open(vis)
-default_background!(vis)
-settransform!(vis["/Cameras/default"],
-        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
-setvisible!(vis["/Grid"], false)
-
-# q̄ = state_to_configuration(x̄)
-# q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
-# visualize!(vis, model, q_anim, Δt = h)
-
-# ghost
-limit_color = [0.0, 0.0, 0.0]
-# limit_color = [0.0, 1.0, 0.0]
-
-t = 1
-id = t
-tl = 0.05
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 5
-id = t
-tl = 0.15
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 10
-id = t
-tl = 0.25
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 15
-id = t
-tl = 0.35
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 20
-id = t
-tl = 0.45
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 25
-id = t
-tl = 0.55
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 30
-id = t
-tl = 0.65
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 35
-id = t
-tl = 0.75
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 40
-id = t
-tl = 0.85
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-t = 45
-id = t
-tl = 0.95
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-
-t = 51
-id = t
-tl = 1.0
-_create_cartpole!(vis, model;
-        tl = tl,
-        color = RGBA(limit_color..., tl),
-        i = id)
-_set_cartpole!(vis, model, x[t], i = id)
-
-line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
-# line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
-
-points = Vector{Point{3,Float64}}()
-for (i, xt) in enumerate(x̄)
-    k = kinematics(model, xt)
-	push!(points, Point(k[1], 0.0, k[2]))
-
-    setobject!(vis["ee_vertex_$i"], Sphere(Point3f0(0),
-        convert(Float32, 0.001)),
-        MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
-        settransform!(vis["ee_vertex_$i"], Translation(points[i]))
-end
-setobject!(vis[:ee_traj], MeshCat.Line(points, line_mat))
-
-
-# using PGFPlots
-# const PGF = PGFPlots
+# # q̄ = state_to_configuration(x̄)
+# # q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]
+# # visualize!(vis, model, q_anim, Δt = h)
 #
-# plt_q1_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[1,:],
-# 	mark="none",style="color=cyan, line width = 2pt, dashed",legendentry="q1")
+# # ghost
+# limit_color = [0.0, 0.0, 0.0]
+# # limit_color = [0.0, 1.0, 0.0]
 #
-# plt_q2_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[2,:],
-# 	mark="none",style="color=orange, line width = 2pt, dashed",legendentry="q2")
+# t = 1
+# id = t
+# tl = 0.05
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_qd1_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[1,:],
-# 	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="q1")
+# t = 5
+# id = t
+# tl = 0.15
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_qd2_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[2,:],
-# 	mark="none",style="const plot, color=green, line width = 2pt, dashed",legendentry="q2")
+# t = 10
+# id = t
+# tl = 0.25
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_q1_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[1,:],
-# 	mark="none",style="color=cyan, line width = 2pt",legendentry="q1 (friction)")
+# t = 15
+# id = t
+# tl = 0.35
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_q2_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[2,:],
-# 	mark="none",style="color=orange, line width = 2pt",legendentry="q2 (friction)")
+# t = 20
+# id = t
+# tl = 0.45
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_qd1_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[1,:],
-# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="q1 (friction)")
+# t = 25
+# id = t
+# tl = 0.55
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# plt_qd2_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[2,:],
-# 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="q2 (friction)")
+# t = 30
+# id = t
+# tl = 0.65
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# aq = Axis([plt_q1_friction; plt_q2_friction; plt_q1_smooth; plt_q2_smooth],#; plt_qd1_smooth; plt_qd1_friction; plt_qd2_smooth; plt_qd2_friction],
-#     axisEqualImage=false,
-#     hideAxis=false,
-# 	ylabel="configuration",
-# 	xlabel="time (s)",
-# 	xlims=(0.0, 2.5),
-# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+# t = 35
+# id = t
+# tl = 0.75
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# av = Axis([plt_qd1_friction; plt_qd2_friction; plt_qd1_smooth; plt_qd2_smooth],
-#     axisEqualImage=false,
-#     hideAxis=false,
-# 	ylabel="velocity",
-# 	xlabel="time (s)",
-# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+# t = 40
+# id = t
+# tl = 0.85
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
 #
-# # Save to tikz format
-# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_configuration.tikz", aq, include_preamble=false)
-# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_velocity.tikz", av, include_preamble=false)
+# t = 45
+# id = t
+# tl = 0.95
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
+#
+#
+# t = 51
+# id = t
+# tl = 1.0
+# _create_cartpole!(vis, model;
+#         tl = tl,
+#         color = RGBA(limit_color..., tl),
+#         i = id)
+# _set_cartpole!(vis, model, x[t], i = id)
+#
+# line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+# # line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
+#
+# points = Vector{Point{3,Float64}}()
+# for (i, xt) in enumerate(x̄)
+#     k = kinematics(model, xt)
+# 	push!(points, Point(k[1], 0.0, k[2]))
+#
+#     setobject!(vis["ee_vertex_$i"], Sphere(Point3f0(0),
+#         convert(Float32, 0.001)),
+#         MeshPhongMaterial(color = RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0)))
+#         settransform!(vis["ee_vertex_$i"], Translation(points[i]))
+# end
+# setobject!(vis[:ee_traj], MeshCat.Line(points, line_mat))
+#
+#
+# # using PGFPlots
+# # const PGF = PGFPlots
+# #
+# # plt_q1_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[1,:],
+# # 	mark="none",style="color=cyan, line width = 2pt, dashed",legendentry="q1")
+# #
+# # plt_q2_smooth = PGF.Plots.Linear(t, hcat(q̄_smooth...)[2,:],
+# # 	mark="none",style="color=orange, line width = 2pt, dashed",legendentry="q2")
+# #
+# # plt_qd1_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[1,:],
+# # 	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="q1")
+# #
+# # plt_qd2_smooth = PGF.Plots.Linear(t, hcat(v̄_smooth..., v̄_smooth[end])[2,:],
+# # 	mark="none",style="const plot, color=green, line width = 2pt, dashed",legendentry="q2")
+# #
+# # plt_q1_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[1,:],
+# # 	mark="none",style="color=cyan, line width = 2pt",legendentry="q1 (friction)")
+# #
+# # plt_q2_friction = PGF.Plots.Linear(t, hcat(q̄_friction...)[2,:],
+# # 	mark="none",style="color=orange, line width = 2pt",legendentry="q2 (friction)")
+# #
+# # plt_qd1_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[1,:],
+# # 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="q1 (friction)")
+# #
+# # plt_qd2_friction = PGF.Plots.Linear(t, hcat(v̄_friction..., v̄_friction[end])[2,:],
+# # 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="q2 (friction)")
+# #
+# # aq = Axis([plt_q1_friction; plt_q2_friction; plt_q1_smooth; plt_q2_smooth],#; plt_qd1_smooth; plt_qd1_friction; plt_qd2_smooth; plt_qd2_friction],
+# #     axisEqualImage=false,
+# #     hideAxis=false,
+# # 	ylabel="configuration",
+# # 	xlabel="time (s)",
+# # 	xlims=(0.0, 2.5),
+# # 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+# #
+# # av = Axis([plt_qd1_friction; plt_qd2_friction; plt_qd1_smooth; plt_qd2_smooth],
+# #     axisEqualImage=false,
+# #     hideAxis=false,
+# # 	ylabel="velocity",
+# # 	xlabel="time (s)",
+# # 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+# #
+# # # Save to tikz format
+# # PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_configuration.tikz", aq, include_preamble=false)
+# # PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_velocity.tikz", av, include_preamble=false)

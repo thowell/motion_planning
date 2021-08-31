@@ -64,7 +64,9 @@ function f!(d::DynamicsData, q0, q1, u1, mode = :dynamics)
 
 	status = interior_point_solve!(ip)
 
-	!status && (@warn "dynamics failure (res norm: $(norm(ip.r, Inf)))")
+	!status && (@warn "dynamics failure (res norm: $(norm(ip.r, Inf))) \n
+		               z = $(ip.z), \n
+					   θ = $(ip.θ)")
 end
 
 function f(d::DynamicsData, q0, q1, u1)

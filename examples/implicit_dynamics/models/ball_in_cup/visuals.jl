@@ -1,6 +1,6 @@
 # Visualization
 function visualize!(mvis, model::KukaParticle, q;
-		verbose = false, r_ball = 0.035, Δt = 0.1)
+		verbose = false, r_ball = 0.025, Δt = 0.1)
 
 	setobject!(vis["ball"], Sphere(Point3f0(0),
 				convert(Float32, r_ball)),

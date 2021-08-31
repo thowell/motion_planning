@@ -36,7 +36,7 @@ function newton(res::Function, x;
 				iter_ls += 1
             end
 
-			iter_ls == 25 && (@warn "line search failed")
+			iter_ls == 25 && (@warn "line search failed ($(norm(r̄)))")
         end
 
         iter += 1
