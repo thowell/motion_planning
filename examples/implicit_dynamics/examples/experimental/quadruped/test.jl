@@ -16,7 +16,10 @@ u_stand = [vcat([u_gravity for i = 1:4]...) for t = 1:T-1]
 w_stand = [[pf1_ref[t]; pf2_ref[t]; pf3_ref[t]; pf4_ref[t]; contact_modes[t]] for t = 1:T-1]
 
 # Rollout
-x̄ = rollout(model, x1, u_stand, w_stand, h, T)
+x̄ = rollout(model, x1,
+    u_stand,
+    # u_10,
+    w_stand, h, T)
 visualize!(vis, model, x̄,
     [pf1_ref[1] for t = 1:T],
     [pf2_ref[1] for t = 1:T],
@@ -94,8 +97,10 @@ function c!(c, cons::StageConstraints, x, u, t)
 	end
 end
 
-prob = problem_data(model, obj, con_set, copy(x̄),
-    # copy(ū),
+prob = problem_data(model, obj, con_set,
+    copy(x̄),
+    # copy(x_10),
+    # copy(u_10),
     copy(u_stand),
     copy(w_stand), h, T,
 	analytical_dynamics_derivatives = true)
@@ -108,6 +113,8 @@ prob = problem_data(model, obj, con_set, copy(x̄),
 	ρ_init = 1.0, ρ_scale = 10.0)
 
 x_sol, u_sol = current_trajectory(prob)
+# x_10 = x_sol
+# u_10 = u_sol
 # x̄, ū = nominal_trajectory(prob)
 
 # open(vis)

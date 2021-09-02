@@ -139,75 +139,83 @@ settransform!(vis["/Cameras/default"],
     compose(Translation(0.0, 0.0, 50.0), LinearMap(RotZ(0.5 * pi) * RotY(-pi/2.5))))
 setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
 
-t = 1
-id = t
-tl = 0.5
 _create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
+        i = -1,
+        r = r_dim, r_pusher = 0.25 * r_dim,
+        box_color = RGBA(0.0, 1.0, 0.0, 0.5),
+        pusher_color = RGBA(0.5, 0.5, 0.5, 0.0))
 
-t = 5
-id = t
-tl = 0.6
-_create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
+_set_planar_push!(vis, model, qT, i = -1)
 
-t = 10
-id = t
-tl = 0.7
-_create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
-
-t = 15
-id = t
-tl = 0.8
-_create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
-
-t = 20
-id = t
-tl = 0.9
-_create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
-
-t = 26
-id = t
-tl = 1.0
-_create_planar_push!(vis, model,
-        r = r_dim,
-        r_pusher = 0.25 * r_dim,
-        tl = tl,
-        i = id)
-_set_planar_push!(vis, model, q̄[t], i = id)
-
-box_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
-pusher_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
-
-points_box = Vector{Point{3,Float64}}()
-points_pusher = Vector{Point{3,Float64}}()
-
-for (i, xt) in enumerate(x̄)
-	push!(points_box, Point(xt[1], xt[2], 0.0))
-    push!(points_pusher, Point(xt[4], xt[5], 0.0))
-end
-setobject!(vis[:box_traj], MeshCat.Line(points_box, box_line_mat))
-setobject!(vis[:pusher_traj], MeshCat.Line(points_pusher, pusher_line_mat))
+# t = 1
+# id = t
+# tl = 0.5
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# t = 5
+# id = t
+# tl = 0.6
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# t = 10
+# id = t
+# tl = 0.7
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# t = 15
+# id = t
+# tl = 0.8
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# t = 20
+# id = t
+# tl = 0.9
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# t = 26
+# id = t
+# tl = 1.0
+# _create_planar_push!(vis, model,
+#         r = r_dim,
+#         r_pusher = 0.25 * r_dim,
+#         tl = tl,
+#         i = id)
+# _set_planar_push!(vis, model, q̄[t], i = id)
+#
+# box_line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
+# pusher_line_mat = LineBasicMaterial(color=color=RGBA(51.0 / 255.0, 1.0, 1.0, 1.0), linewidth=10.0)
+#
+# points_box = Vector{Point{3,Float64}}()
+# points_pusher = Vector{Point{3,Float64}}()
+#
+# for (i, xt) in enumerate(x̄)
+# 	push!(points_box, Point(xt[1], xt[2], 0.0))
+#     push!(points_pusher, Point(xt[4], xt[5], 0.0))
+# end
+# setobject!(vis[:box_traj], MeshCat.Line(points_box, box_line_mat))
+# setobject!(vis[:pusher_traj], MeshCat.Line(points_pusher, pusher_line_mat))

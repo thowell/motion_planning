@@ -49,7 +49,6 @@ r_func = eval(Symbolics.build_function(r, z, θ, κ)[2])
 rz = Symbolics.jacobian(r, z)
 rz = simplify.(rz)
 rz_func = eval(Symbolics.build_function(rz, z, θ)[2])
-
 rθ = Symbolics.jacobian(r, θ)
 rθ = simplify.(rθ)
 rθ_func = eval(Symbolics.build_function(rθ, z, θ)[2])
@@ -157,7 +156,6 @@ function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 end
 
 fdx(model, zeros(model.n), zeros(model.m), zeros(model.d), h, 1)
-
 
 function fdu(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
 	u_proj = soc_projection(u)
@@ -327,23 +325,22 @@ plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)
-# open(vis)
-x_anim = [[x̄[1] for i = 1:100]..., x̄..., [x̄[end] for i = 1:100]...]
+open(vis)
+x_anim = [[x̄[1] for i = 1:50]..., x̄..., [x̄[end] for i = 1:50]...]
 visualize!(vis, model,
 	x_anim,
-	Δt = h, T_off = length(x_anim)-125)
+	Δt = h, T_off = length(x_anim)-75)
 obj_platform = joinpath(pwd(), "models/rocket/space_x_platform.obj")
 mtl_platform = joinpath(pwd(), "models/rocket/space_x_platform.mtl")
 ctm_platform = ModifiedMeshFileObject(obj_platform,mtl_platform,scale=1.0)
-#
-# setobject!(vis["platform"],ctm_platform)
-# settransform!(vis["platform"], compose(Translation(0.0,2.0,-0.6), LinearMap(0.75 * RotZ(pi)*RotX(pi/2))))
-#
+
+setobject!(vis["platform"],ctm_platform)
+settransform!(vis["platform"], compose(Translation(0.0,2.0,-0.6), LinearMap(0.75 * RotZ(pi)*RotX(pi/2))))
+
 # settransform!(vis["/Cameras/default"], compose(Translation(0.0, 0.0, 0.0),
 # 	LinearMap(RotZ(1.5 * π + 0.0 * π))))
-# setvisible!(vis["/Grid"], false)
+setvisible!(vis["/Grid"], false)
 # setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 1.0)
-
 # line_mat = LineBasicMaterial(color=color=RGBA(1.0, 153.0 / 255.0, 51.0 / 255.0, 1.0), linewidth=10.0)
 # points = Vector{Point{3,Float64}}()
 # for xt in x̄

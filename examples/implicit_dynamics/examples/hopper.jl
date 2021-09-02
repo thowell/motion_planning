@@ -243,48 +243,48 @@ q̄ = state_to_configuration(x̄)
 q̄[1] = ū[1][model_implicit.m .+ (1:nq)]
 q̄[2] = ū[1][model_implicit.m + nq .+ (1:nq)]
 
-# include(joinpath(pwd(), "models/visualize.jl"))
-# include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/visuals.jl"))
-#
-# vis = Visualizer()
-# render(vis)
-# visualize!(vis, model, q̄[1:end-1], Δt = h)
+include(joinpath(pwd(), "models/visualize.jl"))
+include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/visuals.jl"))
+
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, q̄[1:end], Δt = h)
 #
 #  x̄[T][1:model_implicit.n] - ū[1][model_implicit.m .+ (1:model_implicit.n)]
 #
-# function mirror_gait(q, T; n = 5)
-# 	qm = [deepcopy(q)...]
-# 	um = [deepcopy(u)...]
+function mirror_gait(q, T; n = 5)
+	qm = [deepcopy(q)...]
+	um = [deepcopy(u)...]
+
+	stride = zero(qm[1])
+	strd = q[T+1][1] - q[2][1]
+	@show stride[1] += strd
+	@show 0.5 * stride
+
+	for i = 1:n-1
+		for t = 1:T-1
+			push!(qm, q[t+2] + stride)
+			push!(um, u[t])
+		end
+		stride[1] += strd
+	end
+	len = qm[end][1]
+
+	# center
+	for t = 1:length(qm)
+		qm[t][1] -= 0.5 * len
+	end
+
+	return qm, um
+end
+
+qm, um = mirror_gait(q̄, T)
+visualize!(vis, model, qm, Δt = h)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
 #
-# 	stride = zero(qm[1])
-# 	strd = q[T+1][1] - q[2][1]
-# 	@show stride[1] += strd
-# 	@show 0.5 * stride
-#
-# 	for i = 1:n-1
-# 		for t = 1:T-1
-# 			push!(qm, q[t+2] + stride)
-# 			push!(um, u[t])
-# 		end
-# 		stride[1] += strd
-# 	end
-# 	len = qm[end][1]
-#
-# 	# center
-# 	for t = 1:length(qm)
-# 		qm[t][1] -= 0.5 * len
-# 	end
-#
-# 	return qm, um
-# end
-#
-# qm, um = mirror_gait(q̄, T)
-# visualize!(vis, model, qm, Δt = h)
-# settransform!(vis["/Cameras/default"],
-#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
-#
-# open(vis)
+open(vis)
 #
 # body_points = Vector{Point{3,Float64}}()
 # foot_points = Vector{Point{3,Float64}}()

@@ -92,7 +92,8 @@ function _create_planar_push!(vis, model::PlanarPush;
         r = 1.0,
         r_pusher = 0.1,
         tl = 1.0,
-        color = RGBA(0.0, 0.0, 0.0, tl))
+        box_color = RGBA(0.0, 0.0, 0.0, tl),
+        pusher_color = RGBA(0.5, 0.5, 0.5, tl))
 
     r_box = r - r_pusher
 
@@ -100,11 +101,11 @@ function _create_planar_push!(vis, model::PlanarPush;
 		-1.0 * r_box,
 		-1.0 * r_box),
 		Vec(2.0 * r_box, 2.0 * r_box, 2.0 * r_box)),
-		MeshPhongMaterial(color = RGBA(0.0, 0.0, 0.0, tl)))
+		MeshPhongMaterial(color = box_color))
 
     setobject!(vis["pusher_$i"],
         Cylinder(Point(0.0, 0.0, 0.0), Point(0.0, 0.0, r_box), r_pusher),
-        MeshPhongMaterial(color = RGBA(0.5, 0.5, 0.5, tl)))
+        MeshPhongMaterial(color = pusher_color))
 end
 
 function _set_planar_push!(vis, model::PlanarPush, q;
@@ -119,7 +120,8 @@ function visualize!(vis, model::PlanarPush, q;
         r = 1.0,
         r_pusher = 0.1,
         tl = 1.0,
-        color = RGBA(0.0, 0.0, 0.0, tl),
+        box_color = RGBA(0.0, 0.0, 0.0, tl),
+        pusher_color = RGBA(0.5, 0.5, 0.5, tl),
         Δt = 0.1)
 
 	default_background!(vis)
@@ -129,7 +131,8 @@ function visualize!(vis, model::PlanarPush, q;
         r = r,
         r_pusher = r_pusher,
         tl = tl,
-        color = color)
+        box_color = box_color,
+        pusher_color = pusher_color)
 
     anim = MeshCat.Animation(convert(Int, floor(1.0 / Δt)))
 

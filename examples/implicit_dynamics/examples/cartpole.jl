@@ -15,11 +15,11 @@ data = dynamics_data(model, h,
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
         # θ_params = [0.75; 0.75], # fails to reach constraint tolerance
-        # θ_params = [0.5; 0.5], # fails to reach constraint tolerance
+        θ_params = [0.5; 0.5], # fails to reach constraint tolerance
         # θ_params = [0.35; 0.35],
         # θ_params = [0.25; 0.25],
         # θ_params = [0.1; 0.1],
-        θ_params = [0.01; 0.01],
+        # θ_params = [0.01; 0.01],
         dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
@@ -152,45 +152,45 @@ v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 # @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2" q̄_smooth v̄_smooth ū_smooth
 # @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2"
 
-t = range(0, stop = h * (length(q̄) - 1), length = length(q̄))
-plt = plot();
-plt = plot!(t, hcat(q̄...)', width = 2.0,
-	color = [:magenta :orange],
-	labels = ["q1" "q2"],
-	legend = :topleft,
-	xlabel = "time (s)",
-	ylabel = "configuration",
-	# title = "cartpole (w / o friction)")
-	title = "cartpole (w/ friction)")
-
-plt = plot();
-plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
-	color = [:magenta :orange],
-	labels = ["q1" "q2"],
-	legend = :topleft,
-	xlabel = "time (s)",
-	ylabel = "velocity",
-	linetype = :steppost,
-	# title = "cartpole (w / o friction)")
-	title = "cartpole (w/ friction)")
-	# title = "acrobot (w/ joint limits)")
+# t = range(0, stop = h * (length(q̄) - 1), length = length(q̄))
+# plt = plot();
+# plt = plot!(t, hcat(q̄...)', width = 2.0,
+# 	color = [:magenta :orange],
+# 	labels = ["q1" "q2"],
+# 	legend = :topleft,
+# 	xlabel = "time (s)",
+# 	ylabel = "configuration",
+# 	# title = "cartpole (w / o friction)")
+# 	title = "cartpole (w/ friction)")
+#
+# plt = plot();
+# plt = plot!(t, hcat(v̄..., v̄[end])', width = 2.0,
+# 	color = [:magenta :orange],
+# 	labels = ["q1" "q2"],
+# 	legend = :topleft,
+# 	xlabel = "time (s)",
+# 	ylabel = "velocity",
+# 	linetype = :steppost,
+# 	# title = "cartpole (w / o friction)")
+# 	title = "cartpole (w/ friction)")
+# 	# title = "acrobot (w/ joint limits)")
 
 # show(plt)
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction.png")
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_no_friction.png")
 
-plot(hcat(ū..., ū[end])', linetype = :steppost)
+# plot(hcat(ū..., ū[end])', linetype = :steppost)
 # #
-# include(joinpath(pwd(), "models/visualize.jl"))
-# vis = Visualizer()
-# render(vis)
-# visualize!(vis, model, q̄, Δt = h)
-# open(vis)
-# default_background!(vis)
-# settransform!(vis["/Cameras/default"],
-#         compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
-# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
-# setvisible!(vis["/Grid"], false)
+include(joinpath(pwd(), "models/visualize.jl"))
+vis = Visualizer()
+render(vis)
+visualize!(vis, model, q̄, Δt = h)
+open(vis)
+default_background!(vis)
+settransform!(vis["/Cameras/default"],
+        compose(Translation(0.0, -95.0, -1.0), LinearMap(RotY(0.0 * π) * RotZ(-π / 2.0))))
+setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+setvisible!(vis["/Grid"], false)
 #
 # # q̄ = state_to_configuration(x̄)
 # # q_anim = [[q̄[1] for t = 1:20]..., q̄..., [q̄[end] for t = 1:20]...]

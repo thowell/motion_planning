@@ -1,80 +1,80 @@
 include(joinpath(pwd(), "examples/implicit_dynamics/utils.jl"))
-include_implicit_dynamics()
+# include_implicit_dynamics()
 
-"""
-    floating-base quadruped model
-        rigid body with force inputs via pre-specified contact sequence
-"""
-struct QuadrupedFloatingBase{T}
-    dim::Dimensions
-
-    mass::T
-    inertia
-
-    gravity
-end
-
-nq = 6
-nu = 4 * 3
-nc = 0
-nw = 0
-
-model = QuadrupedFloatingBase(Dimensions(nq, nu, nc, nw),
-    1.0, Diagonal(ones(3)), [0.0; 0.0; 9.81])
-
-# eq. 14 http://roboticexplorationlab.org/papers/planning_with_attitude.pdf
-function attitude_jacobian(q)
-	s = q[1]
-	v = q[2:4]
-
-	[-transpose(v);
-	 s * I + skew(v)]
-end
-
-function G_func(q)
-	quat = q[4:7]
-	[1.0 0.0 0.0 0.0 0.0 0.0;
-     0.0 1.0 0.0 0.0 0.0 0.0;
-	 0.0 0.0 1.0 0.0 0.0 0.0;
-     zeros(4, 3) attitude_jacobian(quat)]
-end
-
-function conjugate(q)
-	s = q[1]
-	v = q[2:4]
-
-	return [s; -v]
-end
-
-function L_multiply(q)
-	s = q[1]
-	v = q[2:4]
-
-	SMatrix{4,4}([s -transpose(v);
-	              v s * I + skew(v)])
-end
-
-function R_multiply(q)
-	s = q[1]
-	v = q[2:4]
-
-	SMatrix{4,4}([s -transpose(v);
-	              v s * I - skew(v)])
-end
-
-function multiply(q1, q2)
-	L_multiply(q1) * q2
-end
-
-# eq. 16 http://roboticexplorationlab.org/papers/maximal_coordinate_dynamics.pdf
-function ω_finite_difference(q1, q2, h)
-	2.0 * multiply(conjugate(q1), (q2 - q1) ./ h)[2:4]
-end
-
-# Cayley map
-function cayley_map(ϕ)
-	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
-end
+# """
+#     floating-base quadruped model
+#         rigid body with force inputs via pre-specified contact sequence
+# """
+# struct QuadrupedFloatingBase{T}
+#     dim::Dimensions
+#
+#     mass::T
+#     inertia
+#
+#     gravity
+# end
+#
+# nq = 6
+# nu = 4 * 3
+# nc = 0
+# nw = 0
+#
+# model = QuadrupedFloatingBase(Dimensions(nq, nu, nc, nw),
+#     1.0, Diagonal(ones(3)), [0.0; 0.0; 9.81])
+#
+# # eq. 14 http://roboticexplorationlab.org/papers/planning_with_attitude.pdf
+# function attitude_jacobian(q)
+# 	s = q[1]
+# 	v = q[2:4]
+#
+# 	[-transpose(v);
+# 	 s * I + skew(v)]
+# end
+#
+# function G_func(q)
+# 	quat = q[4:7]
+# 	[1.0 0.0 0.0 0.0 0.0 0.0;
+#      0.0 1.0 0.0 0.0 0.0 0.0;
+# 	 0.0 0.0 1.0 0.0 0.0 0.0;
+#      zeros(4, 3) attitude_jacobian(quat)]
+# end
+#
+# function conjugate(q)
+# 	s = q[1]
+# 	v = q[2:4]
+#
+# 	return [s; -v]
+# end
+#
+# function L_multiply(q)
+# 	s = q[1]
+# 	v = q[2:4]
+#
+# 	SMatrix{4,4}([s -transpose(v);
+# 	              v s * I + skew(v)])
+# end
+#
+# function R_multiply(q)
+# 	s = q[1]
+# 	v = q[2:4]
+#
+# 	SMatrix{4,4}([s -transpose(v);
+# 	              v s * I - skew(v)])
+# end
+#
+# function multiply(q1, q2)
+# 	L_multiply(q1) * q2
+# end
+#
+# # eq. 16 http://roboticexplorationlab.org/papers/maximal_coordinate_dynamics.pdf
+# function ω_finite_difference(q1, q2, h)
+# 	2.0 * multiply(conjugate(q1), (q2 - q1) ./ h)[2:4]
+# end
+#
+# # Cayley map
+# function cayley_map(ϕ)
+# 	1.0 / sqrt(1.0 + norm(ϕ)^2.0) * [1.0; ϕ]
+# end
 
 # function dynamics(model::QuadrupedFloatingBase, h, q0, q1, q2, f, τ)
 #
@@ -239,10 +239,11 @@ mass = 1.0
 inertia = Diagonal(@SVector[1.0, 1.0, 1.0])
 inertia_inv = inv(inertia)
 body_height = 0.2
+
 # a1
-# mass = 108.0 / 9.81
-# inertia = 10.0 * Diagonal(@SVector[0.017, 0.057, 0.064])
-# inertia_inv = inv(inertia)
+mass = 108.0 / 9.81
+inertia = 10.0 * Diagonal(@SVector[0.017, 0.057, 0.064])
+inertia_inv = inv(inertia)
 # body_height = 0.24
 
 # laikago
@@ -250,7 +251,6 @@ body_height = 0.2
 # inertia = Diagonal(@SVector[0.07335, 0.25068, 0.25447])
 # inertia_inv = inv(inertia)
 # body_height = 0.45
-
 
 
 model = QuadrupedFB{Midpoint, FixedTime}(n, m, d,
