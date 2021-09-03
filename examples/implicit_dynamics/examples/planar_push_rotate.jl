@@ -4,7 +4,8 @@ Random.seed!(1)
 
 include_implicit_dynamics()
 include_ddp()
-include(joinpath(pwd(), "examples/implicit_dynamics/models/planar_push/model_v2.jl"))
+include(joinpath(pwd(),
+    "examples/implicit_dynamics/models/planar_push/model_v2.jl"))
 
 # visualize
 include(joinpath(pwd(), "models/visualize.jl"))

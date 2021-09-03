@@ -4,3 +4,9 @@ fort.11
 Manifest.toml
 .vscode
 /models/rocket
+/models/starship
+/models/quadrotor
+/models/kuka
+/models/cybertruck
+/models/a1_quadruped
+/models/laikago_quadruped

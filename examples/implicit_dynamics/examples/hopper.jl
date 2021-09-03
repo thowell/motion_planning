@@ -16,7 +16,7 @@ data = dynamics_data(model, h,
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 1.0,
-						diff_sol = true),
+						diff_sol = false),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-2,
@@ -230,6 +230,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 # Solve
 @time constrained_ddp_solve!(prob,
     linesearch = :armijo,
+    verbose = false,
 	max_iter = 1000, max_al_iter = 10,
 	ρ_init = 1.0, ρ_scale = 10.0,
 	con_tol = 1.0e-3)

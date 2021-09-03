@@ -1,14 +1,27 @@
 include_ddp()
-
 Random.seed!(0)
 
 # Model
 include_model("acrobot")
-n = model.n
-m = model.m
+n, m, d = 4, 1, 4
+model = Acrobot{Euler, FixedTime}(4, 1, 4, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+
+function fd(model::Acrobot{Euler, FixedTime}, x, u, w, h, t)
+    x + h * f(model, x, u, w)
+end
+
+function fd(model::Acrobot{Euler, FixedTime}, x⁺, x, u, w, h, t)
+    x⁺ - (x + h * f(model, x⁺, u, w))
+end
+function fd(model::Acrobot{Midpoint, FixedTime}, x, u, w, h, t)
+    x + h * f(model, x + 0.5 * h * f(model, x, u, w), u, w)
+end
+function fd(model::Acrobot{Midpoint, FixedTime}, x⁺, x, u, w, h, t)
+    x⁺ - (x + h * f(model, 0.5 * (x + x⁺), u, w))
+end
 
 # Time
-T = 201
+T = 15
 tf = 5.0
 h = tf / (T - 1)
 
@@ -55,22 +68,22 @@ end
 prob = problem_data(model, obj, copy(x̄), copy(ū), w, h, T)
 
 # Solve
-@time ddp_solve!(prob,
+@time stats = ddp_solve!(prob,
     max_iter = 1000, verbose = true,
-    grad_tol = 1.0e-3
+    grad_tol = 1.0e-3,
     linesearch = :armijo)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 # Visualize
-# using Plots
-# plot(π * ones(T),
-#     width = 2.0, color = :black, linestyle = :dash)
-# plot!(hcat(x...)', width = 2.0, label = "")
-# plot(hcat(u..., u[end])',
-#     width = 2.0, linetype = :steppost)
-#
+using Plots
+plot(π * ones(T),
+    width = 2.0, color = :black, linestyle = :dash)
+plot!(hcat(x...)', width = 2.0, label = "")
+plot(hcat(u..., u[end])',
+    width = 2.0, linetype = :steppost)
+
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()
 render(vis)

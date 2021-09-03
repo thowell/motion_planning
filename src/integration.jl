@@ -3,6 +3,22 @@
 """
 abstract type Continuous <: Integration end
 
+struct Euler <: Integration end
+
+"""
+    explicit Euler integrator
+"""
+function fd(model::Model{Euler, FixedTime}, x, u, w, h, t)
+    x + h * f(model, x, u, w)
+end
+
+"""
+    implicit Euler integrator
+"""
+function fd(model::Model{Euler, FixedTime}, x⁺, x, u, w, h, t)
+    x⁺ - (x + h * f(model, x⁺, u, w))
+end
+
 """
     explicit midpoint integrator
 """

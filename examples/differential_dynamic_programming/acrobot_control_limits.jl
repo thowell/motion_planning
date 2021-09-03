@@ -13,7 +13,7 @@ h = 0.1
 # Initial conditions, controls, disturbances
 x1 = [0.0, 0.0, 0.0, 0.0]
 xT = [π, 0.0, 0.0, 0.0] # goal state
-ū = [1.0e-2 * rand(model.m) for t = 1:T-1]
+ū = [1.0e-3 * rand(model.m) for t = 1:T-1]
 w = [zeros(model.d) for t = 1:T-1]
 # Rollout
 x̄ = rollout(model, x1, ū, w, h, T)
@@ -50,7 +50,7 @@ end
 
 # Constraints
 p = [t < T ? 2 * m : n for t = 1:T]
-info_t = Dict(:ul => [-10.0], :uu => [10.0], :inequality => (1:2 * m))
+info_t = Dict(:ul => [-100.0], :uu => [100.0], :inequality => (1:2 * m))
 info_T = Dict(:xT => xT)
 con_set = [StageConstraint(p[t], t < T ? info_t : info_T) for t = 1:T]
 
@@ -74,7 +74,7 @@ prob = problem_data(model, obj, con_set, copy(x̄), copy(ū), w, h, T)
 
 # Solve
 @time stats = constrained_ddp_solve!(prob,
-    linesearch = :wolfe,
+    linesearch = :armijo,
     max_iter = 1000, max_al_iter = 7,
 	con_tol = 1.0e-3,
 	ρ_init = 1.0, ρ_scale = 10.0)

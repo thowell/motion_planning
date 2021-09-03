@@ -34,31 +34,31 @@ end
 
 # Methods
 function M_func(model::Hopper2D, q)
-	Diagonal(@SVector [model.mb + model.ml,
-					   model.mb + model.ml,
-					   model.Jb + model.Jl,
-					   model.ml])
+	Diagonal([model.mb + model.ml,
+    					   model.mb + model.ml,
+    					   model.Jb + model.Jl,
+    					   model.ml])
  end
 
 function C_func(model::Hopper2D, q, q̇)
-	@SVector [0.0,
-			  (model.mb + model.ml) * model.g,
-			  0.0,
-			  0.0]
+	[0.0,
+    			  (model.mb + model.ml) * model.g,
+    			  0.0,
+    			  0.0]
 end
 
 function ϕ_func(model::Hopper2D, q)
-    SVector{1}(q[2] - q[4] * cos(q[3]))
+    [q[2] - q[4] * cos(q[3])]
 end
 
 function J_func(::Hopper2D, q)
-    @SMatrix [1.0 0.0 (q[4] * cos(q[3])) sin(q[3]);
-		      0.0 1.0 (q[4] * sin(q[3])) (-1.0 * cos(q[3]))]
+    [1.0 0.0 (q[4] * cos(q[3])) sin(q[3]);
+		          0.0 1.0 (q[4] * sin(q[3])) (-1.0 * cos(q[3]))]
 end
 
 function B_func(::Hopper2D, q)
-	@SMatrix [0.0 0.0 1.0 0.0;
-             -sin(q[3]) cos(q[3]) 0.0 1.0]
+	[0.0 0.0 1.0 0.0;
+                -sin(q[3]) cos(q[3]) 0.0 1.0]
 end
 
 # Working Parameters
@@ -104,8 +104,8 @@ function dynamics(model::Hopper2D, h, q0, q1, u1, λ1, q2)
 
     return (0.5 * h[1] * D1L1 + D2L1 + 0.5 * h[1] * D1L2 - D2L2
     	+ transpose(B_func(model, qm2)) * u1
-        + transpose(J_func(model, q2)) * λ1
-        -h[1] * model.joint_friction .* vm2)
+        + transpose(J_func(model, q2)) * λ1)
+        # -h[1] * model.joint_friction .* vm2)
 end
 
 function residual(model, z, θ, κ)
