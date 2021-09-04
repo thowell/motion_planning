@@ -14,22 +14,19 @@ vis = Visualizer()
 render(vis)
 
 # Implicit dynamics
+T = 26
 h = 0.1
-data = dynamics_data(model, h,
+data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
         idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
-        dyn_opts =  InteriorPointOptions{Float64}(
+        diff_idx = 2,
+        opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 0.1,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 1.0e-2,
-						κ_init = 0.1,
-						diff_sol = true))
+						diff_sol = false))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
@@ -118,8 +115,12 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 5,
-	ρ_init = 1.0, ρ_scale = 10.0,
+    verbose = false,
+    grad_tol = 1.0e-3,
+	max_iter = 1000,
+    max_al_iter = 5,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
 	con_tol = 0.001)
 
 x, u = current_trajectory(prob)
@@ -130,24 +131,24 @@ v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 
 # vis = Visualizer()
 # render(vis)
-open(vis)
-
-vis = Visualizer()
-render(vis)
-open(vis)
-visualize!(vis, model, q̄, Δt = h, r = r_dim, r_pusher = 0.25 * r_dim)
-default_background!(vis)
-settransform!(vis["/Cameras/default"],
-    compose(Translation(0.0, 0.0, 50.0), LinearMap(RotZ(0.5 * pi) * RotY(-pi/2.5))))
-setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
-
-_create_planar_push!(vis, model,
-        i = -1,
-        r = r_dim, r_pusher = 0.25 * r_dim,
-        box_color = RGBA(0.0, 1.0, 0.0, 0.5),
-        pusher_color = RGBA(0.5, 0.5, 0.5, 0.0))
-
-_set_planar_push!(vis, model, qT, i = -1)
+# open(vis)
+#
+# vis = Visualizer()
+# render(vis)
+# open(vis)
+# visualize!(vis, model, q̄, Δt = h, r = r_dim, r_pusher = 0.25 * r_dim)
+# default_background!(vis)
+# settransform!(vis["/Cameras/default"],
+#     compose(Translation(0.0, 0.0, 50.0), LinearMap(RotZ(0.5 * pi) * RotY(-pi/2.5))))
+# setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 50)
+#
+# _create_planar_push!(vis, model,
+#         i = -1,
+#         r = r_dim, r_pusher = 0.25 * r_dim,
+#         box_color = RGBA(0.0, 1.0, 0.0, 0.5),
+#         pusher_color = RGBA(0.5, 0.5, 0.5, 0.0))
+#
+# _set_planar_push!(vis, model, qT, i = -1)
 
 # t = 1
 # id = t

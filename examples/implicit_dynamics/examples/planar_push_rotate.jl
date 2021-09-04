@@ -15,30 +15,28 @@ vis = Visualizer()
 render(vis)
 
 # Implicit dynamics
+T = 26
 h = 0.1
-data = dynamics_data(model, h,
+data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
-        dyn_opts =  InteriorPointOptions{Float64}(
+        diff_idx = 2,
+        opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 0.1,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 1.0e-2,
-						κ_init = 0.1,
-						diff_sol = true))
+						diff_sol = false))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
+
+@time fd(model_implicit, x1, ū[1], w[1], h, 1)
 n = model_implicit.n
 m = model_implicit.m
 
 # Problem setup
-T = 26
 
 # Initial and final states
 q1 = [0.0, 0.0, 0.0, -r_dim - 1.0e-8, -0.01]
@@ -99,7 +97,7 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		c .= [ul - u; u - uu]
+		# c .= [ul - u; u - uu]
 	else
 		c .= (x - cons.con[T].info[:xT])[collect([(1:3)..., (6:8)...])]
 	end
@@ -121,8 +119,11 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 5,
-	ρ_init = 1.0, ρ_scale = 10.0,
+	max_iter = 1000,
+    grad_tol = 1.0e-3,
+    max_al_iter = 5,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
 	con_tol = 0.001)
 
 x, u = current_trajectory(prob)

@@ -13,7 +13,7 @@ using GeometryBasics
 using MeshCat, MeshIO, Meshing
 using Rotations
 using Parameters
-using Symbolics
+using Symbolics, IfElse
 using Random
 
 # using RigidBodyDynamics, MeshCatMechanisms

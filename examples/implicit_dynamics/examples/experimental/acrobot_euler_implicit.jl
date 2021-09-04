@@ -4,31 +4,30 @@ Random.seed!(0)
 # Model
 include_model("acrobot")
 n, m, d = 4, 1, 4
-model = Acrobot{Midpoint, FixedTime}(4, 1, 4, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
+model = Acrobot{Euler, FixedTime}(4, 1, 4, 1.0, 0.33, 1.0, 0.5, 1.0, 0.33, 1.0, 0.5, 9.81, 0.1, 0.1)
 
-function fd(model::Acrobot{Midpoint, FixedTime}, x, u, w, h, t)
+function fd(model::Acrobot{Euler, FixedTime}, x, u, w, h, t)
     x + h * f(model, x + 0.5 * h * f(model, x, u, w), u, w)
 end
 
-function fd(model::Acrobot{Midpoint, FixedTime}, x⁺, x, u, w, h, t)
-    x⁺ - (x + h * f(model, x⁺, u, w))
-end
+# function fd(model::Acrobot{Euler, FixedTime}, x⁺, x, u, w, h, t)
+#     # x⁺ - (x + h * f(model, x⁺, u, w))
+#     x⁺ - (x + h * f(model, x, u, w))
+# end
 
-function fd(model::Acrobot{Midpoint, FixedTime}, x, u, w, h, t)
+function fd(model::Acrobot{Euler, FixedTime}, x, u, w, h, t)
     rz(z) = fd(model, z, x, u, w, h, t) # implicit Euler integration
-	# x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+	x⁺ = newton(rz, copy(x), tol_r = 1.0e-12)
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	return x⁺
 end
 
-
-
 fd(model, zeros(model.n), 0.001 * ones(model.m), zeros(model.d), 0.1, 1)
 
-function fdx(model::Acrobot{Midpoint, FixedTime}, x, u, w, h, t)
+function fdx(model::Acrobot{Euler, FixedTime}, x, u, w, h, t)
 	rz(z) = fd(model, z, x, u, w, h, t) # implicit Euler integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+    x⁺ = newton(rz, copy(x), tol_r = 1.0e-12)
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	rx(z) = fd(model, x⁺, z, u, w, h, t) # implicit Euler integration
 	∇rx = ForwardDiff.jacobian(rx, x)
@@ -37,10 +36,10 @@ end
 
 fdx(model, ones(model.n), 0.01 * ones(model.m), zeros(model.d), 0.1, 1)
 
-function fdu(model::Acrobot{Midpoint, FixedTime}, x, u, w, h, t)
+function fdu(model::Acrobot{Euler, FixedTime}, x, u, w, h, t)
 	rz(z) = fd(model, z, x, u, w, h, t) # implicit Euler integration
-    # x⁺ = newton(rz, copy(x))
-    x⁺ = levenberg_marquardt(rz, copy(x))
+    x⁺ = newton(rz, copy(x), tol_r = 1.0e-12)
+    # x⁺ = levenberg_marquardt(rz, copy(x))
 	∇rz = ForwardDiff.jacobian(rz, x⁺)
 	ru(z) = fd(model, x⁺, x, z, w, h, t) # implicit Euler integration
 	∇ru = ForwardDiff.jacobian(ru, u)
@@ -98,8 +97,8 @@ function g(obj::StageCosts, x, u, t)
 end
 
 # Problem
-prob = problem_data(model, obj, copy(x̄), copy(ū), w, h, T,
-    analytical_dynamics_derivatives = true)
+prob = problem_data(model, obj, copy(x̄), copy(ū), w, h, T)
+    # analytical_dynamics_derivatives = true)
 
 # Solve
 @time ddp_solve!(prob,
@@ -118,10 +117,10 @@ x̄, ū = nominal_trajectory(prob)
 # plot(hcat(u..., u[end])',
 #     width = 2.0, linetype = :steppost)
 #
-include(joinpath(pwd(), "models/visualize.jl"))
-vis = Visualizer()
-render(vis)
-# open(vis)
-visualize!(vis, model, x, Δt = h)
+# include(joinpath(pwd(), "models/visualize.jl"))
+# vis = Visualizer()
+# render(vis)
+# # open(vis)
+# visualize!(vis, model, x, Δt = h)
 
 @show norm(x[end] - xT)

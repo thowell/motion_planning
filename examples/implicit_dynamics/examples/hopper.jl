@@ -6,27 +6,39 @@ include_implicit_dynamics()
 include_ddp()
 include(joinpath(pwd(), "examples/implicit_dynamics/models/hopper_2D/model.jl"))
 
-# Implicit dynamics
+# Time
+T = 21
 h = 0.05
-data = dynamics_data(model, h,
+
+# Implicit dynamics
+data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
 		z_subset_init = z_subset_init,
-        dyn_opts =  InteriorPointOptions{Float64}(
+        diff_idx = 4,
+        opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 1.0,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 1.0e-2,
-						κ_init = 1.0,
-						diff_sol = true))
+						diff_sol = false))
+# implicit model cache
+fdx1 = zeros(4 * model.dim.q, 2 * model.dim.q)
+fdxt = [zeros(model.dim.q, model.dim.q) I zeros(model.dim.q, 2 * model.dim.q);
+        zeros(model.dim.q, 4 * model.dim.q);
+        zeros(2 * model.dim.q, 2 * model.dim.q) I]
+fdu1 = [zeros(model.dim.q, model.dim.u + model.dim.q) I;
+        zeros(model.dim.q, model.dim.u + 2 * model.dim.q);
+        zeros(2 * model.dim.q, model.dim.u) I]
+fdut = [zeros(model.dim.q, model.dim.u);
+        zeros(model.dim.q, model.dim.u);
+        zeros(2 * model.dim.q, model.dim.u)]
 
-model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
+cache = Dict(:fdx1 => fdx1,
+             :fdxt => fdxt,
+             :fdu1 => fdu1,
+             :fdut => fdut)
 
-# Time
-T = 21
+model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data, cache = cache)
 
 # Parameter optimization discrete-time dynamics
 n = [t == 1 ? model_implicit.n : 2 * model_implicit.n for t = 1:T]
@@ -38,18 +50,18 @@ function fd(model::ImplicitDynamics{Midpoint, FixedTime}, x, u, w, h, t)
 	nu = model.dynamics.m.dim.u
 
 	if t == 1
-		θ = u[nu .+ (1:np)]
-		q0 = θ[1:nq]
-		q1 = θ[nq .+ (1:nq)]
+		θ = view(u, nu .+ (1:np))
+		q0 = view(θ, 1:nq)
+		q1 = view(θ, nq .+ (1:nq))
 	else
-		θ = x[2 * nq .+ (1:np)]
-		q0 = x[1:nq]
-		q1 = x[nq .+ (1:nq)]
+		θ = view(x, 2 * nq .+ (1:np))
+		q0 = view(x, 1:nq)
+		q1 = view(x, nq .+ (1:nq))
 	end
 
-	u1 = u[1:nu]
+	u1 = view(u, 1:nu)
 
-	q2 = f(model.dynamics, q0, q1, u1)
+	q2 = f(model.dynamics, q0, q1, u1, t)
 
 	return [q1; q2; θ]
 end
@@ -60,25 +72,24 @@ function fdx(model::ImplicitDynamics{Midpoint, FixedTime}, x, u, w, h, t)
 	nu = model.dynamics.m.dim.u
 
 	if t == 1
-		θ = u[nu .+ (1:np)]
-		q0 = θ[1:nq]
-		q1 = θ[nq .+ (1:nq)]
+		θ = view(u, nu .+ (1:np))
+		q0 = view(θ, 1:nq)
+		q1 = view(θ, nq .+ (1:nq))
 	else
-		θ = x[2 * nq .+ (1:np)]
-		q0 = x[1:nq]
-		q1 = x[nq .+ (1:nq)]
+		θ = view(x, 2 * nq .+ (1:np))
+		q0 = view(x, 1:nq)
+		q1 = view(x, nq .+ (1:nq))
 	end
 
-	u1 = u[1:nu]
+	u1 = view(u, 1:nu)
 
-	dq2dx1 = fx1(model.dynamics, q0, q1, u1)
+	dq2dx1 = fx1(model.dynamics, q0, q1, u1, t)
 
 	if t == 1
-		return zeros(4 * nq, 2 * nq)
+        return model.cache[:fdx1]
 	else
-		return [zeros(nq, nq) I zeros(nq, 2 * nq);
-				dq2dx1 zeros(nq, 2 * nq);
-				zeros(2 * nq, 2 * nq) I]
+        model.cache[:fdxt][nq .+ (1:nq), 1:2nq] = dq2dx1
+        return model.cache[:fdxt]
 	end
 end
 
@@ -88,31 +99,28 @@ function fdu(model::ImplicitDynamics{Midpoint, FixedTime}, x, u, w, h, t)
 	nu = model.dynamics.m.dim.u
 
 	if t == 1
-		θ = u[nu .+ (1:np)]
-		q0 = θ[1:nq]
-		q1 = θ[nq .+ (1:nq)]
+		θ = view(u, nu .+ (1:np))
+		q0 = view(θ, 1:nq)
+		q1 = view(θ, nq .+ (1:nq))
 	else
-		θ = x[2 * nq .+ (1:np)]
-		q0 = x[1:nq]
-		q1 = x[nq .+ (1:nq)]
+		θ = view(x, 2 * nq .+ (1:np))
+		q0 = view(x, 1:nq)
+		q1 = view(x, nq .+ (1:nq))
 	end
 
-	u1 = u[1:nu]
+	u1 = view(u, 1:nu)
 
-	dq2dx1 = fx1(model.dynamics, q0, q1, u1)
-	dq2du1 = fu1(model.dynamics, q0, q1, u1)
+	dq2dx1 = fx1(model.dynamics, q0, q1, u1, t)
+	dq2du1 = fu1(model.dynamics, q0, q1, u1, t)
 
 	if t == 1
-		return [zeros(nq, nu + nq) I;
-		        dq2du1 dq2dx1;
-				zeros(2 * nq, nu) I]
+        model.cache[:fdu1][nq .+ (1:nq), 1:nu] = dq2du1
+        model.cache[:fdu1][nq .+ (1:nq), nu .+ (1:2nq)] = dq2dx1
+        return model.cache[:fdu1]
 	else
-		return [zeros(nq, nu);
-				dq2du1;
-				zeros(2 * nq, nu)]
+        model.cache[:fdut][nq .+ (1:nq), 1:nu] = dq2du1
+        return model.cache[:fdut]
 	end
-
-	return [zeros(nq, model.m); dq2du1]
 end
 
 # Initial conditions, controls, disturbances
@@ -185,10 +193,9 @@ ul = [-10.0; -10.0]
 uu = [10.0; 10.0]
 p = [t < T ? (t == 1 ? 2 * model_implicit.m + nq + 2 * 2 : (t == 6 ? 2 * model_implicit.m + 0 * model_implicit.n : 2 * model_implicit.m)) : (model_implicit.n - 2) + 2 for t = 1:T]
 info_1 = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model_implicit.m))
-# info_M = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model.m))
 info_t = Dict(:ul => ul, :uu => uu, :inequality => (1:2 * model_implicit.m))
 info_T = Dict(:xT => xT, :inequality => (1:2))
-con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : (t == -1 ? info_M : info_t)) : info_T) for t = 1:T]
+con_set = [StageConstraint(p[t], t < T ? (t == 1 ? info_1 : info_t) : info_T) for t = 1:T]
 
 function c!(c, cons::StageConstraints, x, u, t)
 	T = cons.T
@@ -197,27 +204,25 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		u1 = u[1:model_implicit.m]
+		u1 = view(u, 1:model_implicit.m)
 		c[1:(2 * model_implicit.m)] .= [ul - u1; u1 - uu]
 
 		if t == 1
-			# c[2 * model.m .+ (1:model.n)] .= u[model.m .+ (1:model.n)] - x1
-			c[2 * model_implicit.m .+ (1:nq)] .= u[model_implicit.m .+ (1:nq)] - x1[1:nq]
-			c[2 * model_implicit.m + nq .+ (1:2)] = kinematics(model_implicit.dynamics.m, u[model_implicit.m .+ (1:nq)]) - kinematics(model_implicit.dynamics.m, x1[1:nq])
-			c[2 * model_implicit.m + nq + 2 .+ (1:2)] = kinematics(model_implicit.dynamics.m, u[model_implicit.m + nq .+ (1:nq)]) - kinematics(model_implicit.dynamics.m, x1[nq .+ (1:nq)])
+			c[2 * model_implicit.m .+ (1:nq)] .= view(u, model_implicit.m .+ (1:nq)) - view(x1, 1:nq)
+			c[2 * model_implicit.m + nq .+ (1:2)] = kinematics(model_implicit.dynamics.m,
+                view(u, model_implicit.m .+ (1:nq))) - kinematics(model_implicit.dynamics.m, view(x1, 1:nq))
+			c[2 * model_implicit.m + nq + 2 .+ (1:2)] = kinematics(model_implicit.dynamics.m,
+                view(u, model_implicit.m + nq .+ (1:nq))) - kinematics(model_implicit.dynamics.m, view(x1, nq .+ (1:nq)))
 		end
 
-		# if t == 6
-		# 	c[2 * model.m .+ (1:model.n)] .= x[1:model.n] - xM
-		# end
 	end
+
 	if t == T
 		x_travel = 0.5
-		θ = x[model_implicit.n .+ (1:model_implicit.n)]
+		θ = view(x, model_implicit.n .+ (1:model_implicit.n))
 
 		c[1] = x_travel - (x[1] - θ[1])
 		c[2] = x_travel - (x[nq + 1] - θ[nq + 1])
-		# c[2 .+ (1:model.n)] .= x[1:model.n] - cons.con[T].info[:xT]
 		c[2 .+ (1:3)] = x[1:nq][collect([2, 3, 4])] - θ[1:nq][collect([2, 3, 4])]
 		c[2 + 3 .+ (1:3)] = x[nq .+ (1:nq)][collect([2, 3, 4])] - θ[nq .+ (1:nq)][collect([2, 3, 4])]
 	end
@@ -229,10 +234,12 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-    linesearch = :armijo,
     verbose = false,
-	max_iter = 1000, max_al_iter = 10,
-	ρ_init = 1.0, ρ_scale = 10.0,
+    grad_tol = 1.0e-3,
+	max_iter = 100,
+    max_al_iter = 10,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
 	con_tol = 1.0e-3)
 
 x, u = current_trajectory(prob)

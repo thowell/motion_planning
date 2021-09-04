@@ -4,34 +4,32 @@ using Plots
 include_model("planar_push_block_v3")
 
 # Horizon
-T = 20
+T = 26
 
 # Time step
-tf = 1.0
-h = tf / (T-1)
-
+h = 0.1
 
 # Bounds
 _uu = Inf * ones(model.m)
 _uu[model.idx_u] .= Inf
-_uu[model.idx_u[1:2]] .= 10.0
-_uu[model.idx_λ[1:4]] .= 1.0
+_uu[model.idx_u[1:2]] .= 5.0
+_uu[model.idx_λ[1:4]] .= μ_surface * gravity * h * 0.25
 _ul = zeros(model.m)
 _ul[model.idx_u] .= -Inf
-_ul[model.idx_u[1:2]] .= -10.0
-_ul[model.idx_λ[1:4]] .= 1.0
+_ul[model.idx_u[1:2]] .= -5.0
+_ul[model.idx_λ[1:4]] .= μ_surface * gravity * h * 0.25
 
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-q1 = [0.0, 0.0, 0.0, -2 * r, 0.0]
+q1 = [0.0, 0.0, 0.0, -r - 1.0e-8, 0.0]
 x1 = [q1; q1]
 # qT = [0.0, 0.0, 1.0 * π, 0.0, -r-1.0e-8]
 
 # qT = [1.0, 1.0, π, 0.0, -r-1.0e-8]
 x_goal = 1.0
 y_goal = 0.0
-θ_goal = 1.0 * π
+θ_goal = 0.0 * π
 qT = [x_goal, y_goal, θ_goal, x_goal-r, y_goal-r]
 
 xT = [qT; qT]
@@ -49,10 +47,12 @@ obj_velocity = velocity_objective(
     h = h,
     idx_angle = collect([3]))
 
+_Q_track = [1.0, 1.0, 1.0, 0.1, 0.1]
+Q_track = 1.0 * Diagonal([_Q_track; _Q_track])
 obj_tracking = quadratic_tracking_objective(
-    [Diagonal(1.0 * ones(model.n)) for t = 1:T],
+    [Q_track for t = 1:T],
     # [Diagonal(0.1 * ones(model.m)) for t = 1:T-1],
-	[Diagonal([0.001 * ones(model.nu);
+	[Diagonal([0.1 * ones(model.nu);
 		zeros(model.nc);
 		ones(model.nb);
 		zeros(model.m - model.nu - model.nc - model.nb)]) for t = 1:T-1],
@@ -82,8 +82,15 @@ prob = trajectory_optimization_problem(model,
 # Trajectory initialization
 x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
+for t = 1:T-1
+    if t <= 5
+        u0[t][1:2] = [1.0; 0.0]
+    else
+        u0[t][1:2] .= 0.0
+    end
+end
 
-# Pack trajectories into vector
+# Pack trajectoriesff into vector
 z0 = pack(x0, u0, prob)
 
 #NOTE: may need to run examples multiple times to get good trajectories

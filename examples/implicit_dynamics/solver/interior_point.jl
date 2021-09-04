@@ -123,6 +123,7 @@ mutable struct InteriorPoint{T} <: AbstractIPSolver
     reg_du
     iterations::Int
     opts::InteriorPointOptions
+    z_cache::Vector{Vector{T}}
 end
 
 function interior_point(z, θ;
@@ -177,12 +178,12 @@ function interior_point(z, θ;
         v_du,
         reg_pr, reg_du,
         0,
-        opts)
+        opts,
+        [zero(z) for i = 1:10]) # no need to cache more than 10 realistically
 end
 
 # interior point solver
 function interior_point_solve!(ip::InteriorPoint{T}) where T
-
     # space
     s = ip.s
 
@@ -331,6 +332,8 @@ function interior_point_solve!(ip::InteriorPoint{T}) where T
             end
         end
 
+        ip.z_cache[i] .= copy(z) # cache solution for current barrier
+
         if κ[1] <= κ_tol
             # differentiate solution
             diff_sol && differentiate_solution!(ip)
@@ -354,16 +357,16 @@ function interior_point_solve!(ip::InteriorPoint{T}, z::AbstractVector{T}, θ::A
     interior_point_solve!(ip)
 end
 
-function differentiate_solution!(ip::InteriorPoint)
+function differentiate_solution!(ip::InteriorPoint; z = ip.z)
     s = ip.s
-    z = ip.z
+    # z = ip.z
     θ = ip.θ
     rz = ip.rz
     rθ = ip.rθ
     δz = ip.δz
     δzs = ip.δzs
 
-    κ = ip.κ
+    # κ = ip.κ
 
     ip.methods.rz!(rz, z, θ) #TODO: maybe not needed
     ip.methods.rθ!(rθ, z, θ)

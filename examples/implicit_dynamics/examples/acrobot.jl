@@ -6,24 +6,23 @@ include_implicit_dynamics()
 include_ddp()
 include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/model.jl"))
 
-# build implicit dynamics
+# problem setup
+T = 101
 h = 0.05
 
+# build implicit dynamics
+
 # impact model
-data = dynamics_data(model, h,
+data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
         z_subset_init = 0.1 * ones(4),
-        dyn_opts =  InteriorPointOptions{Float64}(
+        diff_idx = 6,
+        opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 10.0,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 1.0e-3,
-						κ_init = 10.0,
-						diff_sol = true))
+						diff_sol = false))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
@@ -33,21 +32,13 @@ model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.di
 # 		rz_no_impact_array, rθ_no_impact_array;
 #         idx_ineq = collect(1:0),
 # 		z_subset_init = zeros(0),
-#         dyn_opts =  InteriorPointOptions{Float64}(
+#         opts =  InteriorPointOptions{Float64}(
 # 						r_tol = 1.0e-8,
 # 						κ_tol = 0.1,
 # 						κ_init = 0.1,
-# 						diff_sol = false),
-# 		jac_opts =  InteriorPointOptions{Float64}(
-# 						r_tol = 1.0e-8,
-# 						κ_tol = 0.1,
-# 						κ_init = 0.1,
-# 						diff_sol = true))
+# 						diff_sol = false))
 #
 # model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
-
-# problem setup
-T = 101
 
 q0 = [0.0; 0.0]
 q1 = [0.0; 0.0]
@@ -122,8 +113,11 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 # Solve
 @time constrained_ddp_solve!(prob,
     linesearch = :armijo,
-	max_iter = 1000, max_al_iter = 10,
-	ρ_init = 1.0, ρ_scale = 10.0,
+    grad_tol = 1.0e-3,
+	max_iter = 1000,
+    max_al_iter = 10,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
 	con_tol = 0.001)
 
 x, u = current_trajectory(prob)
@@ -143,7 +137,6 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 	xlabel = "time (s)",
 	ylabel = "configuration",
 	title = "acrobot (w/o joint limits)")
-
 	# title = "acrobot (w/ joint limits)")
 
 # show(plt)

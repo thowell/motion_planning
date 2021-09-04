@@ -5,7 +5,11 @@ struct DynamicsData{T}
     z_subset_init::Vector{T}
 	θ_params
 	h::T
+	diff_idx::Int
 end
+
+typeof(view(data.ip_dyn.z, collect(1:data.m.dim.q)))
+typeof(view(data.ip_dyn.δz, collect(1:data.m.dim.q), collect(1:data.m.dim.q)))
 
 function dynamics_data(m, h,
         r!, rz!, rθ!, rz, rθ;
@@ -13,11 +17,12 @@ function dynamics_data(m, h,
         idx_soc = Vector{Int}[],
         z_subset_init = ones(size(rz)[1] - m.dim.q),
 		θ_params = [],
+		diff_idx = -1,
 		dyn_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 0.1,
-						diff_sol = true),
+						diff_sol = false),
 		jac_opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-2,
@@ -52,7 +57,7 @@ function dynamics_data(m, h,
 
 	ip_jac.opts.diff_sol = true
 
-	DynamicsData(m, ip_dyn, ip_jac, z_subset_init, θ_params, h)
+	DynamicsData(m, ip_dyn, ip_jac, z_subset_init, θ_params, h, diff_idx)
 end
 
 function f!(d::DynamicsData, q0, q1, u1, mode = :dynamics)
@@ -74,15 +79,15 @@ function f(d::DynamicsData, q0, q1, u1)
 	return copy(d.ip_dyn.z[1:d.m.dim.q])
 end
 
-function fq0(d::DynamicsData, q0, q1, u1)
-	f!(d, q0, q1, u1, :jacobian)
-	return copy(d.ip_jac.δz[1:d.m.dim.q, 1:d.m.dim.q])
-end
-
-function fq1(d::DynamicsData, q0, q1, u1)
-	f!(d, q0, q1, u1, :jacobian)
-	return copy(d.ip_jac.δz[1:d.m.dim.q, d.m.dim.q .+ (1:d.m.dim.q)])
-end
+# function fq0(d::DynamicsData, q0, q1, u1)
+# 	f!(d, q0, q1, u1, :jacobian)
+# 	return copy(d.ip_jac.δz[1:d.m.dim.q, 1:d.m.dim.q])
+# end
+#
+# function fq1(d::DynamicsData, q0, q1, u1)
+# 	f!(d, q0, q1, u1, :jacobian)
+# 	return copy(d.ip_jac.δz[1:d.m.dim.q, d.m.dim.q .+ (1:d.m.dim.q)])
+# end
 
 function fx1(d::DynamicsData, q0, q1, u1)
 	f!(d, q0, q1, u1, :jacobian)

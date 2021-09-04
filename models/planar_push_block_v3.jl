@@ -90,11 +90,11 @@ contact_corner_offset = @SVector [cc1, cc2, cc3, cc4]
 control_input_offset = @SVector [cu5, cu6, cu7, cu8]
 
 # Parameters
-μ_surface = 1.0  # coefficient of friction
-μ_pusher = 1.0
-g = 9.81
+μ_surface = 0.5  # coefficient of friction
+μ_pusher = 0.5
+gravity = 9.81
 mass_block = 1.0   # mass
-mass_pusher = 0.1
+mass_pusher = 10.0
 J = 1.0 / 12.0 * mass_block * ((2.0 * r)^2 + (2.0 * r)^2)
 
 rnd = 0.01
@@ -237,7 +237,7 @@ end
 model = PlanarPushBlockV3{Discrete, FixedTime}(n, m, d,
 			mass_block, mass_pusher, J,
 			[μ_surface for i = 1:nc], μ_pusher,
-			g,
+			gravity,
 			contact_corner_offset,
 			dim_rnd,
 			rnd,

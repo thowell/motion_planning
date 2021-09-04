@@ -21,8 +21,8 @@ end
 
 # signed distance for a box
 function sd_box(p, dim)
-	q = abs.(p) - dim
-	norm(max.(q, 1.0e-32)) + min(maximum(q), 0.0)
+    q = abs.(p) - dim
+	return norm(max.(q, 1.0e-32)) + min(maximum(q), 0.0)
 end
 
 function sd_2d_box(p, pose, dim, rnd)
@@ -89,19 +89,20 @@ function N_func(model::PlanarPush, q)
     ForwardDiff.jacobian(tmp, q)
 end
 
+function p_func(x)
+    pos = view(x, 1:2)
+    θ = x[3]
+    R = rotation_matrix(θ)
+
+    [(pos + R * model.contact_corner_offset[1])[1:2];
+     (pos + R * model.contact_corner_offset[2])[1:2];
+     (pos + R * model.contact_corner_offset[3])[1:2];
+     (pos + R * model.contact_corner_offset[4])[1:2]]
+end
+
 function P_func(model::PlanarPush, q)
-    function p(x)
-        pos = view(x, 1:2)
-		θ = x[3]
-        R = rotation_matrix(θ)
 
-        [(pos + R * model.contact_corner_offset[1])[1:2];
-         (pos + R * model.contact_corner_offset[2])[1:2];
-		 (pos + R * model.contact_corner_offset[3])[1:2];
-		 (pos + R * model.contact_corner_offset[4])[1:2]]
-    end
-
-    P_block = ForwardDiff.jacobian(p, q)
+    P_block = ForwardDiff.jacobian(p_func, q)
 
 	# pusher block
 	p_block = view(q, 1:3)

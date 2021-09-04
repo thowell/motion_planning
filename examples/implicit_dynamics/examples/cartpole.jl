@@ -8,28 +8,25 @@ include(joinpath(pwd(), "examples/implicit_dynamics/models/cartpole/model.jl"))
 
 # build implicit dynamics
 h = 0.05
+T = 51
 
 # friction model
-data = dynamics_data(model, h,
+data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
+        diff_idx = 3,
         # θ_params = [0.75; 0.75], # fails to reach constraint tolerance
-        θ_params = [0.5; 0.5], # fails to reach constraint tolerance
+        # θ_params = [0.5; 0.5], # fails to reach constraint tolerance
         # θ_params = [0.35; 0.35],
         # θ_params = [0.25; 0.25],
         # θ_params = [0.1; 0.1],
-        # θ_params = [0.01; 0.01],
-        dyn_opts =  InteriorPointOptions{Float64}(
+        θ_params = [0.01; 0.01],
+        opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
 						κ_init = 1.0,
-						diff_sol = false),
-		jac_opts =  InteriorPointOptions{Float64}(
-						r_tol = 1.0e-8,
-						κ_tol = 1.0e-1,
-						κ_init = 1.0,
-						diff_sol = true))
+						diff_sol = false))
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
@@ -50,8 +47,6 @@ model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.di
 # 						diff_sol = true))
 #
 # model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
-
-T = 51
 
 n = model_implicit.n
 nq = model_implicit.dynamics.m.dim.q
@@ -110,7 +105,7 @@ function c!(c, cons::StageConstraints, x, u, t)
 	if t < T
 		ul = cons.con[t].info[:ul]
 		uu = cons.con[t].info[:uu]
-		c .= [ul - u; u - uu]
+		# c .= [ul - u; u - uu]
 	else
 		c .= x - cons.con[T].info[:xT]
 	end
@@ -131,8 +126,11 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 
 # Solve
 @time constrained_ddp_solve!(prob,
-	max_iter = 1000, max_al_iter = 12,
-	ρ_init = 1.0, ρ_scale = 10.0,
+	max_iter = 1000,
+    max_al_iter = 10,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
+    grad_tol = 1.0e-3,
 	con_tol = 0.001)
 
 x, u = current_trajectory(prob)
