@@ -72,7 +72,7 @@ end
 
 function f(d::DynamicsData, q0, q1, u1, t)
 	f!(d, q0, q1, u1, :dynamics)
-	differentiate_solution!(d.ip, z = d.ip.z_cache[d.diff_idx])
+	differentiate_solution!(d.ip, z = (d.diff_idx == -1 ? d.ip.z : d.ip.z_cache[d.diff_idx]))
 	d.δx_cache[t] .= d.δx_view
 	d.δu_cache[t] .= d.δu_view
 	d.z_cache[t] .= d.ip.z

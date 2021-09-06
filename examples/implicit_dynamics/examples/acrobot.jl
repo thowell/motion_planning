@@ -1,6 +1,5 @@
 using Plots
 using Random
-Random.seed!(1)
 
 include_implicit_dynamics()
 include_ddp()
@@ -17,7 +16,12 @@ data = dynamics_data(model, h, T,
         r_func, rz_func, rθ_func, rz_array, rθ_array;
         idx_ineq = idx_ineq,
         z_subset_init = 0.1 * ones(4),
-        diff_idx = 6,
+        # diff_idx = -1, # 630, 67.62
+        # diff_idx = 6, # 582, 133.3
+        # diff_idx = 5, # 206, 9.6
+        diff_idx = 4, # 128.6, 9.2
+        # diff_idx = 3, # failure
+        # diff_idx = 2, # failure
         opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
@@ -53,6 +57,7 @@ n = model_implicit.n
 nq = model_implicit.dynamics.m.dim.q
 m = model_implicit.m
 
+Random.seed!(1) # reset random
 ū = [1.0e-3 * randn(model_implicit.m) for t = 1:T-1]
 w = [zeros(model_implicit.d) for t = 1:T-1]
 
@@ -109,19 +114,37 @@ function c!(c, cons::StageConstraints, x, u, t)
 end
 
 prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
-	analytical_dynamics_derivatives = true)
+    analytical_dynamics_derivatives = true)
 
 # Solve
-@time stats = constrained_ddp_solve!(prob,
-    linesearch = :armijo,
-    grad_tol = 1.0e-3,
-	max_iter = 1000,
-    max_al_iter = 10,
-	ρ_init = 1.0,
-    ρ_scale = 10.0,
-	con_tol = 0.001)
+con_tol = 0.005
+Random.seed!(1) # reset random
+iters = []
+con_check = []
+for i = 1:5
+    ū = [1.0e-3 * randn(model_implicit.m) for t = 1:T-1]
 
-@show ilqr_iterations(stats)
+    prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
+    	analytical_dynamics_derivatives = true)
+
+    @time stats = constrained_ddp_solve!(prob,
+        linesearch = :armijo,
+        α_min = 1.0e-5,
+        obj_tol = 1.0e-3,
+        grad_tol = 1.0e-3,
+    	max_iter = 1000,
+        max_al_iter = 15,
+    	ρ_init = 1.0,
+        ρ_scale = 10.0,
+    	con_tol = con_tol)
+
+    push!(iters, ilqr_iterations(stats))
+    push!(con_check, prob.s_data.c_max <= con_tol)
+end
+iters
+@show all(con_check)
+@show mean(iters)
+@show std(iters)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)

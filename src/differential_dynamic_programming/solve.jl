@@ -1,6 +1,8 @@
 function ddp_solve!(prob::ProblemData;
     max_iter = 10,
+    obj_tol = 1.0e-5,
     grad_tol = 1.0e-5,
+    α_min = 1.0e-5,
     linesearch = :armijo,
     verbose = true,
 	cache = false)
@@ -14,14 +16,17 @@ function ddp_solve!(prob::ProblemData;
 	m_data = prob.m_data
 	s_data = prob.s_data
 
-    stats = Dict(:iters => 0)
-
 	objective!(s_data, m_data, mode = :nominal)
     derivatives!(m_data, mode = :nominal)
     backward_pass!(p_data, m_data, mode = :nominal)
 
+    stats = Dict(:iters => 0)
+    obj_prev = s_data.obj
+
     for i = 1:max_iter
-        forward_pass!(p_data, m_data, s_data, linesearch = linesearch)
+        forward_pass!(p_data, m_data, s_data,
+            α_min = α_min,
+            linesearch = linesearch)
 
         if linesearch != :none
             derivatives!(m_data, mode = :nominal)
@@ -41,6 +46,7 @@ function ddp_solve!(prob::ProblemData;
 			 c_max: $(s_data.c_max)
 			 α: $(s_data.α)")
 		grad_norm < grad_tol && break
+        abs(s_data.obj - obj_prev) < obj_tol ? break : (obj_prev = s_data.obj)
         !s_data.status && break
     end
 
@@ -77,6 +83,8 @@ function constrained_ddp_solve!(prob::ProblemData;
     linesearch = :armijo,
     max_iter = 10,
 	max_al_iter = 5,
+    α_min = 1.0e-5,
+    obj_tol = 1.0e-5,
     grad_tol = 1.0e-5,
 	con_tol = 1.0e-3,
 	con_norm_type = Inf,
@@ -103,7 +111,9 @@ function constrained_ddp_solve!(prob::ProblemData;
 		# primal minimization
 		stats = ddp_solve!(prob,
             linesearch = linesearch,
+            α_min = α_min,
 		    max_iter = max_iter,
+            obj_tol = obj_tol,
 		    grad_tol = grad_tol,
 			cache = cache,
 		    verbose = verbose)

@@ -140,7 +140,7 @@ for i = 1:4
         end
     end
 end
-
+offset = 0.025
 settransform!(vis[:world], Translation(x̄[end-1][1], 0.0, x̄[end-1][3] + offset))
 default_background!(vis)
 

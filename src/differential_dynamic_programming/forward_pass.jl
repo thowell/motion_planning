@@ -1,5 +1,6 @@
 function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData;
     linesearch = :armijo,
+    α_min = 1.0e-5,
     c1 = 1.0e-4,
     c2 = 0.9,
     max_iter = 25)
@@ -24,7 +25,7 @@ function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData
     s_data.α = 1.0
     iter = 1
 
-    while true
+    while s_data.α >= α_min
         iter > max_iter && (@error "forward pass failure", break)
 
         J = Inf
@@ -60,4 +61,5 @@ function forward_pass!(p_data::PolicyData, m_data::ModelData, s_data::SolverData
             iter += 1
         end
     end
+    s_data.α < α_min && (@warn "line search failure")
 end
