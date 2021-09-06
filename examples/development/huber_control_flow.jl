@@ -1,4 +1,4 @@
-using ModelingToolkit
+using Symbolics
 
 @variables a
 function huber(a)

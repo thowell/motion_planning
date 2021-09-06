@@ -127,3 +127,7 @@ function constrained_ddp_solve!(prob::ProblemData;
 
     return stats_al
 end
+
+function ilqr_iterations(stats)
+    sum([s[:iters] for s in stats[:stats_ilqr]])
+end

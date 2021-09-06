@@ -42,9 +42,9 @@ function M_func(model::Hopper2D, q)
 
 function C_func(model::Hopper2D, q, q̇)
 	[0.0,
-    			  (model.mb + model.ml) * model.g,
-    			  0.0,
-    			  0.0]
+	  (model.mb + model.ml) * model.g,
+	  0.0,
+	  0.0]
 end
 
 function ϕ_func(model::Hopper2D, q)

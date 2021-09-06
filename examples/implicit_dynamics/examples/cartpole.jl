@@ -16,12 +16,12 @@ data = dynamics_data(model, h, T,
 		idx_soc = idx_soc,
 		z_subset_init = z_subset_init,
         diff_idx = 3,
-        # θ_params = [0.75; 0.75], # fails to reach constraint tolerance
+        θ_params = [1.0; 1.0], # fails to reach constraint tolerance
         # θ_params = [0.5; 0.5], # fails to reach constraint tolerance
         # θ_params = [0.35; 0.35],
         # θ_params = [0.25; 0.25],
         # θ_params = [0.1; 0.1],
-        θ_params = [0.01; 0.01],
+        # θ_params = [0.01; 0.01],
         opts =  InteriorPointOptions{Float64}(
 						r_tol = 1.0e-8,
 						κ_tol = 1.0e-4,
@@ -125,7 +125,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
 # Solve
-@time constrained_ddp_solve!(prob,
+@time stats = constrained_ddp_solve!(prob,
 	max_iter = 1000,
     max_al_iter = 10,
 	ρ_init = 1.0,
@@ -133,22 +133,94 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
     grad_tol = 1.0e-3,
 	con_tol = 0.001)
 
+@show ilqr_iterations(stats)
+
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
+b = [data.z_cache[t][collect([model.dim.q + 2, model.dim.q + nc + 2])] for t = 1:T-1]
+
+# x_01, u_01, b_01 = x, u, b
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_01.jld2") x_01 u_01 b_01
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_01.jld2") x_01 u_01 b_01
+
+# x_1, u_1, b_1 = x, u, b
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_1.jld2") x_1 u_1 b_1
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_1.jld2") x_1 u_1 b_1
+
+# x_25, u_25, b_25 = x, u, b
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_25.jld2") x_25 u_25 b_25
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_25.jld2") x_25 u_25 b_25
+
+# x_35, u_35, b_35 = x, u, b
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_35.jld2") x_35 u_35 b_35
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/cartpole_35.jld2") x_35 u_35 b_35
+
+# using Plots
+# t = range(0, stop = h * (T - 1), length = T)
+# plot(t, hcat(b_01..., b_01[end])[1, :], linetype = :steppost, color = :magenta, width = 2.0, labels = "")
+# plot!(t, hcat(b_1..., b_1[end])[1, :], linetype = :steppost, color = :orange, width = 2.0, labels = "")
+# plot!(t, hcat(b_25..., b_25[end])[1, :], linetype = :steppost, color = :green, width = 2.0, labels = "")
+# plot!(t, hcat(b_35..., b_35[end])[1, :], linetype = :steppost, color = :cyan, width = 2.0, labels = "")
+#
+# plot(t, hcat(b_01..., b_01[end])[2, :], linetype = :steppost, color = :magenta, width = 2.0, labels = "")
+# plot!(t, hcat(b_1..., b_1[end])[2, :], linetype = :steppost, color = :orange, width = 2.0, labels = "")
+# plot!(t, hcat(b_25..., b_25[end])[2, :], linetype = :steppost, color = :green, width = 2.0, labels = "")
+# plot!(t, hcat(b_35..., b_35[end])[2, :], linetype = :steppost, color = :cyan, width = 2.0, labels = "")
+#
+# using PGFPlots
+# const PGF = PGFPlots
+#
+# plt_b_01_s = PGF.Plots.Linear(t, hcat(b_01..., b_01[end])[1, :],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="0.01")
+#
+# plt_b_1_s = PGF.Plots.Linear(t, hcat(b_1..., b_1[end])[1, :],
+# 	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="0.1")
+#
+# plt_b_25_s = PGF.Plots.Linear(t, hcat(b_25..., b_25[end])[1, :],
+# 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="0.25")
+#
+# plt_b_35_s = PGF.Plots.Linear(t, hcat(b_35..., b_35[end])[1, :],
+# 	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="0.35")
+#
+# plt_b_01_a = PGF.Plots.Linear(t, hcat(b_01..., b_01[end])[2, :],
+# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="0.01")
+#
+# plt_b_1_a = PGF.Plots.Linear(t, hcat(b_1..., b_1[end])[2, :],
+# 	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="0.1")
+#
+# plt_b_25_a = PGF.Plots.Linear(t, hcat(b_25..., b_25[end])[2, :],
+# 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="0.25")
+#
+# plt_b_35_a = PGF.Plots.Linear(t, hcat(b_35..., b_35[end])[2, :],
+# 	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="0.35")
+#
+# a_s = Axis([plt_b_01_s, plt_b_1_s, plt_b_25_s, plt_b_35_s],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="configuration",
+# 	xlabel="time (s)",
+# 	# xlim=(0.0, 5.0),
+# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+#
+# a_a = Axis([plt_b_01_a, plt_b_1_a, plt_b_25_a, plt_b_35_a],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="configuration",
+# 	xlabel="time (s)",
+# 	# xlim=(0.0, 5.0),
+# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+#
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_slider.tikz", a_s, include_preamble=false)
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/cartpole_friction_angle.tikz", a_a, include_preamble=false)
+
+
+plot(hcat(b..., b[end])', linetype = :steppost)
+data.θ_params[1] * (model.mp + model.mc) * model.g * h[1]
+data.θ_params[1] * (model.mp * model.g * model.l) * h[1]
 
 q̄ = state_to_configuration(x̄)
 v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 
-# q̄_friction = q̄
-# v̄_friction = v̄
-# ū_friction = ū
-# q̄_smooth = q̄
-# v̄_smooth = v̄
-# ū_smooth = ū
-# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_friction.jld2" q̄_friction v̄_friction ū_friction
-# @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_friction.jld2"
-# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2" q̄_smooth v̄_smooth ū_smooth
-# @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/cartpole_smooth.jld2"
 
 # t = range(0, stop = h * (length(q̄) - 1), length = length(q̄))
 # plt = plot();

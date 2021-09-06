@@ -27,11 +27,12 @@ data = dynamics_data(model, h, T,
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
 # no impact model
-# data = dynamics_data(model_no_impact, h,
+# data = dynamics_data(model_no_impact, h, T,
 #         r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
 # 		rz_no_impact_array, rθ_no_impact_array;
 #         idx_ineq = collect(1:0),
 # 		z_subset_init = zeros(0),
+#         diff_idx = 1,
 #         opts =  InteriorPointOptions{Float64}(
 # 						r_tol = 1.0e-8,
 # 						κ_tol = 0.1,
@@ -111,7 +112,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
 # Solve
-@time constrained_ddp_solve!(prob,
+@time stats = constrained_ddp_solve!(prob,
     linesearch = :armijo,
     grad_tol = 1.0e-3,
 	max_iter = 1000,
@@ -120,17 +121,23 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
     ρ_scale = 10.0,
 	con_tol = 0.001)
 
+@show ilqr_iterations(stats)
+
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
+λ = [data.z_cache[t][model.dim.q .+ (1:nc)] for t = 1:T-1]
+
+@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
 
 q̄ = state_to_configuration(x̄)
 q2l = -0.5 * π * ones(length(q̄))
 q2u = 0.5 * π * ones(length(q̄))
-t = range(0, stop = h * (length(q̄) - 1), length = length(q̄))
+t = range(0, stop = h * (length(q̄) - 2), length = length(q̄)-1)
 plt = plot();
-plt = plot!(t, q2l, color = :black, width = 2.0, label = "q2 limit lower")
-plt = plot!(t, q2u, color = :black, width = 2.0, label = "q2 limit upper")
-plt = plot!(t, hcat(q̄...)', width = 2.0,
+plt = plot!(t, q2l[2:end], color = :black, width = 2.0, label = "q2 limit lower")
+plt = plot!(t, q2u[2:end], color = :black, width = 2.0, label = "q2 limit upper")
+plt = plot!(t, hcat(q̄[2:end]...)', width = 2.0,
 	color = [:magenta :orange],
 	labels = ["q1" "q2"],
 	legend = :topleft,
@@ -139,11 +146,50 @@ plt = plot!(t, hcat(q̄...)', width = 2.0,
 	title = "acrobot (w/o joint limits)")
 	# title = "acrobot (w/ joint limits)")
 
+λ = [data.z_cache[t][model.dim.q .+ (1:nc)] for t = 1:T-1]
+λ_max = maximum(hcat(λ...))
+plot!(t, ((1.0 / λ_max) * hcat(λ..., λ[end]) .- 0.0 * π)',
+    width = 2.0,
+    color = :cyan, linetype = :steppost)
+
+λ_normalized = ((1.0 / λ_max) * hcat(λ..., λ[end]) .- 0.0 * π)
+
+# using PGFPlots
+# const PGF = PGFPlots
+#
+# plt_q1 = PGF.Plots.Linear(t, hcat(q̄[2:end]...)[1, :],
+# 	mark="none",style="color=magenta, line width = 2pt",legendentry="q1")
+#
+# plt_q2 = PGF.Plots.Linear(t, hcat(q̄[2:end]...)[2, :],
+# 	mark="none",style="color=orange, line width = 2pt",legendentry="q2")
+#
+# plt_ql = PGF.Plots.Linear(t, q2l[2:end],
+# 	mark="none",style="color=black, line width = 2pt, dashed")#,legendentry="qL")
+#
+# plt_qu = PGF.Plots.Linear(t, q2u[2:end],
+# 	mark="none",style="color=black, line width = 2pt, dashed")#,legendentry="qU")
+#
+# plt_l1 = PGF.Plots.Linear(t, λ_normalized[1, :],
+# 	mark="none",style="const plot, color=green, line width = 2pt",legendentry="l1")
+#
+# plt_l2 = PGF.Plots.Linear(t, λ_normalized[2, :],
+# 	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="l2")
+#
+# a = Axis([plt_q1, plt_q2, plt_l1, plt_l2, plt_ql, plt_qu],
+#     axisEqualImage=false,
+#     hideAxis=false,
+# 	ylabel="configuration",
+# 	xlabel="time (s)",
+# 	# xlim=(0.0, 5.0),
+# 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
+#
+# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_configuration.tikz", a, include_preamble=false)
+
 # show(plt)
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_joint_limits.png")
 # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/acrobot_no_joint_limits.png")
 
-plot(hcat(ū..., ū[end])', linetype = :steppost)
+# plot(hcat(ū..., ū[end])', linetype = :steppost)
 
 include(joinpath(pwd(), "models/visualize.jl"))
 include(joinpath(pwd(), "examples/implicit_dynamics/models/double_pendulum/visuals.jl"))

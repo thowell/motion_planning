@@ -50,7 +50,7 @@ nb = nc * nf
 ns = 1
 
 # Parameters
-g = 9.81 # gravity
+gravity = 9.81 # gravity
 μ = 1.0  # coefficient of friction
 mb = 1.0 # body mass
 ml = 0.1  # leg mass
@@ -214,7 +214,7 @@ uU = 100.0 * ones(nu)
 
 model = Hopper{Discrete, FixedTime}(n, m, d,
 			   mb, ml, Jb, Jl,
-			   μ, g,
+			   μ, gravity,
 			   qL, qU,
 			   uL, uU,
 			   nq,

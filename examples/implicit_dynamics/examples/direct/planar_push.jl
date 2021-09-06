@@ -22,19 +22,16 @@ _ul[model.idx_λ[1:4]] .= μ_surface * gravity * h * 0.25
 ul, uu = control_bounds(model, T, _ul, _uu)
 
 # Initial and final states
-q1 = [0.0, 0.0, 0.0, -r - 1.0e-8, 0.0] # straight
-x_goal = 1.0
-y_goal = 0.0
-θ_goal = 0.0 * π
-qT = [x_goal, y_goal, θ_goal, x_goal-r, y_goal-r]
-
-q1 = [0.0, 0.0, 0.0, -r - 1.0e-8, 0.0] # straight
-x_goal = 1.0
-y_goal = 0.0
-θ_goal = 0.0 * π
-qT = [x_goal, y_goal, θ_goal, x_goal-r, y_goal-r]
-
+q1 = [0.0, 0.0, 0.0, -r - 1.0e-8, 0.0]
 x1 = [q1; q1]
+# qT = [0.0, 0.0, 1.0 * π, 0.0, -r-1.0e-8]
+
+# qT = [1.0, 1.0, π, 0.0, -r-1.0e-8]
+x_goal = 1.0
+y_goal = 0.0
+θ_goal = 0.0 * π
+qT = [x_goal, y_goal, θ_goal, x_goal-r, y_goal-r]
+
 xT = [qT; qT]
 xl, xu = state_bounds(model, T, x1 = x1, xT = xT)
 xl[T][4:5] .= -Inf
@@ -123,10 +120,10 @@ visualize!(vis, model,
 plot(hcat(q̄...)', color = :red, width = 1.0, labels = "")
 plot(hcat([ū..., ū[end]]...)[model.idx_u[1:2], :]', linetype = :steppost, color = :black, width = 1.0, labels = "")
 
-q_array = hcat(q...)
-u_array = hcat(u...)
-
-traj = Dict("q" => q_array, "u" => u_array)
+# q_array = hcat(q...)
+# u_array = hcat(u...)
+#
+# traj = Dict("q" => q_array, "u" => u_array)
 
 # using NPZ
 # i = 2

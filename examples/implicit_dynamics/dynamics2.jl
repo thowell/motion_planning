@@ -10,6 +10,7 @@ struct DynamicsData{T}
 	δu_view::SubArray{T,2,Matrix{T},Tuple{Vector{Int},Vector{Int}},false}
 	δx_cache::Vector{Matrix{T}}
 	δu_cache::Vector{Matrix{T}}
+	z_cache::Vector{Vector{T}}
 end
 
 function dynamics_data(m, h, T,
@@ -48,8 +49,11 @@ function dynamics_data(m, h, T,
 	δx_cache = [zeros(m.dim.q, 2 * m.dim.q) for t = 1:T-1]
 	δu_cache = [zeros(m.dim.q, m.dim.u) for t = 1:T-1]
 
+	z_cache = [zero(ip.z) for t = 1:T-1]
+
 	DynamicsData(m, ip, z_subset_init, θ_params, h,
-		diff_idx, x_view, δx_view, δu_view, δx_cache, δu_cache)
+		diff_idx, x_view, δx_view, δu_view, δx_cache, δu_cache,
+		z_cache)
 end
 
 function f!(d::DynamicsData, q0, q1, u1, mode = :dynamics)
@@ -71,7 +75,7 @@ function f(d::DynamicsData, q0, q1, u1, t)
 	differentiate_solution!(d.ip, z = d.ip.z_cache[d.diff_idx])
 	d.δx_cache[t] .= d.δx_view
 	d.δu_cache[t] .= d.δu_view
-
+	d.z_cache[t] .= d.ip.z
 	return d.x_view
 end
 

@@ -95,7 +95,7 @@ ns = 1
 
 # World parameters
 μ = 0.5      # coefficient of friction
-g = 9.81     # gravity
+gravity = 9.81     # gravity
 
 # ~Unitree A1
 # Model parameters
@@ -642,7 +642,7 @@ function maximum_dissipation(model::Quadruped{Discrete, FreeTime}, x⁺, u, h)
 end
 
 model = Quadruped{Discrete, FixedTime}(n, m, d,
-			  g, μ,
+			  gravity, μ,
 			  l_torso, d_torso, m_torso, J_torso,
 			  l_thigh, d_thigh, m_thigh, J_thigh,
 			  l_leg, d_leg, m_leg, J_leg,
@@ -672,17 +672,17 @@ model = Quadruped{Discrete, FixedTime}(n, m, d,
 @variables z_sym[1:model.n]
 l(z) = lagrangian(model, view(z, 1:model.nq), view(z, model.nq .+ (1:model.nq)))
 _l = simplify.(l(z_sym))
-_dL = ModelingToolkit.gradient(_l, z_sym)
+_dL = Symbolics.gradient(_l, z_sym)
 _dLq = view(_dL, 1:model.nq)
 _dLq̇ = view(_dL, model.nq .+ (1:model.nq))
-_ddL = ModelingToolkit.sparsehessian(_l, z_sym)
+_ddL = Symbolics.sparsehessian(_l, z_sym)
 _ddLq̇q = view(_ddL, model.nq .+ (1:model.nq), 1:model.nq)
 
-dL = eval(ModelingToolkit.build_function(_dL, z_sym)[1])
-dLq = eval(ModelingToolkit.build_function(_dLq, z_sym)[1])
-dLq̇ = eval(ModelingToolkit.build_function(_dLq̇, z_sym)[1])
-ddLq̇q = eval(ModelingToolkit.build_function(_ddLq̇q, z_sym)[1])
-ddL = eval(ModelingToolkit.build_function(_ddL, z_sym)[1])
+dL = eval(Symbolics.build_function(_dL, z_sym)[1])
+dLq = eval(Symbolics.build_function(_dLq, z_sym)[1])
+dLq̇ = eval(Symbolics.build_function(_dLq̇, z_sym)[1])
+ddLq̇q = eval(Symbolics.build_function(_ddLq̇q, z_sym)[1])
+ddL = eval(Symbolics.build_function(_ddL, z_sym)[1])
 
 function C_func(model::Quadruped, q, q̇)
 	ddLq̇q([q; q̇]) * q̇ - dLq([q; q̇])

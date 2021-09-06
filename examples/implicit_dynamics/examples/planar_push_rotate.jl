@@ -31,8 +31,6 @@ data = dynamics_data(model, h, T,
 
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
-
-@time fd(model_implicit, x1, ū[1], w[1], h, 1)
 n = model_implicit.n
 m = model_implicit.m
 
@@ -118,13 +116,15 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	analytical_dynamics_derivatives = true)
 
 # Solve
-@time constrained_ddp_solve!(prob,
+@time stats = constrained_ddp_solve!(prob,
 	max_iter = 1000,
     grad_tol = 1.0e-3,
     max_al_iter = 5,
 	ρ_init = 1.0,
     ρ_scale = 10.0,
 	con_tol = 0.001)
+
+@show ilqr_iterations(stats)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
