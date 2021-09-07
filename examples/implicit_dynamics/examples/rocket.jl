@@ -11,7 +11,7 @@ m = model.m
 
 # control limits
 ul = [-5.0; -5.0; 0.0]
-uu = [5.0; 5.0; 12.0]
+uu = [5.0; 5.0; 12.5]
 
 # control projection problem
 m = 3
@@ -85,7 +85,7 @@ ip_con = interior_point(z0, θ0,
 
 opts_jac = InteriorPointOptions(
 	κ_init = 1.0,
-	κ_tol = 1.0e-2,
+	κ_tol = 1.0e-3,
 	r_tol = 1.0e-8,
 	diff_sol = true)
 
@@ -199,7 +199,7 @@ mrpT = MRP(RotZ(0.25 * π) * RotY(0.0))
 xT[4:6] = [mrpT.x; mrpT.y; mrpT.z]
 
 u_ref = [0.0; 0.0; 0.0]#model.mass * 9.81]
-ū = [u_ref + [1.0e-3; 1.0e-3; 1.0e-3] .* randn(model.m) for t = 1:T-1]
+ū = [u_ref + [1.0e-2; 1.0e-2; 1.0e-2] .* randn(model.m) for t = 1:T-1]
 w = [zeros(model.d) for t = 1:T-1]
 
 # Rollout
@@ -274,28 +274,34 @@ u_ref = [0.0; 0.0; 0.0] # model.mass * 9.81]
 ū = [u_ref + [1.0e-2; 1.0e-2; 1.0e-2] .* randn(model.m) for t = 1:T-1]
 
 # Solve
-@time constrained_ddp_solve!(prob,
+@time stats = constrained_ddp_solve!(prob,
     linesearch = :armijo,
-    obj_tol = 1.0e-3,
-    grad_tol = 1.0e-3,
-    α_min = 1.0e-5,
+    α_min = 1.0e-8,
+    obj_tol = 1.0e-5,
+    grad_tol = 1.0e-5,
     max_iter = 1000,
     max_al_iter = 10,
 	con_tol = 0.001,
 	ρ_init = 1.0, ρ_scale = 10.0)
 
+@show ilqr_iterations(stats)
+
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
+u_proj = [soc_projection(ū[t]) for t = 1:T-1]
+umax = maximum(hcat(u_proj...))
 
 x̄_soc = x̄
-ū_soc = ū
-
-# @save "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2" x̄_soc ū_soc
-# @load "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2"
+ū_soc = u_proj# ./ umax # normalize for plotting
+u_norm = u_proj ./ umax
+@save "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2" x̄_soc ū_soc
+@load "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2" x̄_soc ū_soc
 
 all([second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1])
 [second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1]
+
 u_proj = [soc_projection(ū[t]) for t = 1:T-1]
+all([second_order_cone_projection(u_proj[t][idx])[2] for t = 1:T-1])
 
 t = 3
 fd(model, x̄[t], ū[t], zeros(model.d), h, t) - x̄[t+1]
@@ -307,11 +313,11 @@ second_order_cone_projection(ū[t][idx])
 
 # Trajectories
 maximum(hcat(ū...))
-maximum(hcat(u_proj...))
+umax = maximum(hcat(u_proj...))
 
 t = range(0, stop = h * (T-1), length = T)
 # plt = plot(t, hcat(ū..., ū[end])',
-plt = plot(t, hcat(u_proj..., u_proj[end])[1:3, :]',
+plt = plot(t, hcat(ū_soc..., ū_soc[end])[1:3, :]',
 	width = 2.0,
 	color = [:magenta :orange :cyan],
 	title = "rocket soft landing",
@@ -321,6 +327,7 @@ plt = plot(t, hcat(u_proj..., u_proj[end])[1:3, :]',
 	legend = :right,
 	linetype = :steppost)
 
+plot!(t, hcat(ū_nominal..., ū_nominal[end])[1:3, :]', linetype = :steppost)
 # # savefig(plt, "/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.png")
 #
 plot(hcat(x̄...)[1:3, :]', linetype = :steppost)
@@ -427,33 +434,45 @@ setvisible!(vis["/Grid"], false)
 # # 	LinearMap(RotY(0.0))))
 #
 #
-# using PGFPlots
-# const PGF = PGFPlots
-#
-# plt_F1_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[3,:],
-# 	mark="none",style="const plot, color=cyan, line width = 2pt, dashed",legendentry="F1")
-#
-# plt_F2_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[1,:],
-# 	mark="none",style="const plot, color=orange, line width = 2pt, dashed",legendentry="F2")
-#
-# plt_F3_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[2,:],
-# 	mark="none",style="const plot, color=magenta, line width = 2pt, dashed",legendentry="F2")
-#
-# plt_F1_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[3,:],
-# 	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="F1 (soc)")
-#
-# plt_F2_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[1,:],
-# 	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="F2 (soc)")
-#
-# plt_F3_soc = PGF.Plots.Linear(t, hcat(ū_soc..., ū_soc[end])[2,:],
-# 	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="F2 (soc)")
-#
-# a = Axis([plt_F1_soc; plt_F2_soc; plt_F3_soc; plt_F1_smooth; plt_F2_smooth; plt_F3_smooth],
-#     axisEqualImage=false,
-#     hideAxis=false,
-# 	ylabel="control",
-# 	xlabel="time (s)",
-# 	# xlims=(0.0, 2.0),
-# 	legendStyle="{at={(0.5,0.5)},anchor=west}")
-#
-# PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.tikz", a, include_preamble=false)
+using PGFPlots
+const PGF = PGFPlots
+
+@load "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket.jld2" x̄_nominal ū_nominal
+
+plt_F1_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[3,:],
+	mark="none",style="const plot, color=magenta, line width = 1pt")#,legendentry="F1")
+
+plt_F2_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[1,:],
+	mark="none",style="const plot, color=orange, line width = 1pt")#,legendentry="F2")
+
+plt_F3_smooth = PGF.Plots.Linear(t, hcat(ū_nominal..., ū_nominal[end])[2,:],
+	mark="none",style="const plot, color=cyan, line width = 1pt")#,legendentry="F2")
+
+plt_F1_soc = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[3,:],
+	mark="none",style="const plot, color=magenta, line width = 2pt",legendentry="u1")#"(soc)")
+
+plt_F2_soc = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[1,:],
+	mark="none",style="const plot, color=orange, line width = 2pt",legendentry="u2")# (soc)")
+
+plt_F3_soc = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[2,:],
+	mark="none",style="const plot, color=cyan, line width = 2pt",legendentry="u3")# (soc)")
+
+plt_F1_soc_nl = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[3,:],
+	mark="none",style="const plot, color=magenta, line width = 2pt")#,legendentry="F1")#"(soc)")
+
+plt_F2_soc_nl = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[1,:],
+	mark="none",style="const plot, color=orange, line width = 2pt")#,legendentry="F2")# (soc)")
+
+plt_F3_soc_nl = PGF.Plots.Linear(t, hcat(u_norm..., u_norm[end])[2,:],
+	mark="none",style="const plot, color=cyan, line width = 2pt")#,legendentry="F2")# (soc)")
+
+a = Axis([plt_F1_soc; plt_F2_soc; plt_F3_soc; plt_F3_soc_nl; plt_F2_soc_nl; plt_F1_soc_nl],
+    axisEqualImage=false,
+    hideAxis=false,
+	ylabel="control",
+	xlabel="time (s)",
+    xmin = 0.0,
+    xmax = h * (T - 1),
+	legendStyle="{at={(0.5,0.5)},anchor=west}")
+
+PGF.save("/home/taylor/Research/implicit_dynamics_manuscript/figures/rocket_control.tikz", a, include_preamble=false)

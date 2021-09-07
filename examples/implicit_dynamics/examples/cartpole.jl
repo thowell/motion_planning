@@ -197,7 +197,7 @@ b = [data.z_cache[t][collect([model.dim.q + 2, model.dim.q + nc + 2])] for t = 1
 # a_s = Axis([plt_b_01_s, plt_b_1_s, plt_b_25_s, plt_b_35_s],
 #     axisEqualImage=false,
 #     hideAxis=false,
-# 	ylabel="configuration",
+# 	ylabel="friction",
 # 	xlabel="time (s)",
 # 	# xlim=(0.0, 5.0),
 # 	legendStyle="{at={(0.01,0.99)},anchor=north west}")
