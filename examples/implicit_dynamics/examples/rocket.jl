@@ -11,7 +11,7 @@ m = model.m
 
 # control limits
 ul = [-5.0; -5.0; 0.0]
-uu = [5.0; 5.0; 12.5]
+uu = [5.0; 5.0; 12.0]
 
 # control projection problem
 m = 3
@@ -134,7 +134,7 @@ end
 soc_projection_jacobian([10.0, 0.0, 1.0])
 
 function fd(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
-	u_proj = soc_projection(u)
+	u_proj = u#soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
 	# x⁺ = newton(rz, copy(x))
     x⁺ = levenberg_marquardt(rz, copy(x))
@@ -145,7 +145,7 @@ end
 fd(model, ones(model.n), zeros(model.m), zeros(model.d), h, 1)
 
 function fdx(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
-	u_proj = soc_projection(u)
+	u_proj = u#soc_projection(u)
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
     # x⁺ = newton(rz, copy(x))
     x⁺ = levenberg_marquardt(rz, copy(x))
@@ -158,8 +158,8 @@ end
 fdx(model, zeros(model.n), zeros(model.m), zeros(model.d), h, 1)
 
 function fdu(model::Rocket3D{Midpoint, FixedTime}, x, u, w, h, t)
-	u_proj = soc_projection(u)
-	u_proj_jac = soc_projection_jacobian(u)
+	u_proj = u#soc_projection(u)
+	u_proj_jac = I#soc_projection_jacobian(u)
 
 	rz(z) = fd(model, z, x, u_proj, w, h, t) # implicit midpoint integration
     # x⁺ = newton(rz, copy(x))
@@ -276,7 +276,11 @@ ū = [u_ref + [1.0e-2; 1.0e-2; 1.0e-2] .* randn(model.m) for t = 1:T-1]
 # Solve
 @time constrained_ddp_solve!(prob,
     linesearch = :armijo,
-    max_iter = 1000, max_al_iter = 10,
+    obj_tol = 1.0e-3,
+    grad_tol = 1.0e-3,
+    α_min = 1.0e-5,
+    max_iter = 1000,
+    max_al_iter = 10,
 	con_tol = 0.001,
 	ρ_init = 1.0, ρ_scale = 10.0)
 
@@ -286,8 +290,8 @@ x̄, ū = nominal_trajectory(prob)
 x̄_soc = x̄
 ū_soc = ū
 
-# @save "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2" x̄_soc ū_soc
-# @load "/home/taylor/Research/motion_planning/examples/differential_dynamic_programming/implicit_dynamics/rocket_landing_soc.jld2"
+# @save "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2" x̄_soc ū_soc
+# @load "/home/taylor/Research/motion_planning/examples/implicit_dynamics/examples/trajectories/rocket_landing_soc.jld2"
 
 all([second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1])
 [second_order_cone_projection(ū[t][idx])[2] for t = 1:T-1]
