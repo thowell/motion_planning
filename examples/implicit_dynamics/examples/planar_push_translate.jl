@@ -124,12 +124,32 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 	con_tol = 0.001)
 
 @show ilqr_iterations(stats)
+@show objective(obj, prob.m_data.x̄, prob.m_data.ū)
+@show prob.s_data.c_max
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
 q̄ = state_to_configuration(x̄)
 v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
+
+@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate.jld2") x u
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate.jld2") x u
+
+# compute comparable objective
+J = 0.0
+x = x̄
+u = ū
+for t = 1:T
+    if t < T
+        J += x[t]' * Q[t] * x[t] + q[t]' * x[t] + u[t][1:2]' * R[t][1:2, 1:2] * u[t][1:2] + r[t][1:2]' * u[t][1:2]
+    elseif t == T
+        J += x[t]' * Q[t] * x[t] + q[t]' * x[t]
+    else
+        J += 0.0
+    end
+end
+@show J
 
 # vis = Visualizer()
 # render(vis)

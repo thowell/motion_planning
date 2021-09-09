@@ -53,7 +53,7 @@ xu[T][9:10] .= Inf
 # Objective
 include_objective("velocity")
 obj_velocity = velocity_objective(
-    [t > T / 2 ? Diagonal(1.0 * ones(model.nq)) : Diagonal(1.0 * ones(model.nq)) for t = 1:T-1],
+    [Diagonal([1.0, 1.0, 1.0, 0.1, 0.1]) for t = 1:T-1],
     model.nq,
     h = h,
     idx_angle = collect([3]))
@@ -63,9 +63,9 @@ Q_track = 1.0 * Diagonal([_Q_track; _Q_track])
 obj_tracking = quadratic_tracking_objective(
     [Q_track for t = 1:T],
     # [Diagonal(0.1 * ones(model.m)) for t = 1:T-1],
-	[Diagonal([0.1 * ones(model.nu);
+	[Diagonal([1.0e-1 * ones(model.nu);
 		zeros(model.nc);
-		ones(model.nb);
+		zeros(model.nb);
 		zeros(model.m - model.nu - model.nc - model.nb)]) for t = 1:T-1],
     [xT for t = 1:T],
     [zeros(model.m) for t = 1:T])
@@ -93,53 +93,53 @@ prob = trajectory_optimization_problem(model,
 # Trajectory initialization
 x0 = linear_interpolation(x1, xT, T) # linear interpolation on state
 
-Random.seed!(1)
-for i = 1:1
+# Random.seed!(1)
+# for i = 1:1
+# u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
+u0 = [0.1 * ones(model.m) for t = 1:T-1] # random controls
+if MODE == :rotate
     # u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
-    u0 = [0.1 * rand(model.m) for t = 1:T-1] # random controls
-    if MODE == :rotate
-        # u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
-        for t = 1:T-1
-            if t < 5
-                u0[t][1:2] = [1.0; 0.0]
-            elseif t < 10
-                u0[t][1:2] = [0.5; 0.0]
-            else
-                u0[t][1:2] .= 0.0
-            end
-        end
-    elseif MODE == :translate
-        # translation
-        # u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
-        for t = 1:T-1
-            if t < 5
-                u0[t][1:2] = [1.0; 0.0]
-            else
-                u0[t][1:2] .= 0.0
-            end
+    for t = 1:T-1
+        if t < 5
+            u0[t][1:2] = [1.0; 0.0]
+        elseif t < 10
+            u0[t][1:2] = [0.5; 0.0]
+        else
+            u0[t][1:2] .= 0.0
         end
     end
-
-    # Pack trajectoriesff into vector
-    z0 = pack(x0, u0, prob)
-
-    #NOTE: may need to run examples multiple times to get good trajectories
-    # Solve nominal problem
-    @time z̄, info = solve(prob, copy(z0),
-    	tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 2500)
-
-    @show check_slack(z̄, prob)
+elseif MODE == :translate
+    # translation
+    # u0 = [0.1 * randn(model.m) for t = 1:T-1] # random controls
+    for t = 1:T-1
+        if t < 5
+            u0[t][1:2] = [1.0; 0.0]
+        else
+            u0[t][1:2] .= 0.0
+        end
+    end
 end
 
-# translate iters:
-iters = [91, 101, 122, 77, 106]
+# Pack trajectoriesff into vector
+z0 = pack(x0, u0, prob)
+
+#NOTE: may need to run examples multiple times to get good trajectories
+# Solve nominal problem
+@time z̄, info = solve(prob, copy(z0),
+	tol = 1.0e-3, c_tol = 1.0e-3, max_iter = 2500)
+
+@show check_slack(z̄, prob)
+# end
+
+# # translate iters:
+# iters = [91, 101, 122, 77, 106]
+# # mean(iters)
+# # std(iters)
+#
+# # translate + rotation iters:
+# iters = [122, 85, 70, 121, 168]
 # mean(iters)
 # std(iters)
-
-# translate + rotation iters:
-iters = [122, 85, 70, 121, 168]
-mean(iters)
-std(iters)
 
 x̄, ū = unpack(z̄, prob)
 q̄ = state_to_configuration(x̄)
@@ -148,6 +148,12 @@ u = [u[model.idx_u] for u in ū]
 γ = [u[model.idx_λ] for u in ū]
 b = [u[model.idx_b] for u in ū]
 h̄ = h
+
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate_direct.jld2") x̄ ū
+# @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate_direct.jld2") x̄ ū
+
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_rotate_direct.jld2") x̄ ū
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_rotate_direct.jld2") x̄ ū
 
 include(joinpath(pwd(), "models/visualize.jl"))
 vis = Visualizer()

@@ -113,4 +113,4 @@ visualize!(vis, model,
 	Δt = h,
 	scenario = :flip)
 
-@save joinpath(pwd(), "examples/implicit_dynamics/examples/direct/hopper_stand.jld") u_stand
+@save joinpath(pwd(), "examples/implicit_dynamics/examples/comparisons/hopper_stand.jld2") u_stand

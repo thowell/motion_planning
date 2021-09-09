@@ -131,7 +131,7 @@ prob = trajectory_optimization_problem(model,
 
 # Trajectory initialization
 x0 = [[q1; q1] for t = 1:T]
-@load joinpath(pwd(), "examples/implicit_dynamics/examples/direct/hopper_stand.jld") u_stand
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/comparisons/hopper_stand.jld2") u_stand
 u0 = [u_stand[1] for t = 1:T-1]
 
 # Pack trajectories into vector
@@ -143,11 +143,37 @@ z0 = pack(x0, u0, prob)
 
 @time z̄, info = solve(prob, copy(z0),
 	nlp = :ipopt,
-	tol = 1.0e-2, c_tol = 1.0e-2, mapl = 5)
+	tol = 1.0e-3, c_tol = 1.0e-3, mapl = 5)
 
 x̄, ū = unpack(z̄, prob)
-
 @show check_slack(z̄, prob)
+
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_1_direct.jld2") x̄ ū
+# @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_1_direct.jld2") x̄ ū
+
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2_direct.jld2") x̄ ū
+# @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2_direct.jld2") x̄ ū
+
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_3_direct.jld2") x̄ ū
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_3_direct.jld2") x̄ ū
+
+# compute comparable objective
+J = 0.0
+x = x̄
+u = ū
+for t = 1:T
+    if t < T
+        J += x[t]' * Q[t] * x[t] + q[t]' * x[t] + u[t][1:2]' * R[t][1:2, 1:2] * u[t][1:2] + r[t][1:2]' * u[t][1:2]
+    elseif t == T
+        J += x[t]' * Q[t] * x[t] + q[t]' * x[t]
+    else
+        J += 0.0
+    end
+end
+@show J
+
+plot(hcat(ū...)[1:2, :]', linetype = :steppost)
+
 
 using Plots
 t = range(0, stop = h * (T - 1), length = T)

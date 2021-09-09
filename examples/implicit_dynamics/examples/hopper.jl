@@ -142,7 +142,7 @@ x̄ = rollout(model_implicit, x1, ū_stand, w, h, T)
 
 # Objective
 
-# # gait 1
+# gait 1
 # Q = [(t == 1 ? 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0])
 # 	: t == T ? Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; zeros(model_implicit.n)])
 # 	: 0.1 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0; zeros(model_implicit.n)])) for t = 1:T]
@@ -150,13 +150,13 @@ x̄ = rollout(model_implicit, x1, ū_stand, w, h, T)
 # R = [t == 1 ? Diagonal([1.0e-1 * ones(model_implicit.m); 1.0e-1 * ones(nq); 1.0e-5 * ones(nq)]) : Diagonal(1.0e-1 * ones(model_implicit.m)) for t = 1:T-1]
 # r = [t == 1 ? [zeros(model_implicit.m); -2.0 * R[t][1:nq, 1:nq] * x1[1:nq]; zeros(nq)] : zeros(model_implicit.m) for t = 1:T-1]
 
-# # gait 2
-Q = [(t == 1 ? 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0])
-	: t == T ? Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; zeros(model_implicit.n)])
-	: 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0; zeros(model_implicit.n)])) for t = 1:T]
-q = [t == 1 ? -2.0 * Q[t] * (t < 6 ? x_ref : x_ref) : -2.0 * Q[t] * [(t < 6 ? x_ref : x_ref); zeros(model_implicit.n)] for t = 1:T]
-R = [t == 1 ? Diagonal([1.0 * ones(model_implicit.m); 1.0e-1 * ones(nq); 1.0e-5 * ones(nq)]) : Diagonal(1.0 * ones(model_implicit.m)) for t = 1:T-1]
-r = [t == 1 ? [zeros(model_implicit.m); -2.0 * R[t][1:nq, 1:nq] * x1[1:nq]; zeros(nq)] : zeros(model_implicit.m) for t = 1:T-1]
+# gait 2
+# Q = [(t == 1 ? 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0])
+# 	: t == T ? Diagonal([1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; 1.0; zeros(model_implicit.n)])
+# 	: 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0; zeros(model_implicit.n)])) for t = 1:T]
+# q = [t == 1 ? -2.0 * Q[t] * (t < 6 ? x_ref : x_ref) : -2.0 * Q[t] * [(t < 6 ? x_ref : x_ref); zeros(model_implicit.n)] for t = 1:T]
+# R = [t == 1 ? Diagonal([1.0 * ones(model_implicit.m); 1.0e-1 * ones(nq); 1.0e-5 * ones(nq)]) : Diagonal(1.0 * ones(model_implicit.m)) for t = 1:T-1]
+# r = [t == 1 ? [zeros(model_implicit.m); -2.0 * R[t][1:nq, 1:nq] * x1[1:nq]; zeros(nq)] : zeros(model_implicit.m) for t = 1:T-1]
 
 # gait 3
 Q = [(t == 1 ? 1.0 * Diagonal([1.0; 10.0; 1.0; 10.0; 1.0; 10.0; 1.0; 10.0])
@@ -231,7 +231,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū_stand), w,
 
 # Solve
 @time stats = constrained_ddp_solve!(prob,
-    verbose = false,
+    verbose = true,
     grad_tol = 1.0e-3,
 	max_iter = 100,
     max_al_iter = 10,
@@ -240,15 +240,31 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū_stand), w,
 	con_tol = 1.0e-3)
 
 @show ilqr_iterations(stats)
+@show objective(obj, prob.m_data.x̄, prob.m_data.ū)
+@show prob.s_data.c_max
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
+J = 0.0
+x = x̄
+u = ū
+for t = 1:T
+    if t < T
+        J += x[t][1:8]' * Q[t][1:8, 1:8] * x[t][1:8] + q[t][1:8]' * x[t][1:8] + u[t][1:2]' * R[t][1:2, 1:2] * u[t][1:2] + r[t][1:2]' * u[t][1:2]
+    elseif t == T
+        J += x[t][1:8]' * Q[t][1:8, 1:8] * x[t][1:8] + q[t][1:8]' * x[t][1:8]
+    else
+        J += 0.0
+    end
+end
+@show J
+
 # @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_1.jld2") x u
 # @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_1.jld2") x u
 
-@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2.jld2") x u
-@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2.jld2") x u
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2.jld2") x u
+# @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_2.jld2") x u
 
 # @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_3.jld2") x u
 # @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/hopper_gait_3.jld2") x u
