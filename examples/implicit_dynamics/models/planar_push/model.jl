@@ -19,6 +19,10 @@ struct PlanarPush{T}
 	block_rnd
 end
 
+function rotation_matrix(x)
+	SMatrix{2,2}([cos(x) -sin(x); sin(x) cos(x)])
+end
+
 # signed distance for a box
 function sd_box(p, dim)
 	q = abs.(p) - dim
@@ -63,10 +67,6 @@ function C_func(model::PlanarPush, q, q̇)
 	SVector{5}([0.0, 0.0, 0.0, 0.0, 0.0])
 end
 
-function rotation_matrix(x)
-	SMatrix{2,2}([cos(x) -sin(x); sin(x) cos(x)])
-end
-
 function ϕ_func(model::PlanarPush, q)
     p_block = view(q, 1:3)
 	p_pusher = view(q, 4:5)
@@ -97,8 +97,6 @@ function P_func(model::PlanarPush, q)
            0. 1.;
            -1. 0.;
            0. -1.]
-
-
 
     function p(x)
         pos = view(x, 1:2)
@@ -172,6 +170,7 @@ model = PlanarPush(Dimensions(nq, nu, 0, nc),
 			gravity,
 			contact_corner_offset,
 			dim_rnd,
+            # [r_dim, r_dim],
 			rnd)
 
 function lagrangian_derivatives(model, q, v)
@@ -180,7 +179,6 @@ function lagrangian_derivatives(model, q, v)
 	return D1L, D2L
 end
 
-N_func(model, ones(nq))' * ones(5)[end:end]
 function dynamics(model::PlanarPush, h, q0, q1, u1, λ1, q2)
 	qm1 = 0.5 * (q0 + q1)
     vm1 = (q1 - q0) / h[1]

@@ -133,7 +133,7 @@ x̄, ū = nominal_trajectory(prob)
 q̄ = state_to_configuration(x̄)
 v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 
-@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate.jld2") x u
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate.jld2") x u
 @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_translate.jld2") x u
 
 # compute comparable objective

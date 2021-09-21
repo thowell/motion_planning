@@ -1,4 +1,12 @@
 # motion_planning
+Collection of algorithms, examples, and experiments for robotic motion planning.
+
+## installation
+From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
+```julia
+pkg> add https://github.com/thowell/motion_planning
+```
+Additionally, once the package is activated and instantiated, set the environment and module to ```motion_planning``` in order to run scripts.
 
 ## contact-implicit trajectory optimization examples
 
@@ -51,14 +59,16 @@ We generate reference trajectories for the examples in [Linear Contact-Implicit 
 - [X] [spring flamingo gait](examples/contact_implicit/flamingo_gait_1_step.jl)
 - [X] hopper parkour: [stairs](examples/contact_implicit/hopper_stairs.jl), [flip](examples/contact_implicit/hopper_flip.jl)
 
-## implicit dynamics examples
+## optimization-based dynamics examples
+<img src="examples/animations/obd/planar_push_rotate.gif" alt="drawing" width="200"/>
 
+Examples from [Trajectory Optimization with Optimization-Based Dynamics](https://arxiv.org/abs/2109.04928).
 - [X] acrobot
 - [X] cartpole
 - [X] rocket
-- [X] ball-in-cup
 - [X] planar push
 - [X] hopper
+- [ ] centroidal quadruped
 
 ## classic examples
 
@@ -97,13 +107,10 @@ linearized friction cone
 second-order friction cone
 - [X] particle
 
-## installation
-From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
-```julia
-pkg> add https://github.com/thowell/motion_planning
-```
-
 ## TODO
+- [ ] optimization-based dynamics examples
+	- [ ] clean up 
+	- [ ] centroidal quadruped
 - [X] direct policy optimization implementation
 	- [ ] update paper visualizations
 	- [X] save TO and DPO trajectories

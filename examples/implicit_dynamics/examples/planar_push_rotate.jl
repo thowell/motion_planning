@@ -131,7 +131,7 @@ prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 
-@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_rotate.jld2") x u
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_rotate.jld2") x u
 @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/planar_push_rotate.jld2") x u
 
 # compute comparable objective
@@ -149,13 +149,16 @@ for t = 1:T
 end
 @show J
 
-q̄ = state_to_configuration(x̄)
+q̄ = state_to_configuration(x)
 v̄ = [(q̄[t+1] - q̄[t]) ./ h for t = 1:length(q̄)-1]
 
 vis = Visualizer()
 render(vis)
 open(vis)
-visualize!(vis, model, q̄, Δt = h, r = r_dim, r_pusher = 0.25 * r_dim)
+visualize!(vis, model,
+    # q̄,
+    [[q̄[1] for i = 1:15]..., q̄..., [q̄[end] for i = 1:15]...],
+    Δt = h, r = r_dim, r_pusher = 0.25 * r_dim)
 default_background!(vis)
 settransform!(vis["/Cameras/default"],
     compose(Translation(0.0, 0.0, 50.0), LinearMap(RotZ(0.5 * pi) * RotY(-pi/2.5))))

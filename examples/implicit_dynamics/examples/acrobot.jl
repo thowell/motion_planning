@@ -31,19 +31,19 @@ data = dynamics_data(model, h, T,
 model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model.dim.q, model.dim.u, 0, data)
 
 # no impact model
-# data = dynamics_data(model_no_impact, h, T,
-#         r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
-# 		rz_no_impact_array, rθ_no_impact_array;
-#         idx_ineq = collect(1:0),
-# 		z_subset_init = zeros(0),
-#         diff_idx = 1,
-#         opts =  InteriorPointOptions{Float64}(
-# 						r_tol = 1.0e-8,
-# 						κ_tol = 0.1,
-# 						κ_init = 0.1,
-# 						diff_sol = false))
-#
-# model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
+data = dynamics_data(model_no_impact, h, T,
+        r_no_impact_func, rz_no_impact_func, rθ_no_impact_func,
+		rz_no_impact_array, rθ_no_impact_array;
+        idx_ineq = collect(1:0),
+		z_subset_init = zeros(0),
+        diff_idx = -1,
+        opts =  InteriorPointOptions{Float64}(
+						r_tol = 1.0e-8,
+						κ_tol = 0.1,
+						κ_init = 0.1,
+						diff_sol = false))
+
+model_implicit = ImplicitDynamics{Midpoint, FixedTime}(2 * model_no_impact.dim.q, model_no_impact.dim.u, 0, data)
 
 q0 = [0.0; 0.0]
 q1 = [0.0; 0.0]
@@ -121,39 +121,42 @@ con_tol = 0.005
 Random.seed!(1) # reset random
 iters = []
 con_check = []
-for i = 1:5
-    ū = [1.0e-3 * randn(model_implicit.m) for t = 1:T-1]
+# for i = 1:5
+ū = [1.0e-3 * randn(model_implicit.m) for t = 1:T-1]
 
-    prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
-    	analytical_dynamics_derivatives = true)
+prob = problem_data(model_implicit, obj, con_set, copy(x̄), copy(ū), w, h, T,
+	analytical_dynamics_derivatives = true)
 
-    @time stats = constrained_ddp_solve!(prob,
-        linesearch = :armijo,
-        α_min = 1.0e-5,
-        obj_tol = 1.0e-3,
-        grad_tol = 1.0e-3,
-    	max_iter = 1000,
-        max_al_iter = 15,
-    	ρ_init = 1.0,
-        ρ_scale = 10.0,
-    	con_tol = con_tol)
+@time stats = constrained_ddp_solve!(prob,
+    linesearch = :armijo,
+    α_min = 1.0e-5,
+    obj_tol = 1.0e-3,
+    grad_tol = 1.0e-3,
+	max_iter = 1000,
+    max_al_iter = 15,
+	ρ_init = 1.0,
+    ρ_scale = 10.0,
+	con_tol = con_tol)
 
-    push!(iters, ilqr_iterations(stats))
-    push!(con_check, prob.s_data.c_max <= con_tol)
-end
-iters
-@show all(con_check)
-@show mean(iters)
-@show std(iters)
+# push!(iters, ilqr_iterations(stats))
+# push!(con_check, prob.s_data.c_max <= con_tol)
+# end
+
+# @show all(con_check)
+# @show mean(iters)
+# @show std(iters)
 
 x, u = current_trajectory(prob)
 x̄, ū = nominal_trajectory(prob)
 λ = [data.z_cache[t][model.dim.q .+ (1:nc)] for t = 1:T-1]
 
-@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
-@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
+# @save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
+# @load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot.jld2") x u λ
 
-q̄ = state_to_configuration(x̄)
+@save joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot_no_limits.jld2") x u
+@load joinpath(pwd(), "examples/implicit_dynamics/examples/trajectories/acrobot_no_limits.jld2") x u
+
+q̄ = state_to_configuration(x)
 q2l = -0.5 * π * ones(length(q̄))
 q2u = 0.5 * π * ones(length(q̄))
 t = range(0, stop = h * (length(q̄) - 2), length = length(q̄)-1)
@@ -225,7 +228,12 @@ settransform!(vis["/Cameras/default"],
 setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 30)
 setvisible!(vis["/Grid"], false)
 
-visualize_elbow!(vis, model, q̄, Δt = h)
+visualize_elbow!(vis, model,
+    # q̄,
+    [[q̄[1] for i = 1:50]..., q̄..., [q̄[end] for i = 1:50]...],
+    # limit_color = RGBA(0.0, 1.0, 0.0, 1.0),
+    limit_color = RGBA(1.0, 0.0, 0.0, 1.0),
+    Δt = h)
 #
 # # ghost
 # limit_color = [1.0, 0.0, 0.0]

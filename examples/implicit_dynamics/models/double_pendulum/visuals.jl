@@ -158,6 +158,7 @@ function visualize_elbow!(vis, model::DoublePendulum, x;
     _create_acrobot!(vis, model,
         tl = tl,
         color = color,
+        limit_color = limit_color,
         i = i,
         r = r)
 
