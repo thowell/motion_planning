@@ -50,7 +50,7 @@ end
 # Dimensions
 nq = 7 # configuration dimension
 nu = 4 # control dimension
-nc = 8 # number of contact points
+nc = 8 + 4 # number of contact points
 nf = 2 # number of faces for friction cone pyramid
 nb = nc * nf
 ns = 1
@@ -90,8 +90,8 @@ contact_corner_offset = @SVector [cc1, cc2, cc3, cc4]
 # control_input_offset = @SVector [cu5, cu6, cu7, cu8]
 
 # Parameters
-μ_surface = 0.1  # coefficient of friction
-μ_pusher = 0.5
+μ_surface = 0.7  # coefficient of friction
+μ_pusher = 0.7
 g = 9.81
 mass_block = 1.0   # mass
 mass_pusher = 10.0
@@ -100,12 +100,14 @@ J = 1.0 / 12.0 * mass_block * ((2.0 * r)^2 + (2.0 * r)^2)
 rnd = 0.01
 dim = [r, r]
 
+x_wall = 2 * r
+
 # Methods
 M_func(model::BimanipulationBlockV2, q) = Diagonal(@SVector [model.mass_block, model.mass_block,
 	model.J, model.mass_pusher, model.mass_pusher, model.mass_pusher, model.mass_pusher])
 
 function C_func(model::BimanipulationBlockV2, q, q̇)
-	SVector{7}([0.0, model.mass_block * model.g, 0.0, 0.0, 0.0, 0.0, 0.0])
+	SVector{7}([0.0 * model.mass_block * model.g, 1.0 * model.mass_block * model.g, 0.0, 0.0, 0.0, 0.0, 0.0])
 end
 
 function rotation_matrix(x)
@@ -120,10 +122,16 @@ function ϕ_func(model::BimanipulationBlockV2, q)
 	θ = q[3]
     R = rotation_matrix(θ)
 
+    x_wall = 2 * r
+
 	@SVector [(p_block[1:2] + R * model.contact_corner_offset[1])[2],
               (p_block[1:2] + R * model.contact_corner_offset[2])[2],
               (p_block[1:2] + R * model.contact_corner_offset[3])[2],
               (p_block[1:2] + R * model.contact_corner_offset[4])[2],
+              x_wall - (p_block[1:2] + R * model.contact_corner_offset[1])[1],
+              x_wall - (p_block[1:2] + R * model.contact_corner_offset[2])[1],
+              x_wall - (p_block[1:2] + R * model.contact_corner_offset[3])[1],
+              x_wall - (p_block[1:2] + R * model.contact_corner_offset[4])[1],
 			  q[5],
 			  q[7],
 			  sd_2d_box(p_pusher1, p_block, model.block_dim, model.block_rnd),
@@ -161,10 +169,16 @@ function P_func(model::BimanipulationBlockV2, q)
 		θ = x[3]
         R = rotation_matrix(θ)
 
-        [map1 * (pos + R * model.contact_corner_offset[1])[1];
+        [
+         map1 * (pos + R * model.contact_corner_offset[1])[1];
          map1 * (pos + R * model.contact_corner_offset[2])[1];
          map1 * (pos + R * model.contact_corner_offset[3])[1];
-         map1 * (pos + R * model.contact_corner_offset[4])[1]]
+         map1 * (pos + R * model.contact_corner_offset[4])[1];
+         map1 * (pos + R * model.contact_corner_offset[1])[2];
+         map1 * (pos + R * model.contact_corner_offset[2])[2];
+         map1 * (pos + R * model.contact_corner_offset[3])[2];
+         map1 * (pos + R * model.contact_corner_offset[4])[2]
+        ]
     end
 
     P_block = ForwardDiff.jacobian(p, q)
@@ -204,14 +218,20 @@ function friction_cone(model::BimanipulationBlockV2,u)
     λ = u[model.idx_λ]
     b = u[model.idx_b]
 
-    @SVector [model.μ_surface[1] * λ[1] - sum(b[1:2]),
+    @SVector [
+              model.μ_surface[1] * λ[1] - sum(b[1:2]),
               model.μ_surface[2] * λ[2] - sum(b[3:4]),
               model.μ_surface[3] * λ[3] - sum(b[5:6]),
               model.μ_surface[4] * λ[4] - sum(b[7:8]),
 			  model.μ_surface[5] * λ[5] - sum(b[9:10]),
 			  model.μ_surface[6] * λ[6] - sum(b[11:12]),
-			  model.μ_pusher * λ[7] - sum(b[13:14]),
-			  model.μ_pusher * λ[8] - sum(b[15:16])]
+              model.μ_surface[7] * λ[7] - sum(b[13:14]),
+              model.μ_surface[8] * λ[8] - sum(b[15:16]),
+              model.μ_surface[9] * λ[9] - sum(b[17:18]),
+              model.μ_surface[10] * λ[10] - sum(b[19:20]),
+			  model.μ_pusher * λ[11] - sum(b[21:22]),
+			  model.μ_pusher * λ[12] - sum(b[23:24])
+             ]
 end
 
 function maximum_dissipation(model::BimanipulationBlockV2, x⁺, u, h)
@@ -226,7 +246,11 @@ function maximum_dissipation(model::BimanipulationBlockV2, x⁺, u, h)
 			   ψ[5] * ones(2);
 			   ψ[6] * ones(2);
 			   ψ[7] * ones(2);
-			   ψ[8] * ones(2)]
+			   ψ[8] * ones(2)
+               ψ[9] * ones(2)
+               ψ[10] * ones(2)
+               ψ[11] * ones(2)
+               ψ[12] * ones(2)]
 
     η = u[model.idx_η]
 
@@ -260,8 +284,8 @@ function fd(model::BimanipulationBlockV2{Discrete, FixedTime}, x⁺, x, u, w, h,
 	[q2⁺ - q2⁻;
      (0.5 * h * D1L1 + D2L1 + 0.5 * h * D1L2 - D2L2
      + B_func(model, qm2) * SVector{4}(u_ctrl[1:4])
-     + transpose(N_func(model, q3)) * SVector{8}(λ)
-     + transpose(P_func(model, q3)) * SVector{16}(b))]
+     + transpose(N_func(model, q3)) * SVector{12}(λ)
+     + transpose(P_func(model, q3)) * SVector{24}(b))]
 end
 
 model = BimanipulationBlockV2{Discrete, FixedTime}(n, m, d,
@@ -293,11 +317,11 @@ function visualize!(vis, model::BimanipulationBlockV2, q, u; r = r,
 
     setobject!(vis["pusher1"], Sphere(Point3f0(0),
         convert(Float32, 0.01)),
-        MeshPhongMaterial(color = RGBA(1.0, 1.0, 0, 1.0)))
+        MeshPhongMaterial(color = RGBA(1.0, 0.0, 0, 1.0)))
 
-    setobject!(vis["pusher2"], Sphere(Point3f0(0),
-        convert(Float32, 0.01)),
-        MeshPhongMaterial(color = RGBA(1.0, 1.0, 0, 1.0)))
+    # setobject!(vis["pusher2"], Sphere(Point3f0(0),
+    #     convert(Float32, 0.01)),
+    #     MeshPhongMaterial(color = RGBA(1.0, 0.0, 0, 1.0)))
 
     # for i = 1:4
     #     setobject!(vis["contact$i"], GeometryBasics.Sphere(Point3f0(0),
@@ -368,8 +392,8 @@ function visualize!(vis, model::BimanipulationBlockV2, q, u; r = r,
             settransform!(vis["pusher1"],
 				compose(Translation(q[t+1][4], 0.0, q[t+1][5]), LinearMap(RotY(0.0))))
 
-            settransform!(vis["pusher2"],
-                compose(Translation(q[t+1][6], 0.0, q[t+1][7]), LinearMap(RotY(0.0))))
+            # settransform!(vis["pusher2"],
+            #     compose(Translation(q[t+1][6], 0.0, q[t+1][7]), LinearMap(RotY(0.0))))
             #
             # for i = 1:4
             #     settransform!(vis["contact$i"],
@@ -381,6 +405,10 @@ function visualize!(vis, model::BimanipulationBlockV2, q, u; r = r,
 	settransform!(vis["/Cameras/default"],
 		compose(Translation(0.0, -90.0, -1.0),LinearMap(RotZ(pi / 2.0))))
 	setprop!(vis["/Cameras/default/rotated/<object>"], "zoom", 75)
+
+    setobject!(vis["wall"],
+        Rect(Vec(0, 0, 0),Vec(2 * r, 1.0, 4 * r)), MeshPhongMaterial(color = RGBA(0.7, 0.7, 0.7, 1.0)))
+    settransform!(vis["wall"], Translation(2 * r, 0.0, 0.0))
 
     MeshCat.setanimation!(vis, anim)
 end

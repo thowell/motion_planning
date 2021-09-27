@@ -365,7 +365,6 @@ for t = 1:T-1
 		zeros(model.d), h, t)) 
 end
 
-
 plt = plot(hcat(x_roll...)',
 	width = 2.0,
 	color = [:cyan :orange],

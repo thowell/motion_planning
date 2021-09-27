@@ -123,10 +123,10 @@ visualize!(vis, model,
 plot(hcat(q̄...)', color = :red, width = 1.0, labels = "")
 plot(hcat([ū..., ū[end]]...)[model.idx_u[1:2], :]', linetype = :steppost, color = :black, width = 1.0, labels = "")
 
-q_array = hcat(q...)
-u_array = hcat(u...)
+# q_array = hcat(q...)
+# u_array = hcat(u...)
 
-traj = Dict("q" => q_array, "u" => u_array)
+# traj = Dict("q" => q_array, "u" => u_array)
 
 # using NPZ
 # i = 2

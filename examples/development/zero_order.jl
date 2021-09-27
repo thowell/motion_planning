@@ -85,12 +85,12 @@ f(x) = x^2.0 + 0.1 * sin(20.0 * x)
 ∇f(x) = 2.0 * x + 2.0 * cos(20.0 * x)
 
 # initial point
-x0 = -1.0
+x0 = -0.75
 
 # gradient descent
 x_sol = gd(x0, iters=1000,
            σ=[0.5, 0.25, 0.1, 0.01, 0.001],
-           mode=:zero_order_gradient)
+           mode=:smooth_gradient)
 
 # example 2
 function f(x)
