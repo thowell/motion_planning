@@ -50,10 +50,10 @@ motion planning
 - [X] quadrotor
 - [x] biped
 
-## linear contact-implicit model-predictive control examples
+## contact-implicit model-predictive control examples
 <img src="examples/animations/flamingo_steps.gif" alt="drawing" width="200"/>
 
-We generate reference trajectories for the examples in [Linear Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
+We generate reference trajectories for the examples in [Contact-Implicit Model-Predictive Control](https://arxiv.org/abs/2107.05616).
 
 - [X] [quadruped gait](examples/contact_implicit/quadruped_gait_1_step.jl)
 - [X] [spring flamingo gait](examples/contact_implicit/flamingo_gait_1_step.jl)
