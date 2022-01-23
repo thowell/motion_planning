@@ -1,5 +1,5 @@
 # motion_planning
-Collection of algorithms, examples, and experiments for robotic motion planning.
+This repository contains algorithm and model experiments for robot motion planning. The code is very much prototype caliber and is intended for rapid sharing with collaborators. Feel free to contact me if you are interested in any of the examples or have difficulty installing or running the scripts.
 
 ## installation
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
